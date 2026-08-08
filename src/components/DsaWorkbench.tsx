@@ -1,239 +1,419 @@
-import { useMemo, useState } from "react";
-import { Play, RefreshCcw, StepForward } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  Pause,
+  Play,
+  RefreshCcw,
+  RotateCcw,
+} from "lucide-react";
+import {
+  createSortFrames,
+  createTraversalFrames,
+  graphEdges,
+  graphNodes,
+  makeDemoArray,
+  type GraphNode,
+  type SortAlgorithm,
+  type TraversalMode,
+} from "../dsa/algorithms";
 
 type DsaTab = "sorting" | "graph";
-type Algorithm = "Bubble Sort" | "Selection Sort" | "Insertion Sort";
-type Traversal = "BFS" | "DFS";
 
 interface DsaWorkbenchProps {
   activeTab: DsaTab;
   onTabChange: (tab: DsaTab) => void;
+  reduceMotion: boolean;
 }
 
-const graph = {
-  0: [1, 2],
-  1: [0, 3],
-  2: [0, 3, 5],
-  3: [1, 2],
-  5: [2],
-} as const;
-
-function makeArray(size: number) {
-  return Array.from({ length: size }, (_, index) => ((index * 7 + size * 3) % 9) + 1);
-}
+const graphPositions: Record<GraphNode, { x: number; y: number }> = {
+  A: { x: 350, y: 62 },
+  B: { x: 185, y: 170 },
+  C: { x: 515, y: 170 },
+  D: { x: 92, y: 332 },
+  E: { x: 350, y: 320 },
+  F: { x: 608, y: 332 },
+};
 
 function clampSize(value: number) {
   if (!Number.isFinite(value)) return 8;
-  return Math.min(10, Math.max(4, Math.round(value)));
+  return Math.min(12, Math.max(4, Math.round(value)));
 }
 
-function nextSortStep(values: number[], cursor: number, algorithm: Algorithm) {
-  const next = [...values];
-  let swapped = false;
-
-  if (algorithm === "Bubble Sort") {
-    const left = cursor % Math.max(1, next.length - 1);
-    const right = left + 1;
-    if (next[left] > next[right]) {
-      [next[left], next[right]] = [next[right], next[left]];
-      swapped = true;
-    }
-    return { next, compared: [left, right], swapped };
-  }
-
-  if (algorithm === "Selection Sort") {
-    const pass = cursor % Math.max(1, next.length - 1);
-    let minIndex = pass;
-    for (let index = pass + 1; index < next.length; index += 1) {
-      if (next[index] < next[minIndex]) minIndex = index;
-    }
-    if (minIndex !== pass) {
-      [next[pass], next[minIndex]] = [next[minIndex], next[pass]];
-      swapped = true;
-    }
-    return { next, compared: [pass, minIndex], swapped };
-  }
-
-  const index = (cursor % Math.max(1, next.length - 1)) + 1;
-  const value = next[index];
-  let scan = index - 1;
-  while (scan >= 0 && next[scan] > value) {
-    next[scan + 1] = next[scan];
-    scan -= 1;
-    swapped = true;
-  }
-  next[scan + 1] = value;
-  return { next, compared: [Math.max(0, scan + 1), index], swapped };
-}
-
-function traverse(start: keyof typeof graph, mode: Traversal) {
-  const seen = new Set<number>();
-  const order: number[] = [];
-  const queue = [Number(start)];
-
-  while (queue.length) {
-    const node = mode === "BFS" ? queue.shift()! : queue.pop()!;
-    if (seen.has(node)) continue;
-    seen.add(node);
-    order.push(node);
-    const neighbors = [...(graph[node as keyof typeof graph] ?? [])];
-    if (mode === "DFS") neighbors.reverse();
-    queue.push(...neighbors.filter((item) => !seen.has(item)));
-  }
-
-  return order;
-}
-
-export function DsaWorkbench({ activeTab, onTabChange }: DsaWorkbenchProps) {
-  const [algorithm, setAlgorithm] = useState<Algorithm>("Bubble Sort");
+export function DsaWorkbench({
+  activeTab,
+  onTabChange,
+  reduceMotion,
+}: DsaWorkbenchProps) {
+  const [algorithm, setAlgorithm] = useState<SortAlgorithm>("Bubble Sort");
   const [size, setSize] = useState(8);
-  const [array, setArray] = useState(() => makeArray(8));
-  const [cursor, setCursor] = useState(0);
-  const [compared, setCompared] = useState<number[]>([]);
-  const [swaps, setSwaps] = useState(0);
-  const [traversal, setTraversal] = useState<Traversal>("BFS");
-  const [startNode, setStartNode] = useState<keyof typeof graph>(0);
-  const [visitedOrder, setVisitedOrder] = useState<number[]>([]);
+  const [seed, setSeed] = useState(17);
+  const [sourceValues, setSourceValues] = useState(() => makeDemoArray(8, 17));
+  const [sortIndex, setSortIndex] = useState(0);
+  const [sortPlaying, setSortPlaying] = useState(false);
+  const [traversal, setTraversal] = useState<TraversalMode>("BFS");
+  const [startNode, setStartNode] = useState<GraphNode>("A");
+  const [graphIndex, setGraphIndex] = useState(0);
+  const [graphPlaying, setGraphPlaying] = useState(false);
+  const [speed, setSpeed] = useState(1);
 
-  const sorted = useMemo(() => array.every((value, index) => index === 0 || array[index - 1] <= value), [array]);
+  const sortFrames = useMemo(
+    () => createSortFrames(sourceValues, algorithm),
+    [algorithm, sourceValues],
+  );
+  const traversalFrames = useMemo(
+    () => createTraversalFrames(startNode, traversal),
+    [startNode, traversal],
+  );
+  const sortFrame = sortFrames[Math.min(sortIndex, sortFrames.length - 1)];
+  const graphFrame = traversalFrames[Math.min(graphIndex, traversalFrames.length - 1)];
 
-  function resetArray(nextSize = size) {
-    const clamped = clampSize(nextSize);
-    setSize(clamped);
-    setArray(makeArray(clamped));
-    setCursor(0);
-    setCompared([]);
-    setSwaps(0);
-  }
-
-  function generateNew() {
-    resetArray(size === 10 ? 6 : size + 1);
-  }
-
-  function changeAlgorithm(nextAlgorithm: Algorithm) {
-    setAlgorithm(nextAlgorithm);
-    setCursor(0);
-    setCompared([]);
-    setSwaps(0);
-  }
-
-  function changeSize(nextSize: number) {
-    resetArray(nextSize);
-  }
-
-  function stepSort() {
-    const result = nextSortStep(array, cursor, algorithm);
-    setArray(result.next);
-    setCompared(result.compared);
-    setCursor((current) => current + 1);
-    if (result.swapped) setSwaps((current) => current + 1);
-  }
-
-  function runSort() {
-    let next = [...array];
-    let localCursor = cursor;
-    let localSwaps = swaps;
-    for (let count = 0; count < next.length * next.length; count += 1) {
-      const result = nextSortStep(next, localCursor, algorithm);
-      next = result.next;
-      localCursor += 1;
-      if (result.swapped) localSwaps += 1;
+  useEffect(() => {
+    if (!sortPlaying) return;
+    if (sortIndex >= sortFrames.length - 1) {
+      setSortPlaying(false);
+      return;
     }
-    setArray(next);
-    setCursor(localCursor);
-    setSwaps(localSwaps);
-    setCompared([]);
+    const timer = window.setTimeout(
+      () => setSortIndex((current) => Math.min(current + 1, sortFrames.length - 1)),
+      Math.max(180, 650 / speed),
+    );
+    return () => window.clearTimeout(timer);
+  }, [sortFrames.length, sortIndex, sortPlaying, speed]);
+
+  useEffect(() => {
+    if (!graphPlaying) return;
+    if (graphIndex >= traversalFrames.length - 1) {
+      setGraphPlaying(false);
+      return;
+    }
+    const timer = window.setTimeout(
+      () => setGraphIndex((current) => Math.min(current + 1, traversalFrames.length - 1)),
+      Math.max(220, 760 / speed),
+    );
+    return () => window.clearTimeout(timer);
+  }, [graphIndex, graphPlaying, speed, traversalFrames.length]);
+
+  function selectTab(tab: DsaTab) {
+    setSortPlaying(false);
+    setGraphPlaying(false);
+    onTabChange(tab);
   }
 
-  function runTraversal() {
-    setVisitedOrder(traverse(startNode, traversal));
+  function changeAlgorithm(next: SortAlgorithm) {
+    setAlgorithm(next);
+    setSortIndex(0);
+    setSortPlaying(false);
+  }
+
+  function changeSize(next: number) {
+    const clamped = clampSize(next);
+    setSize(clamped);
+    setSourceValues(makeDemoArray(clamped, seed));
+    setSortIndex(0);
+    setSortPlaying(false);
+  }
+
+  function generateValues() {
+    const nextSeed = seed + 31;
+    setSeed(nextSeed);
+    setSourceValues(makeDemoArray(size, nextSeed));
+    setSortIndex(0);
+    setSortPlaying(false);
+  }
+
+  function toggleSort() {
+    setSortPlaying((current) => {
+      if (!current && sortIndex >= sortFrames.length - 1) setSortIndex(0);
+      return !current;
+    });
+  }
+
+  function changeTraversal(next: TraversalMode) {
+    setTraversal(next);
+    setGraphIndex(0);
+    setGraphPlaying(false);
+  }
+
+  function changeStartNode(next: GraphNode) {
+    setStartNode(next);
+    setGraphIndex(0);
+    setGraphPlaying(false);
+  }
+
+  function toggleGraph() {
+    setGraphPlaying((current) => {
+      if (!current && graphIndex >= traversalFrames.length - 1) setGraphIndex(0);
+      return !current;
+    });
   }
 
   return (
-    <section className="ca-dsa" aria-label="DSA Arena workbench">
+    <section className={"ca-dsa" + (reduceMotion ? " reduce-motion" : "")} aria-label="DSA lab">
       <header className="ca-dsa__header">
-        <div className="ca-tabs ca-tabs--small">
-          <button className={activeTab === "sorting" ? "is-active" : ""} onClick={() => onTabChange("sorting")} type="button">
+        <div className="ca-segmented" role="tablist" aria-label="DSA views">
+          <button
+            aria-selected={activeTab === "sorting"}
+            className={activeTab === "sorting" ? "is-active" : ""}
+            onClick={() => selectTab("sorting")}
+            role="tab"
+            type="button"
+          >
             Sorting
           </button>
-          <button className={activeTab === "graph" ? "is-active" : ""} onClick={() => onTabChange("graph")} type="button">
-            Graph
+          <button
+            aria-selected={activeTab === "graph"}
+            className={activeTab === "graph" ? "is-active" : ""}
+            onClick={() => selectTab("graph")}
+            role="tab"
+            type="button"
+          >
+            Graph traversal
           </button>
         </div>
-        <span>{activeTab === "sorting" ? `${cursor} steps | ${swaps} changes` : `${visitedOrder.length} visited`}</span>
+        <label className="ca-speed-select">
+          <span>Speed</span>
+          <select onChange={(event) => setSpeed(Number(event.target.value))} value={speed}>
+            <option value="0.75">0.75x</option>
+            <option value="1">1x</option>
+            <option value="1.5">1.5x</option>
+            <option value="2">2x</option>
+          </select>
+        </label>
       </header>
 
       {activeTab === "sorting" ? (
-        <div className="ca-dsa__grid">
-          <div className="ca-dsa__controls">
+        <div className="ca-dsa__layout">
+          <aside className="ca-dsa__controls">
             <label>
-              Algorithm
-              <select value={algorithm} onChange={(event) => changeAlgorithm(event.target.value as Algorithm)}>
+              <span>Algorithm</span>
+              <select
+                onChange={(event) => changeAlgorithm(event.target.value as SortAlgorithm)}
+                value={algorithm}
+              >
                 <option>Bubble Sort</option>
                 <option>Selection Sort</option>
                 <option>Insertion Sort</option>
               </select>
             </label>
             <label>
-              Size
-              <input max="10" min="4" onChange={(event) => changeSize(Number(event.target.value))} type="number" value={size} />
+              <span>Array size: {size}</span>
+              <input
+                max="12"
+                min="4"
+                onChange={(event) => changeSize(Number(event.target.value))}
+                type="range"
+                value={size}
+              />
             </label>
-            <button onClick={generateNew} type="button">
+            <button onClick={generateValues} type="button">
               <RefreshCcw size={15} />
-              Generate New
+              <span>New values</span>
             </button>
-            <button onClick={stepSort} type="button">
-              <StepForward size={15} />
-              Step
-            </button>
-            <button onClick={runSort} type="button">
-              <Play size={15} />
-              Run
-            </button>
+            <div className="ca-dsa__metrics">
+              <div><span>Pass</span><strong>{sortFrame.pass}</strong></div>
+              <div><span>Comparisons</span><strong>{sortFrame.comparisons}</strong></div>
+              <div><span>Changes</span><strong>{sortFrame.changes}</strong></div>
+            </div>
+          </aside>
+
+          <div className="ca-dsa__stage">
+            <header>
+              <span>{algorithm}</span>
+              <strong>{sortFrame.description}</strong>
+            </header>
+            <div className="ca-sort-stage" aria-label={algorithm + " values"}>
+              {sortFrame.values.map((value, index) => {
+                const className = sortFrame.changed.includes(index)
+                  ? "is-changed"
+                  : sortFrame.compared.includes(index)
+                    ? "is-compared"
+                    : sortFrame.settled.includes(index)
+                      ? "is-settled"
+                      : "";
+                return (
+                  <div className={className} key={String(index) + "-" + String(value)}>
+                    <i style={{ height: String(34 + value * 16) + "px" }} />
+                    <strong>{value}</strong>
+                    <span>{index}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <footer className="ca-dsa__timeline">
+              <button
+                disabled={sortIndex === 0}
+                onClick={() => {
+                  setSortPlaying(false);
+                  setSortIndex((current) => Math.max(0, current - 1));
+                }}
+                title="Previous step"
+                type="button"
+              >
+                <ChevronLeft size={17} />
+              </button>
+              <button className="is-primary" onClick={toggleSort} title={sortPlaying ? "Pause" : "Run"} type="button">
+                {sortPlaying ? <Pause size={17} /> : <Play size={17} />}
+                <span>{sortPlaying ? "Pause" : "Run"}</span>
+              </button>
+              <button
+                disabled={sortIndex >= sortFrames.length - 1}
+                onClick={() => {
+                  setSortPlaying(false);
+                  setSortIndex((current) => Math.min(sortFrames.length - 1, current + 1));
+                }}
+                title="Next step"
+                type="button"
+              >
+                <ChevronRight size={17} />
+              </button>
+              <button
+                onClick={() => {
+                  setSortPlaying(false);
+                  setSortIndex(0);
+                }}
+                title="Reset sort"
+                type="button"
+              >
+                <RotateCcw size={16} />
+              </button>
+              <label>
+                <span>{sortIndex + 1} / {sortFrames.length}</span>
+                <input
+                  max={sortFrames.length - 1}
+                  min="0"
+                  onChange={(event) => {
+                    setSortPlaying(false);
+                    setSortIndex(Number(event.target.value));
+                  }}
+                  type="range"
+                  value={sortIndex}
+                />
+              </label>
+            </footer>
           </div>
-          <div className="ca-array-stage" aria-label={`${algorithm} array`}>
-            {array.map((value, index) => (
-              <div className={compared.includes(index) ? "is-compared" : ""} key={`${value}-${index}-${cursor}`}>
-                <strong>{value}</strong>
-                <span>{index}</span>
-              </div>
-            ))}
-          </div>
-          <p>{sorted ? `${algorithm} produced a sorted array.` : `${algorithm} is ready to step or run with the current values.`}</p>
         </div>
       ) : (
-        <div className="ca-dsa__grid ca-dsa__grid--graph">
-          <div className="ca-dsa__controls">
+        <div className="ca-dsa__layout">
+          <aside className="ca-dsa__controls">
             <label>
-              Traversal
-              <select value={traversal} onChange={(event) => setTraversal(event.target.value as Traversal)}>
+              <span>Traversal</span>
+              <select
+                onChange={(event) => changeTraversal(event.target.value as TraversalMode)}
+                value={traversal}
+              >
                 <option>BFS</option>
                 <option>DFS</option>
               </select>
             </label>
             <label>
-              Start Node
-              <select value={startNode} onChange={(event) => setStartNode(Number(event.target.value) as keyof typeof graph)}>
-                {Object.keys(graph).map((node) => (
-                  <option key={node} value={node}>
-                    {node}
-                  </option>
-                ))}
+              <span>Start node</span>
+              <select
+                onChange={(event) => changeStartNode(event.target.value as GraphNode)}
+                value={startNode}
+              >
+                {graphNodes.map((node) => <option key={node}>{node}</option>)}
               </select>
             </label>
-            <button onClick={runTraversal} type="button">
-              <Play size={15} />
-              Run Traversal
-            </button>
+            <div className="ca-dsa__metrics">
+              <div><span>Visited</span><strong>{graphFrame.visited.length}</strong></div>
+              <div><span>Frontier</span><strong>{graphFrame.frontier.length}</strong></div>
+              <div><span>Mode</span><strong>{traversal}</strong></div>
+            </div>
+            <div className="ca-frontier">
+              <span>{traversal === "BFS" ? "Queue" : "Stack"}</span>
+              <strong>{graphFrame.frontier.join("  ") || "empty"}</strong>
+            </div>
+          </aside>
+
+          <div className="ca-dsa__stage">
+            <header>
+              <span>{traversal} from {startNode}</span>
+              <strong>{graphFrame.description}</strong>
+            </header>
+            <svg className="ca-graph-stage" viewBox="0 0 700 410" role="img" aria-label={traversal + " graph"}>
+              {graphEdges.map(([from, to]) => (
+                <line
+                  key={from + to}
+                  x1={graphPositions[from].x}
+                  x2={graphPositions[to].x}
+                  y1={graphPositions[from].y}
+                  y2={graphPositions[to].y}
+                />
+              ))}
+              {graphNodes.map((node) => {
+                const position = graphPositions[node];
+                const state = graphFrame.active === node
+                  ? "is-active"
+                  : graphFrame.visited.includes(node)
+                    ? "is-visited"
+                    : graphFrame.frontier.includes(node)
+                      ? "is-frontier"
+                      : "";
+                return (
+                  <g className={state} key={node} transform={"translate(" + String(position.x) + " " + String(position.y) + ")"}>
+                    <circle r="31" />
+                    <text textAnchor="middle" y="7">{node}</text>
+                  </g>
+                );
+              })}
+            </svg>
+            <div className="ca-visit-order">
+              <span>Visit order</span>
+              <strong>{graphFrame.visited.join("  ->  ") || "none yet"}</strong>
+            </div>
+            <footer className="ca-dsa__timeline">
+              <button
+                disabled={graphIndex === 0}
+                onClick={() => {
+                  setGraphPlaying(false);
+                  setGraphIndex((current) => Math.max(0, current - 1));
+                }}
+                title="Previous step"
+                type="button"
+              >
+                <ChevronLeft size={17} />
+              </button>
+              <button className="is-primary" onClick={toggleGraph} title={graphPlaying ? "Pause" : "Run"} type="button">
+                {graphPlaying ? <Pause size={17} /> : <Play size={17} />}
+                <span>{graphPlaying ? "Pause" : "Run"}</span>
+              </button>
+              <button
+                disabled={graphIndex >= traversalFrames.length - 1}
+                onClick={() => {
+                  setGraphPlaying(false);
+                  setGraphIndex((current) => Math.min(traversalFrames.length - 1, current + 1));
+                }}
+                title="Next step"
+                type="button"
+              >
+                <ChevronRight size={17} />
+              </button>
+              <button
+                onClick={() => {
+                  setGraphPlaying(false);
+                  setGraphIndex(0);
+                }}
+                title="Reset traversal"
+                type="button"
+              >
+                <RotateCcw size={16} />
+              </button>
+              <label>
+                <span>{graphIndex + 1} / {traversalFrames.length}</span>
+                <input
+                  max={traversalFrames.length - 1}
+                  min="0"
+                  onChange={(event) => {
+                    setGraphPlaying(false);
+                    setGraphIndex(Number(event.target.value));
+                  }}
+                  type="range"
+                  value={graphIndex}
+                />
+              </label>
+            </footer>
           </div>
-          <div className="ca-graph-stage" aria-label={`${traversal} graph`}>
-            {[0, 1, 2, 3, 5].map((node, index) => (
-              <span className={visitedOrder.includes(node) ? "is-visited" : ""} key={node} style={{ left: `${42 + (index % 3) * 120}px`, top: `${36 + Math.floor(index / 3) * 82}px` }}>
-                {node}
-              </span>
-            ))}
-          </div>
-          <p>{visitedOrder.length ? `${traversal} order: ${visitedOrder.join(" -> ")}` : "Run traversal to reveal the visit order."}</p>
         </div>
       )}
     </section>

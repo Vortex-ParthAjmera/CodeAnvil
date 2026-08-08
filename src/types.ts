@@ -5,6 +5,24 @@ export type TraceValue =
   | PrimitiveValue[]
   | Record<string, PrimitiveValue>;
 
+export type TraceAction =
+  | { type: "focus_line"; line: number }
+  | { type: "assign"; target: string; value: TraceValue; previous?: TraceValue }
+  | { type: "compare"; target: string; indices: [number, number]; values: [PrimitiveValue, PrimitiveValue]; result?: boolean }
+  | {
+      type: "swap";
+      target: string;
+      indices: [number, number];
+      before: PrimitiveValue[];
+      after: PrimitiveValue[];
+    }
+  | { type: "read"; target: string; index: number; value: PrimitiveValue }
+  | { type: "loop"; iterator: string; iteration: number; value: TraceValue }
+  | { type: "call"; frameId: string; name: string; args: Record<string, TraceValue> }
+  | { type: "return"; frameId: string; name: string; value: TraceValue }
+  | { type: "output"; value: string }
+  | { type: "visit_node"; node: string; order: number };
+
 export type TraceEvent =
   | "program_start"
   | "line_enter"
@@ -60,7 +78,7 @@ export interface VisualEdge {
 }
 
 export interface TraceVisual {
-  type: "none" | "variables" | "array" | "recursion_tree" | "grid";
+  type: "none" | "variables" | "array" | "recursion_tree" | "grid" | "graph" | "call_stack";
   activeNodeId?: string;
   nodes?: VisualNode[];
   edges?: VisualEdge[];
@@ -83,6 +101,7 @@ export interface TraceStep {
     output?: boolean;
     memory?: string[];
   };
+  actions: TraceAction[];
 }
 
 export interface PracticePrompt {
@@ -122,7 +141,9 @@ export interface TraceDocument {
 
 export interface SavedSession {
   id: string;
+  schemaVersion: "1.0.0";
   traceTitle: string;
   stepIndex: number;
   savedAt: string;
+  trace: TraceDocument;
 }

@@ -1,6 +1,7 @@
 import type {
   MemoryHighlight,
   PracticePrompt,
+  TraceAction,
   StackFrame,
   TraceDocument,
   TraceStep,
@@ -9,6 +10,8 @@ import type {
   VisualEdge,
   VisualNode,
 } from "../types";
+import { buildStepActions } from "./buildStepActions";
+import { TRACE_LIMITS, validateTraceDocument } from "./validateTrace";
 
 interface TraceDiagnostic {
   kind: "info" | "error";
@@ -57,8 +60,9 @@ function step(
   output = "",
   stack: StackFrame[] = [],
   visualPayload: TraceVisual = visual(memory.length ? "array" : "variables"),
+  explicitActions: TraceAction[] = [],
 ): TraceStep {
-  return {
+  const nextStep: TraceStep = {
     id,
     index,
     line,
@@ -69,8 +73,11 @@ function step(
     memory,
     output,
     visual: visualPayload,
+    actions: [],
     changed,
   };
+  nextStep.actions = buildStepActions(nextStep, explicitActions);
+  return nextStep;
 }
 
 function snapshot(scope: RuntimeScope): Record<string, TraceValue> {
@@ -139,6 +146,9 @@ function parseArrayLiteral(expression: string): number[] | null {
   }
 
   const values = inner.split(",").map((part) => Number(part.trim()));
+  if (values.length > TRACE_LIMITS.arrayItems) {
+    throw new Error(`Lists are limited to ${TRACE_LIMITS.arrayItems} numbers in this version.`);
+  }
   return values.every(Number.isFinite) ? values : null;
 }
 
@@ -324,6 +334,14 @@ function makeTraceDocument(
   };
 }
 
+function validatedTrace(trace: TraceDocument, message: string): GeneratedTraceResult {
+  const validation = validateTraceDocument(trace);
+  if (!validation.valid) {
+    return { diagnostics: [{ kind: "error", message: `Trace validation failed: ${validation.issues[0].message}` }] };
+  }
+  return { diagnostics: [{ kind: "info", message }], trace };
+}
+
 function makePractice(steps: TraceStep[]): PracticePrompt[] {
   const changedStep = steps.find((item) => item.changed.variables?.length);
   const variable = changedStep?.changed.variables?.[0];
@@ -339,8 +357,10 @@ function makePractice(steps: TraceStep[]): PracticePrompt[] {
       type: "predict_variable",
       question: `What is ${variable} after this step?`,
       target: { variable },
-      answer: String(changedStep.variables[variable]),
-      explanation: `${variable} becomes ${changedStep.variables[variable]} on this step.`,
+      answer: Array.isArray(changedStep.variables[variable])
+        ? JSON.stringify(changedStep.variables[variable])
+        : String(changedStep.variables[variable]),
+      explanation: `${variable} changes on this step. Follow the highlighted assignment to predict its value.`,
     },
   ];
 }
@@ -438,10 +458,10 @@ function buildStraightLineTrace(code: string, lines: string[]): GeneratedTraceRe
     return { diagnostics: [{ kind: "error", message: "Add at least one assignment or print statement." }] };
   }
 
-  return {
-    diagnostics: [{ kind: "info", message: "Generated a safe local trace from straight-line code." }],
-    trace: makeTraceDocument("Custom Code Trace", code, "custom", steps, makePractice(steps)),
-  };
+  return validatedTrace(
+    makeTraceDocument("Custom Code Trace", code, "custom", steps, makePractice(steps)),
+    "Trace ready. CodeAnvil analyzed this straight-line Python subset locally.",
+  );
 }
 
 function buildLoopTrace(code: string, lines: string[]): GeneratedTraceResult | null {
@@ -492,11 +512,27 @@ function buildLoopTrace(code: string, lines: string[]): GeneratedTraceResult | n
       throw new Error(`${arrayName} must be a list of numbers before the loop.`);
     }
 
+    const loopIndent = lines[loopIndex].match(/^\s*/)?.[0].length ?? 0;
+    if (loopIndent !== 0) throw new Error("Nested loops are not supported by the browser tracer yet.");
     const bodyStart = loopIndex + 1;
-    const bodyLine = lines[bodyStart]?.trim();
-    const supportedAdd = bodyLine?.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*\+=\s*([A-Za-z_][A-Za-z0-9_]*)$/);
+    let bodyEnd = bodyStart;
+    const bodyLines: Array<{ line: string; lineNumber: number }> = [];
+    while (bodyEnd < lines.length) {
+      const rawLine = lines[bodyEnd];
+      if (!rawLine.trim()) {
+        bodyEnd += 1;
+        continue;
+      }
+      const indent = rawLine.match(/^\s*/)?.[0].length ?? 0;
+      if (indent <= loopIndent) break;
+      if (!rawLine.trim().startsWith("#")) bodyLines.push({ line: rawLine.trim(), lineNumber: bodyEnd + 1 });
+      bodyEnd += 1;
+    }
+    if (bodyLines.length !== 1) throw new Error("This loop tracer supports exactly one indented statement: total += value.");
+    const bodyLine = bodyLines[0];
+    const supportedAdd = bodyLine.line.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*\+=\s*([A-Za-z_][A-Za-z0-9_]*)$/);
     if (!supportedAdd || supportedAdd[2] !== iterator) {
-      throw new Error("This MVP supports loops shaped like: for value in arr: total += value");
+      throw new Error("This loop tracer supports: for value in arr: total += value");
     }
 
     const target = supportedAdd[1];
@@ -526,7 +562,7 @@ function buildLoopTrace(code: string, lines: string[]): GeneratedTraceResult | n
         step(
           `loop-${steps.length}`,
           steps.length,
-          bodyStart + 1,
+          bodyLine.lineNumber,
           "assignment",
           `Add ${value} into ${target}`,
           snapshot(scope),
@@ -537,10 +573,10 @@ function buildLoopTrace(code: string, lines: string[]): GeneratedTraceResult | n
       );
     }
 
-    const afterLoop = lines.slice(bodyStart + 1);
+    const afterLoop = lines.slice(bodyEnd);
     afterLoop.forEach((rawLine, offset) => {
       const line = rawLine.trim();
-      const lineNumber = bodyStart + 2 + offset;
+      const lineNumber = bodyEnd + offset + 1;
       if (!line || line.startsWith("#")) {
         return;
       }
@@ -574,10 +610,10 @@ function buildLoopTrace(code: string, lines: string[]): GeneratedTraceResult | n
     };
   }
 
-  return {
-    diagnostics: [{ kind: "info", message: "Generated a safe local trace for a basic for-loop." }],
-    trace: makeTraceDocument("Custom Loop Trace", code, "loops", steps, makePractice(steps)),
-  };
+  return validatedTrace(
+    makeTraceDocument("Custom Loop Trace", code, "loops", steps, makePractice(steps)),
+    "Trace ready. CodeAnvil analyzed this bounded list loop locally.",
+  );
 }
 
 function recursionVisual(
@@ -600,71 +636,98 @@ function recursionVisual(
 }
 
 function buildFactorialTrace(code: string): GeneratedTraceResult | null {
-  const definition = code.match(/def\s+([A-Za-z_][A-Za-z0-9_]*)\s*\(\s*n\s*\)\s*:/);
-  if (!definition) {
-    return null;
-  }
+  const sourceLines = code.split("\n");
+  const definitionIndex = sourceLines.findIndex((line) =>
+    /^\s*def\s+[A-Za-z_][A-Za-z0-9_]*\s*\(\s*n\s*\)\s*:\s*$/.test(line),
+  );
+  if (definitionIndex < 0) return null;
 
+  const definition = sourceLines[definitionIndex].match(/def\s+([A-Za-z_][A-Za-z0-9_]*)/);
+  if (!definition) return null;
   const fnName = definition[1];
-  if (!code.includes(`${fnName}(n - 1)`) && !code.includes(`${fnName}(n-1)`)) {
-    return null;
+  const definitionIndent = sourceLines[definitionIndex].match(/^\s*/)?.[0].length ?? 0;
+  let functionEnd = definitionIndex + 1;
+  while (functionEnd < sourceLines.length) {
+    const line = sourceLines[functionEnd];
+    if (line.trim() && (line.match(/^\s*/)?.[0].length ?? 0) <= definitionIndent) break;
+    functionEnd += 1;
   }
 
-  const directCall = code.match(new RegExp(`${fnName}\\((\\d+)\\)`));
-  const assignedInput = code.match(/\bn\s*=\s*(\d+)\b/);
-  const n = Number(assignedInput?.[1] ?? directCall?.[1] ?? 4);
-  if (!Number.isInteger(n) || n < 0 || n > 8) {
+  const functionCode = sourceLines.slice(definitionIndex + 1, functionEnd).join("\n");
+  const selfCallPattern = new RegExp(`${fnName}\\s*\\(\\s*n\\s*-\\s*1\\s*\\)`);
+  if (!selfCallPattern.test(functionCode)) return null;
+  const factorialReturnPattern = new RegExp(
+    `^\\s*return\\s+(?:n\\s*\\*\\s*${fnName}\\s*\\(\\s*n\\s*-\\s*1\\s*\\)|${fnName}\\s*\\(\\s*n\\s*-\\s*1\\s*\\)\\s*\\*\\s*n)\\s*$`,
+    "m",
+  );
+  const hasBaseCase = /^\s*if\s+n\s*<=\s*1\s*:\s*$/m.test(functionCode) && /^\s*return\s+1\s*$/m.test(functionCode);
+  if (!hasBaseCase || !factorialReturnPattern.test(functionCode)) {
     return {
-      diagnostics: [{ kind: "error", message: "Recursive demo input must be an integer from 0 to 8." }],
+      diagnostics: [{
+        kind: "error",
+        message: "Recursive tracing currently supports the exact factorial pattern: base case n <= 1 and return n * fn(n - 1).",
+      }],
     };
   }
 
-  const sourceLines = code.split("\n");
-  const lineFor = (needle: string, fallback: number) => {
-    const index = sourceLines.findIndex((line) => line.includes(needle));
+  const directCall = code.match(new RegExp(`${fnName}\\s*\\(\\s*(\\d+)\\s*\\)`));
+  const assignedInput = code.match(/\bn\s*=\s*(\d+)\b/);
+  const n = Number(assignedInput?.[1] ?? directCall?.[1] ?? 4);
+  if (!Number.isInteger(n) || n < 0 || n > 8) {
+    return { diagnostics: [{ kind: "error", message: "Recursive demo input must be an integer from 0 to 8." }] };
+  }
+
+  const lineFor = (match: (line: string) => boolean, fallback: number) => {
+    const index = sourceLines.findIndex(match);
     return index >= 0 ? index + 1 : fallback;
   };
-  const callLine = lineFor(`${fnName}(n`, lineFor(`${fnName}(${n}`, 1));
-  const baseLine = lineFor("return 1", 2);
-  const recursiveLine = lineFor(`${fnName}(n`, 4);
-  const printLine = lineFor("print", sourceLines.length);
-  const activeValues = Array.from({ length: Math.max(n, 1) }, (_, index) => n - index).filter((value) => value >= 1);
+  const callLine = lineFor(
+    (line) => !/^\s*(def|return)\b/.test(line) && new RegExp(`${fnName}\\s*\\(\\s*(?:n|${n})\\s*\\)`).test(line),
+    1,
+  );
+  const baseLine = lineFor((line) => /^\s*return\s+1\s*$/.test(line), definitionIndex + 3);
+  const recursiveLine = lineFor((line) => factorialReturnPattern.test(line), definitionIndex + 4);
+  const printLine = lineFor((line) => /^\s*print\s*\(/.test(line), sourceLines.length);
+  const activeValues = Array.from({ length: Math.max(n, 1) }, (_, index) => n - index)
+    .filter((value) => value >= 1);
   if (n === 0) activeValues.push(0);
+  const factorialValue = (value: number) => {
+    let total = 1;
+    for (let factor = 2; factor <= value; factor += 1) total *= factor;
+    return total;
+  };
 
   const nodes = activeValues.map((value, index): VisualNode => ({
     id: `call-${value}`,
     label: `${fnName}(${value})`,
-    value: "?",
+    value: String(factorialValue(value)),
     x: 350 - index * 28,
     y: 58 + index * 82,
     status: "pending",
   }));
-  const edges = activeValues.slice(0, -1).map(
-    (value, index): VisualEdge => ({
-      from: `call-${value}`,
-      to: `call-${activeValues[index + 1]}`,
-      status: "active",
-      label: "n - 1",
-    }),
-  );
+  const edges = activeValues.slice(0, -1).map((value, index): VisualEdge => ({
+    from: `call-${value}`,
+    to: `call-${activeValues[index + 1]}`,
+    status: "active",
+    label: "n - 1",
+  }));
 
   const steps: TraceStep[] = [];
   const frames: StackFrame[] = [];
-  steps.push(
-    step(
-      "custom-rec-0",
-      0,
-      callLine,
-      "function_call",
-      `Call ${fnName}(${n})`,
-      { n, result: "-", "__return__": "-" },
-      { variables: ["n"] },
-      [],
-      "",
-      [],
-      recursionVisual(nodes, edges, `call-${n}`, []),
-    ),
-  );
+  steps.push(step(
+    "custom-rec-0",
+    0,
+    callLine,
+    "function_call",
+    `Call ${fnName}(${n})`,
+    { n },
+    { variables: ["n"] },
+    [],
+    "",
+    [],
+    recursionVisual(nodes, edges, `call-${n}`, []),
+    [{ type: "call", frameId: `frame-${n}`, name: `${fnName}(${n})`, args: { n } }],
+  ));
 
   activeValues.forEach((value) => {
     frames.push({
@@ -674,21 +737,22 @@ function buildFactorialTrace(code: string): GeneratedTraceResult | null {
       locals: { n: value },
       returnTo: recursiveLine,
     });
-    steps.push(
-      step(
-        `custom-rec-${steps.length}`,
-        steps.length,
-        value <= 1 ? baseLine : recursiveLine,
-        value <= 1 ? "condition_check" : "recursion_call",
-        value <= 1 ? `${value} reaches the base case` : `${fnName}(${value}) calls ${fnName}(${value - 1})`,
-        { n: value, result: "-", "__return__": "-" },
-        { variables: ["n"], stack: [`frame-${value}`] },
-        [],
-        "",
-        [...frames],
-        recursionVisual(nodes, edges, `call-${value}`, []),
-      ),
-    );
+    steps.push(step(
+      `custom-rec-${steps.length}`,
+      steps.length,
+      value <= 1 ? baseLine : recursiveLine,
+      value <= 1 ? "condition_check" : "recursion_call",
+      value <= 1 ? `${value} reaches the base case` : `${fnName}(${value}) calls ${fnName}(${value - 1})`,
+      { n: value },
+      { variables: ["n"], stack: [`frame-${value}`] },
+      [],
+      "",
+      [...frames],
+      recursionVisual(nodes, edges, `call-${value}`, []),
+      value <= 1
+        ? []
+        : [{ type: "call", frameId: `frame-${value - 1}`, name: `${fnName}(${value - 1})`, args: { n: value - 1 } }],
+    ));
   });
 
   let returned = 1;
@@ -697,45 +761,51 @@ function buildFactorialTrace(code: string): GeneratedTraceResult | null {
     const value = activeValues[index];
     returned = value <= 1 ? 1 : value * returned;
     done.push(`call-${value}`);
-    steps.push(
-      step(
-        `custom-rec-${steps.length}`,
-        steps.length,
-        value <= 1 ? baseLine : recursiveLine,
-        "function_return",
-        `${fnName}(${value}) returns ${returned}`,
-        { n: value, result: value === n ? returned : "-", "__return__": returned },
-        { variables: ["__return__", ...(value === n ? ["result"] : [])] },
-        [],
-        "",
-        frames.slice(0, index + 1),
-        recursionVisual(nodes, edges, `call-${value}`, done),
-      ),
-    );
-  }
-
-  steps.push(
-    step(
+    steps.push(step(
       `custom-rec-${steps.length}`,
       steps.length,
-      printLine,
-      "output_write",
-      "Print the final recursive result",
-      { n, result: returned, "__return__": returned },
-      { output: true },
+      value <= 1 ? baseLine : recursiveLine,
+      "function_return",
+      `${fnName}(${value}) returns ${returned}`,
+      { n: value, "__return__": returned, ...(value === n ? { result: returned } : {}) },
+      { variables: ["__return__", ...(value === n ? ["result"] : [])] },
       [],
-      String(returned),
-      [],
-      recursionVisual(nodes, edges, `call-${n}`, done),
-    ),
+      "",
+      frames.slice(0, index + 1),
+      recursionVisual(nodes, edges, `call-${value}`, done),
+      [{ type: "return", frameId: `frame-${value}`, name: `${fnName}(${value})`, value: returned }],
+    ));
+  }
+
+  const printStatement = sourceLines[printLine - 1]?.trim().match(/^print\s*\((.*)\)$/);
+  let finalOutput = String(returned);
+  if (printStatement && !new RegExp(`${fnName}\\s*\\(`).test(printStatement[1])) {
+    try {
+      finalOutput = printValue(printStatement[1], { n, result: returned });
+    } catch {
+      finalOutput = String(returned);
+    }
+  }
+  steps.push(step(
+    `custom-rec-${steps.length}`,
+    steps.length,
+    printLine,
+    "output_write",
+    "Print the final recursive result",
+    { n, result: returned, "__return__": returned },
+    { output: true },
+    [],
+    finalOutput,
+    [],
+    recursionVisual(nodes, edges, `call-${n}`, done),
+    [{ type: "output", value: finalOutput }],
+  ));
+
+  return validatedTrace(
+    makeTraceDocument("Custom Recursion Trace", code, "recursion", steps, makePractice(steps)),
+    `Trace ready. CodeAnvil matched the factorial pattern for ${fnName}(${n}).`,
   );
-
-  return {
-    diagnostics: [{ kind: "info", message: `Generated a safe recursive trace for ${fnName}(${n}).` }],
-    trace: makeTraceDocument("Custom Recursion Trace", code, "recursion", steps, makePractice(steps)),
-  };
 }
-
 export function generateTraceFromCode(code: string): GeneratedTraceResult {
   const normalizedCode = code.replace(/\r\n/g, "\n").trim();
   if (!normalizedCode) {
@@ -754,12 +824,13 @@ export function generateTraceFromCode(code: string): GeneratedTraceResult {
     };
   }
 
+  const lines = normalizedCode.split("\n");
+
   const factorialTrace = buildFactorialTrace(normalizedCode);
   if (factorialTrace) {
     return factorialTrace;
   }
 
-  const lines = normalizedCode.split("\n");
   const loopTrace = buildLoopTrace(normalizedCode, lines);
   if (loopTrace) {
     return loopTrace;

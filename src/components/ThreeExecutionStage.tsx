@@ -149,6 +149,97 @@ function makeLine(from: THREE.Vector3, to: THREE.Vector3, color: number, opacity
   );
 }
 
+function makeCurve(points: THREE.Vector3[], color: number, opacity = 0.72) {
+  const curve = new THREE.CatmullRomCurve3(points);
+  const geometry = new THREE.BufferGeometry().setFromPoints(curve.getPoints(36));
+  return new THREE.Line(
+    geometry,
+    new THREE.LineBasicMaterial({ color, transparent: true, opacity }),
+  );
+}
+
+function makeForgeBackdrop(group: THREE.Group, tone: TraceSceneTone) {
+  const toneHex = toneColor(tone);
+  const wall = makeBox(10.8, 6.6, 0.12, 0x080b0c, toneHex, 0.025);
+  wall.position.set(0, 0.22, -1.3);
+  group.add(wall);
+
+  for (let index = 0; index < 9; index += 1) {
+    const x = -4.8 + index * 1.2;
+    const strut = makeBox(0.035, 6.1, 0.05, 0x162023, toneHex, index % 3 === 0 ? 0.035 : 0.01);
+    strut.position.set(x, 0.16, -1.2);
+    group.add(strut);
+  }
+
+  const bench = makeBox(8.7, 0.44, 0.72, 0x161b1c, palette.active, 0.08);
+  bench.position.set(0, -2.42, -0.42);
+  group.add(bench);
+  group.add(makeLine(
+    new THREE.Vector3(-4.2, -2.16, -0.18),
+    new THREE.Vector3(4.2, -2.16, -0.18),
+    palette.active,
+    0.34,
+  ));
+
+  const anvilTop = makeBox(4.6, 0.28, 0.82, 0x25292a, toneHex, 0.08);
+  anvilTop.position.set(0, -2.02, -0.24);
+  group.add(anvilTop);
+  const anvilFoot = makeBox(2.55, 0.54, 0.68, 0x111719, palette.active, 0.06);
+  anvilFoot.position.set(0, -2.78, -0.28);
+  group.add(anvilFoot);
+
+  const leftRail = makeLine(
+    new THREE.Vector3(-4.1, -1.55, -0.22),
+    new THREE.Vector3(4.1, -1.55, -0.22),
+    palette.compare,
+    0.18,
+  );
+  const rightRail = makeLine(
+    new THREE.Vector3(-4.1, -1.82, -0.2),
+    new THREE.Vector3(4.1, -1.82, -0.2),
+    palette.active,
+    0.2,
+  );
+  group.add(leftRail, rightRail);
+}
+
+function makeActionBadge(group: THREE.Group, step: TraceStep, model: TraceSceneModel) {
+  const tone = toneColor(model.tone);
+  const title = model.action.type.replace(/_/g, " ").toUpperCase();
+  const badge = makePlate(title, "line " + String(step.line), tone, true);
+  badge.scale.set(0.7, 0.7, 0.7);
+  badge.position.set(-3.55, 3.18, 0.12);
+  group.add(badge);
+}
+
+function addSparkBurst(
+  group: THREE.Group,
+  animations: Array<(progress: number) => void>,
+  origin: THREE.Vector3,
+  color: number,
+) {
+  for (let index = 0; index < 9; index += 1) {
+    const angle = -Math.PI * 0.88 + index * 0.22;
+    const distance = 0.34 + (index % 3) * 0.16;
+    const material = new THREE.MeshStandardMaterial({
+      color,
+      emissive: color,
+      emissiveIntensity: 0.9,
+      opacity: 0.85,
+      transparent: true,
+    });
+    const spark = new THREE.Mesh(new THREE.SphereGeometry(0.045, 8, 8), material);
+    spark.position.copy(origin);
+    group.add(spark);
+    animations.push((progress) => {
+      spark.position.x = origin.x + Math.cos(angle) * distance * progress;
+      spark.position.y = origin.y + Math.sin(angle) * distance * progress + progress * 0.2;
+      material.opacity = 0.85 * (1 - progress);
+      spark.scale.setScalar(1 - progress * 0.45);
+    });
+  }
+}
+
 function toneColor(tone: TraceSceneTone) {
   if (tone === "compare") return palette.compare;
   if (tone === "return" || tone === "done") return palette.return;
@@ -275,9 +366,37 @@ function buildArrayScene(
       .map((highlight) => highlight.index),
   );
 
-  const arrayLabel = makeTextSprite(memory?.label || "array", palette.muted, 0.5, "left");
-  arrayLabel.position.set(firstX - 0.25, 2.65, 0);
+  const arrayLabel = makeTextSprite(memory?.label || "array", palette.muted, 0.46, "left");
+  arrayLabel.position.set(firstX - 0.28, 2.5, 0.08);
   group.add(arrayLabel);
+
+  if (model.action.type === "compare" && model.action.indices.length === 2) {
+    const [leftIndex, rightIndex] = model.action.indices;
+    const leftX = firstX + leftIndex * spacing;
+    const rightX = firstX + rightIndex * spacing;
+    group.add(makeCurve([
+      new THREE.Vector3(leftX, 1.58, 0.18),
+      new THREE.Vector3((leftX + rightX) / 2, 2.04, 0.18),
+      new THREE.Vector3(rightX, 1.58, 0.18),
+    ], palette.compare, 0.86));
+  }
+
+  if (model.action.type === "swap" && model.action.indices.length === 2) {
+    const [leftIndex, rightIndex] = model.action.indices;
+    const leftX = firstX + leftIndex * spacing;
+    const rightX = firstX + rightIndex * spacing;
+    group.add(makeCurve([
+      new THREE.Vector3(leftX, 1.64, 0.16),
+      new THREE.Vector3((leftX + rightX) / 2, 2.22, 0.16),
+      new THREE.Vector3(rightX, 1.64, 0.16),
+    ], palette.active, 0.78));
+    group.add(makeCurve([
+      new THREE.Vector3(rightX, 0.92, 0.14),
+      new THREE.Vector3((leftX + rightX) / 2, 0.34, 0.14),
+      new THREE.Vector3(leftX, 0.92, 0.14),
+    ], palette.compare, 0.72));
+    addSparkBurst(group, animations, new THREE.Vector3((leftX + rightX) / 2, 1.2, 0.34), palette.active);
+  }
 
   values.forEach((value, index) => {
     const height = numericHeight(value);
@@ -301,11 +420,11 @@ function buildArrayScene(
     item.add(makeBox(0.82, height, 0.58, boxColor, outlineColor, isSelected ? 0.16 : 0.04));
     item.add(makeOutline(0.82, height, 0.58, outlineColor));
 
-    const valueLabel = makeTextSprite(formatValue(value), palette.text, 0.56);
-    valueLabel.position.set(0, height / 2 + 0.28, 0.34);
+    const valueLabel = makeTextSprite(formatValue(value), palette.text, 0.72);
+    valueLabel.position.set(0, 0.04, 0.34);
     item.add(valueLabel);
 
-    const indexLabel = makeTextSprite(String(index), palette.muted, 0.4);
+    const indexLabel = makeTextSprite("[" + String(index) + "]", isSelected ? "#f7cf83" : palette.muted, 0.4);
     indexLabel.position.set(0, -height / 2 - 0.35, 0.2);
     item.add(indexLabel);
 
@@ -333,13 +452,27 @@ function buildArrayScene(
   });
 
   if (model.action.type === "compare") {
-    const predicate = makeTextSprite(
-      formatValue(model.action.values[0]) + "  ?  " + formatValue(model.action.values[1]),
-      "#d8f6fb",
-      0.9,
+    const verdict = model.action.result === undefined
+      ? "evaluate condition"
+      : model.action.result
+        ? "true -> swap next"
+        : "false -> keep order";
+    const predicate = makePlate(
+      formatValue(model.action.values[0]) + " > " + formatValue(model.action.values[1]),
+      verdict,
+      palette.compare,
+      true,
     );
-    predicate.position.set(0, 2.3, 0);
+    predicate.position.set(0.86, 2.78, 0.16);
+    predicate.scale.set(0.82, 0.82, 0.82);
     group.add(predicate);
+  }
+
+  if (model.action.type === "swap") {
+    const swapNote = makePlate("write swapped array", formatValue(model.action.after), palette.active, true);
+    swapNote.position.set(1.08, 2.78, 0.16);
+    swapNote.scale.set(0.82, 0.82, 0.82);
+    group.add(swapNote);
   }
 
   if (!values.length) {
@@ -471,6 +604,8 @@ function buildOutputScene(group: THREE.Group, step: TraceStep): SceneBuild {
 
 function buildScene(group: THREE.Group, step: TraceStep, model: TraceSceneModel) {
   clearGroup(group);
+  makeForgeBackdrop(group, model.tone);
+  makeActionBadge(group, step, model);
   if (model.kind === "recursion") return buildRecursionScene(group, step, model);
   if (model.kind === "array") return buildArrayScene(group, step, model);
   if (model.kind === "graph") return buildGraphScene(group, step, model);
@@ -480,6 +615,10 @@ function buildScene(group: THREE.Group, step: TraceStep, model: TraceSceneModel)
 
 function easeOutCubic(value: number) {
   return 1 - Math.pow(1 - value, 3);
+}
+
+function traceActionLabel(action: TraceAction) {
+  return action.type.replace(/_/g, " ");
 }
 
 export function ThreeExecutionStage({
@@ -621,6 +760,14 @@ export function ThreeExecutionStage({
         <span>Line {step.line}</span>
         <strong>{model.headline}</strong>
         <p>{model.detail}</p>
+      </div>
+
+      <div className="ca-stage__action-row" aria-label="Trace action sequence">
+        {step.actions.slice(0, 5).map((action, index) => (
+          <span className={"ca-stage-action ca-stage-action--" + action.type} key={String(index) + action.type}>
+            {traceActionLabel(action)}
+          </span>
+        ))}
       </div>
 
       <div className="ca-three-mount" ref={mountRef}>

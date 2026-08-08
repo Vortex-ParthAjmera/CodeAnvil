@@ -2,6 +2,7 @@ import {
   BookOpen,
   Code2,
   Database,
+  Flame,
   Pause,
   Play,
   RotateCcw,
@@ -31,37 +32,88 @@ function Brand() {
   );
 }
 
-function ExampleShelf({
+function actionLabel(type: string) {
+  return type.replace(/_/g, " ");
+}
+
+function ForgeCatalog({
   activeTitle,
+  focusMode,
   onSelect,
+  onOpenDsa,
+  step,
   traces,
 }: {
   activeTitle: string;
+  focusMode: boolean;
   onSelect: (traceTitle: string) => void;
+  onOpenDsa: (tab: "sorting" | "graph") => void;
+  step: ReturnType<typeof useCodeAnvil>["step"];
   traces: ReturnType<typeof useCodeAnvil>["traceCatalog"];
 }) {
   const curated = traces.filter((trace) => !trace.title.startsWith("Custom "));
+  const semanticActions = step.actions.filter((action) => action.type !== "focus_line");
+  const currentActions = (semanticActions.length ? semanticActions : step.actions).slice(0, 4);
 
   return (
-    <section className="ca-examples" aria-label="Curated examples">
-      <header>
-        <strong>Curated traces</strong>
-        <span>{curated.length} validated</span>
+    <aside className={"ca-catalog" + (focusMode ? " is-focused" : "")} aria-label="CodeAnvil catalog">
+      <header className="ca-catalog__hero">
+        <span>
+          <Flame size={14} />
+          Forge queue
+        </span>
+        <strong>Pick code, trace it, then inspect every move.</strong>
       </header>
-      <div>
+
+      <section className="ca-catalog__section" aria-label="Validated traces">
+        <div className="ca-catalog__title">
+          <strong>Validated traces</strong>
+          <span>{curated.length}</span>
+        </div>
         {curated.map((trace) => (
           <button
+            aria-current={activeTitle === trace.title ? "true" : undefined}
             className={activeTitle === trace.title ? "is-active" : ""}
             key={trace.title}
             onClick={() => onSelect(trace.title)}
             type="button"
           >
             <strong>{trace.title}</strong>
-            <span>{trace.metadata.topic} | {trace.steps.length} steps</span>
+            <span>{trace.metadata.topic} / {trace.steps.length} steps</span>
           </button>
         ))}
-      </div>
-    </section>
+      </section>
+
+      <section className="ca-catalog__section ca-catalog__section--grid" aria-label="DSA lab shortcuts">
+        <div className="ca-catalog__title">
+          <strong>DSA lab</strong>
+          <span>live</span>
+        </div>
+        <button onClick={() => onOpenDsa("sorting")} type="button">
+          <strong>Sorting forge</strong>
+          <span>Bubble, selection, insertion</span>
+        </button>
+        <button onClick={() => onOpenDsa("graph")} type="button">
+          <strong>Traversal map</strong>
+          <span>BFS and DFS state flow</span>
+        </button>
+      </section>
+
+      <section className="ca-action-map" aria-label="Current trace actions">
+        <div className="ca-catalog__title">
+          <strong>Action map</strong>
+          <span>line {step.line}</span>
+        </div>
+        {currentActions.map((action, index) => (
+          <div className={"ca-action-map__item ca-action-" + action.type} key={String(index) + action.type}>
+            <code>{actionLabel(action.type)}</code>
+            <span>
+              {"target" in action ? action.target : "name" in action ? action.name : "node" in action ? action.node : "trace"}
+            </span>
+          </div>
+        ))}
+      </section>
+    </aside>
   );
 }
 
@@ -246,14 +298,6 @@ export default function AppRedesign() {
       ) : null}
 
       <main className="ca-main">
-        {app.mode === "examples" ? (
-          <ExampleShelf
-            activeTitle={app.trace.title}
-            onSelect={app.selectTrace}
-            traces={app.traceCatalog}
-          />
-        ) : null}
-
         {app.mode === "dsa" ? (
           <DsaWorkbench
             activeTab={app.dsaTab}
@@ -261,56 +305,67 @@ export default function AppRedesign() {
             reduceMotion={app.reduceMotion}
           />
         ) : (
-          <>
-            <section className="ca-workbench">
-              <CodeInputPanel
-                code={app.code}
-                isStale={app.isStale}
-                onCodeChange={app.updateCode}
-                onTrace={app.traceCode}
-                step={app.step}
-                title={app.trace.title}
-              />
-              <ThreeExecutionStage
-                isStale={app.isStale}
-                reduceMotion={app.reduceMotion}
-                step={app.step}
-              />
-              <WorkbenchInspector
-                diagnostics={app.diagnostics}
-                onDeleteSession={app.deleteSession}
-                onResumeSession={app.resumeSession}
-                savedSessions={app.savedSessions}
-                step={app.step}
-              />
-            </section>
-
-            <PlaybackBar
-              disabled={app.isStale}
-              isPlaying={app.isPlaying}
-              maxStepIndex={app.maxStepIndex}
-              onReset={app.reset}
-              onScrub={app.scrubToStep}
-              onStepBackward={app.stepBackward}
-              onStepForward={app.stepForward}
-              onTogglePlayback={app.togglePlayback}
-              practiceMode={app.practiceMode}
-              progress={app.progress}
-              setPracticeMode={app.setPracticeMode}
-              setSpeed={app.setSpeed}
-              speed={app.speed}
-              stepIndex={app.stepIndex}
+          <section className={"ca-forge-layout" + (app.mode === "examples" ? " is-catalog-focus" : "")}>
+            <ForgeCatalog
+              activeTitle={app.trace.title}
+              focusMode={app.mode === "examples"}
+              onOpenDsa={app.openDsa}
+              onSelect={app.selectTrace}
+              step={app.step}
+              traces={app.traceCatalog}
             />
 
-            <PracticePanel
-              answer={app.practiceAnswer}
-              onAnswerChange={app.setPracticeAnswer}
-              onCheck={app.checkPracticeAnswer}
-              prompt={app.activePrompt}
-              result={app.practiceResult}
-              visible={app.practiceMode}
-            />
-          </>
+            <div className="ca-workspace">
+              <section className="ca-workbench">
+                <CodeInputPanel
+                  code={app.code}
+                  isStale={app.isStale}
+                  onCodeChange={app.updateCode}
+                  onTrace={app.traceCode}
+                  step={app.step}
+                  title={app.trace.title}
+                />
+                <ThreeExecutionStage
+                  isStale={app.isStale}
+                  reduceMotion={app.reduceMotion}
+                  step={app.step}
+                />
+                <WorkbenchInspector
+                  diagnostics={app.diagnostics}
+                  onDeleteSession={app.deleteSession}
+                  onResumeSession={app.resumeSession}
+                  savedSessions={app.savedSessions}
+                  step={app.step}
+                />
+              </section>
+
+              <PlaybackBar
+                disabled={app.isStale}
+                isPlaying={app.isPlaying}
+                maxStepIndex={app.maxStepIndex}
+                onReset={app.reset}
+                onScrub={app.scrubToStep}
+                onStepBackward={app.stepBackward}
+                onStepForward={app.stepForward}
+                onTogglePlayback={app.togglePlayback}
+                practiceMode={app.practiceMode}
+                progress={app.progress}
+                setPracticeMode={app.setPracticeMode}
+                setSpeed={app.setSpeed}
+                speed={app.speed}
+                stepIndex={app.stepIndex}
+              />
+
+              <PracticePanel
+                answer={app.practiceAnswer}
+                onAnswerChange={app.setPracticeAnswer}
+                onCheck={app.checkPracticeAnswer}
+                prompt={app.activePrompt}
+                result={app.practiceResult}
+                visible={app.practiceMode}
+              />
+            </div>
+          </section>
         )}
       </main>
     </div>

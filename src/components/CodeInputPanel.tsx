@@ -1,11 +1,19 @@
 import { useRef, useState, type KeyboardEvent, type UIEvent } from "react";
 import { Play, RefreshCw } from "lucide-react";
+import type { CodeLanguageId, CodeLanguageOption } from "../data/languageVariants";
 import type { TraceStep } from "../types";
 
 interface CodeInputPanelProps {
+  activeLineNumber: number;
+  canTrace: boolean;
   code: string;
+  extension: string;
   isStale: boolean;
+  language: CodeLanguageId;
+  languageLabel: string;
+  languageOptions: CodeLanguageOption[];
   onCodeChange: (code: string) => void;
+  onLanguageChange: (language: CodeLanguageId) => void;
   onTrace: () => void;
   step: TraceStep;
   title: string;
@@ -14,9 +22,16 @@ interface CodeInputPanelProps {
 const editorLineHeight = 24;
 
 export function CodeInputPanel({
+  activeLineNumber,
+  canTrace,
   code,
+  extension,
   isStale,
+  language,
+  languageLabel,
+  languageOptions,
   onCodeChange,
+  onLanguageChange,
   onTrace,
   step,
   title,
@@ -24,7 +39,7 @@ export function CodeInputPanel({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const lines = code.split("\n");
-  const activeLine = lines[step.line - 1]?.trim() || "program boundary";
+  const activeLine = lines[activeLineNumber - 1]?.trim() || "program boundary";
   const filename = title.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "trace";
 
   function handleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
@@ -58,22 +73,37 @@ export function CodeInputPanel({
       <header className="ca-sectionbar">
         <div className="ca-file">
           <span aria-hidden="true" />
-          <strong>{filename}.py</strong>
+          <strong>{filename}.{extension}</strong>
           <em>{isStale ? "edited" : "synced"}</em>
         </div>
-        <button
-          className="ca-command ca-command--accent"
-          disabled={!code.trim()}
-          onClick={onTrace}
-          type="button"
-        >
-          {isStale ? <RefreshCw size={15} /> : <Play size={15} />}
-          <span>Trace code</span>
-        </button>
+        <div className="ca-editor-tools">
+          <label className="ca-language-select">
+            <span>Language</span>
+            <select
+              aria-label="Code language"
+              onChange={(event) => onLanguageChange(event.target.value as CodeLanguageId)}
+              value={language}
+            >
+              {languageOptions.map((option) => (
+                <option key={option.id} value={option.id}>{option.label}</option>
+              ))}
+            </select>
+          </label>
+          <button
+            className="ca-command ca-command--accent"
+            disabled={!code.trim() || !canTrace}
+            onClick={onTrace}
+            title={canTrace ? "Trace editable Python code" : "Reference code view; custom tracing currently accepts Python"}
+            type="button"
+          >
+            {isStale ? <RefreshCw size={15} /> : <Play size={15} />}
+            <span>{canTrace ? "Trace code" : "Reference view"}</span>
+          </button>
+        </div>
       </header>
 
       <div className={"ca-execution-note" + (isStale ? " is-stale" : "")} aria-live="polite">
-        <span>{isStale ? "Trace paused" : "Line " + String(step.line)}</span>
+        <span>{isStale ? "Trace paused" : "Line " + String(activeLineNumber)}</span>
         <code>{isStale ? "Run the edited source to rebuild the trace." : activeLine}</code>
         <strong>{isStale ? "The stage still shows the last valid execution." : step.description}</strong>
       </div>
@@ -82,13 +112,13 @@ export function CodeInputPanel({
         {!isStale ? (
           <span
             className="ca-active-code-line"
-            style={{ top: 14 + (step.line - 1) * editorLineHeight - scrollTop }}
+            style={{ top: 14 + (activeLineNumber - 1) * editorLineHeight - scrollTop }}
           />
         ) : null}
         <div className="ca-line-gutter" aria-hidden="true">
           <div style={{ transform: "translateY(" + String(-scrollTop) + "px)" }}>
             {lines.map((_, index) => (
-              <span className={!isStale && index + 1 === step.line ? "is-active" : ""} key={index}>
+              <span className={!isStale && index + 1 === activeLineNumber ? "is-active" : ""} key={index}>
                 {index + 1}
               </span>
             ))}
@@ -108,9 +138,10 @@ export function CodeInputPanel({
       </div>
 
       <footer className="ca-editor__status">
-        <span>Python</span>
+        <span>{languageLabel}</span>
         <span>{lines.length} lines</span>
         <span>{code.length} characters</span>
+        <span>{canTrace ? "editable trace" : "reference code"}</span>
       </footer>
     </section>
   );

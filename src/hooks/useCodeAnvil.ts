@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { codeLanguages, getTraceCodeVariant, lineForLanguage, type CodeLanguageId } from "../data/languageVariants";
 import { traces as curatedTraces } from "../data/traces";
 import { generateTraceFromCode, type GeneratedTraceResult } from "../trace/generateTrace";
 import { isValidTraceDocument } from "../trace/validateTrace";
@@ -75,24 +76,41 @@ function loadSavedSessions(): SavedSession[] {
   }
 }
 
-function loadReduceMotionPreference() {
-  if (typeof window === "undefined") return false;
+interface CodeAnvilPreferences {
+  narrationEnabled: boolean;
+  reduceMotion: boolean;
+  soundEnabled: boolean;
+}
+
+function systemReduceMotionPreference() {
+  return typeof window !== "undefined" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+}
+
+function loadPreferences(): CodeAnvilPreferences {
+  const fallback = {
+    narrationEnabled: false,
+    reduceMotion: systemReduceMotionPreference(),
+    soundEnabled: false,
+  };
+
+  if (typeof window === "undefined") return fallback;
 
   try {
-    const stored = JSON.parse(window.localStorage.getItem(preferencesKey) || "null") as {
-      reduceMotion?: unknown;
-    } | null;
-    if (typeof stored?.reduceMotion === "boolean") return stored.reduceMotion;
+    const stored = JSON.parse(window.localStorage.getItem(preferencesKey) || "null") as Partial<CodeAnvilPreferences> | null;
+    return {
+      narrationEnabled: typeof stored?.narrationEnabled === "boolean" ? stored.narrationEnabled : fallback.narrationEnabled,
+      reduceMotion: typeof stored?.reduceMotion === "boolean" ? stored.reduceMotion : fallback.reduceMotion,
+      soundEnabled: typeof stored?.soundEnabled === "boolean" ? stored.soundEnabled : fallback.soundEnabled,
+    };
   } catch {
-    // Fall through to the operating-system preference.
+    return fallback;
   }
-
-  return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
 export function useCodeAnvil() {
   const [traceCatalog, setTraceCatalog] = useState<TraceDocument[]>(curatedTraces);
   const [traceIndex, setTraceIndexState] = useState(0);
+  const [codeLanguage, setCodeLanguageState] = useState<CodeLanguageId>("python");
   const [code, setCode] = useState(curatedTraces[0].source.code);
   const [isDirty, setIsDirty] = useState(false);
   const [diagnostics, setDiagnostics] = useState<GeneratedTraceResult["diagnostics"]>([
@@ -108,12 +126,17 @@ export function useCodeAnvil() {
   const [mode, setMode] = useState<Mode>("code");
   const [dsaTab, setDsaTab] = useState<DsaTab>("sorting");
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [reduceMotion, setReduceMotion] = useState(loadReduceMotionPreference);
+  const [initialPreferences] = useState(loadPreferences);
+  const [reduceMotion, setReduceMotion] = useState(initialPreferences.reduceMotion);
+  const [soundEnabled, setSoundEnabled] = useState(initialPreferences.soundEnabled);
+  const [narrationEnabled, setNarrationEnabled] = useState(initialPreferences.narrationEnabled);
 
   const trace = traceCatalog[traceIndex];
   const maxStepIndex = Math.max(0, trace.steps.length - 1);
   const safeStepIndex = Math.min(stepIndex, maxStepIndex);
   const step = trace.steps[safeStepIndex];
+  const codeVariant = useMemo(() => getTraceCodeVariant(trace, codeLanguage), [codeLanguage, trace]);
+  const activeLineNumber = lineForLanguage(trace, codeLanguage, step.line);
   const progress = maxStepIndex === 0 ? 0 : safeStepIndex / maxStepIndex;
   const isStale = isDirty;
 
@@ -133,7 +156,7 @@ export function useCodeAnvil() {
         }
         return current + 1;
       });
-    }, Math.max(240, 900 / speed));
+    }, Math.max(700, 1800 / speed));
 
     return () => window.clearTimeout(timer);
   }, [isPlaying, isStale, maxStepIndex, safeStepIndex, speed]);
@@ -145,25 +168,41 @@ export function useCodeAnvil() {
 
   useEffect(() => {
     try {
-      window.localStorage.setItem(preferencesKey, JSON.stringify({ reduceMotion }));
+      window.localStorage.setItem(preferencesKey, JSON.stringify({ narrationEnabled, reduceMotion, soundEnabled }));
     } catch {
       // Keep the preference for this tab if storage is unavailable.
     }
-  }, [reduceMotion]);
+  }, [narrationEnabled, reduceMotion, soundEnabled]);
 
   const selectTrace = useCallback((traceTitle: string) => {
     const nextTraceIndex = traceCatalog.findIndex((item) => item.title === traceTitle);
     const nextTrace = traceCatalog[nextTraceIndex];
     if (!nextTrace) return;
 
+    const nextVariant = getTraceCodeVariant(nextTrace, codeLanguage);
     setTraceIndexState(nextTraceIndex);
-    setCode(nextTrace.source.code);
+    setCodeLanguageState(nextVariant.language);
+    setCode(nextVariant.code);
     setStepIndex(0);
     setIsDirty(false);
     setIsPlaying(false);
     setDiagnostics([{ kind: "info", message: "Loaded " + nextTrace.title + "." }]);
     setMode("examples");
-  }, [traceCatalog]);
+  }, [codeLanguage, traceCatalog]);
+
+  const setCodeLanguage = useCallback((nextLanguage: CodeLanguageId) => {
+    const nextVariant = getTraceCodeVariant(trace, nextLanguage);
+    setCodeLanguageState(nextVariant.language);
+    setCode(nextVariant.code);
+    setIsDirty(false);
+    setIsPlaying(false);
+    setDiagnostics([{
+      kind: "info",
+      message: nextVariant.language === "python"
+        ? "Python tracing is editable and runnable."
+        : "Showing " + nextVariant.label + " reference code for this validated trace.",
+    }]);
+  }, [trace]);
 
   const updateCode = useCallback((nextCode: string) => {
     setCode(nextCode);
@@ -172,6 +211,15 @@ export function useCodeAnvil() {
   }, []);
 
   const traceCode = useCallback(() => {
+    if (codeLanguage !== "python") {
+      setDiagnostics([{
+        kind: "error",
+        message: "Custom tracing currently accepts Python. " + codeVariant.label + " is available as a reference view for validated traces.",
+      }]);
+      setIsPlaying(false);
+      return false;
+    }
+
     const result = generateTraceFromCode(code);
     setDiagnostics(result.diagnostics);
     setIsPlaying(false);
@@ -187,16 +235,18 @@ export function useCodeAnvil() {
     setIsDirty(false);
     setMode("code");
     return true;
-  }, [code]);
+  }, [code, codeLanguage, codeVariant.label]);
 
   const useCurrentExample = useCallback(() => {
-    setCode(trace.source.code);
+    const nextVariant = getTraceCodeVariant(trace, codeLanguage);
+    setCodeLanguageState(nextVariant.language);
+    setCode(nextVariant.code);
     setStepIndex(0);
     setIsDirty(false);
     setIsPlaying(false);
     setDiagnostics([{ kind: "info", message: trace.title + " is synced with the editor." }]);
     setMode("code");
-  }, [trace]);
+  }, [codeLanguage, trace]);
 
   const stepBackward = useCallback(() => {
     if (isStale) return;
@@ -269,6 +319,7 @@ export function useCodeAnvil() {
       setTraceIndexState(0);
     }
 
+    setCodeLanguageState("python");
     setCode(session.trace.source.code);
     setStepIndex(Math.min(session.stepIndex, session.trace.steps.length - 1));
     setIsDirty(false);
@@ -298,9 +349,13 @@ export function useCodeAnvil() {
   }, []);
 
   return {
+    activeLineNumber,
     activePrompt,
     checkPracticeAnswer,
     code,
+    codeLanguage,
+    codeLanguages,
+    codeVariant,
     deleteSession,
     diagnostics,
     dsaTab,
@@ -309,6 +364,7 @@ export function useCodeAnvil() {
     isStale,
     maxStepIndex,
     mode,
+    narrationEnabled,
     openDsa,
     practiceAnswer,
     practiceMode,
@@ -321,14 +377,18 @@ export function useCodeAnvil() {
     savedSessions,
     scrubToStep,
     selectTrace,
+    setCodeLanguage,
     setDsaTab,
     setMode,
+    setNarrationEnabled,
     setPracticeAnswer,
     setPracticeMode,
     setReduceMotion,
     setSettingsOpen,
+    setSoundEnabled,
     setSpeed,
     settingsOpen,
+    soundEnabled,
     speed,
     step,
     stepBackward,

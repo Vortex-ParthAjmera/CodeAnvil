@@ -3,6 +3,7 @@ import {
   Code2,
   Database,
   Flame,
+  MessageSquareText,
   Pause,
   Play,
   RotateCcw,
@@ -10,6 +11,8 @@ import {
   Settings,
   SkipBack,
   SkipForward,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import { CodeInputPanel } from "./components/CodeInputPanel";
 import { DsaWorkbench } from "./components/DsaWorkbench";
@@ -17,6 +20,7 @@ import { PracticePanel } from "./components/PracticePanel";
 import { ThreeExecutionStage } from "./components/ThreeExecutionStage";
 import { WorkbenchInspector } from "./components/WorkbenchInspector";
 import { useCodeAnvil } from "./hooks/useCodeAnvil";
+import { useExecutionAudio } from "./hooks/useExecutionAudio";
 
 function Brand() {
   return (
@@ -118,33 +122,47 @@ function ForgeCatalog({
 }
 
 function PlaybackBar({
+  audioReady,
+  audioSupported,
   disabled,
   isPlaying,
   maxStepIndex,
+  narrationEnabled,
   onReset,
   onScrub,
   onStepBackward,
   onStepForward,
+  onToggleNarration,
   onTogglePlayback,
+  onToggleSound,
   practiceMode,
   progress,
   setPracticeMode,
   setSpeed,
+  soundEnabled,
+  speechSupported,
   speed,
   stepIndex,
 }: {
+  audioReady: boolean;
+  audioSupported: boolean;
   disabled: boolean;
   isPlaying: boolean;
   maxStepIndex: number;
+  narrationEnabled: boolean;
   onReset: () => void;
   onScrub: (step: number) => void;
   onStepBackward: () => void;
   onStepForward: () => void;
+  onToggleNarration: () => void;
   onTogglePlayback: () => void;
+  onToggleSound: () => void;
   practiceMode: boolean;
   progress: number;
   setPracticeMode: (enabled: boolean) => void;
   setSpeed: (speed: number) => void;
+  soundEnabled: boolean;
+  speechSupported: boolean;
   speed: number;
   stepIndex: number;
 }) {
@@ -179,6 +197,26 @@ function PlaybackBar({
         </button>
         <button disabled={disabled || stepIndex === 0} onClick={onReset} title="Reset trace" type="button">
           <RotateCcw size={16} />
+        </button>
+        <button
+          aria-pressed={soundEnabled}
+          className={soundEnabled ? "is-audio-on" : ""}
+          disabled={!audioSupported}
+          onClick={onToggleSound}
+          title={soundEnabled ? (audioReady ? "Mute step sounds" : "Finish enabling step sounds") : "Enable step sounds"}
+          type="button"
+        >
+          {soundEnabled ? <Volume2 size={16} /> : <VolumeX size={16} />}
+        </button>
+        <button
+          aria-pressed={narrationEnabled}
+          className={narrationEnabled ? "is-narration-on" : ""}
+          disabled={!speechSupported}
+          onClick={onToggleNarration}
+          title={narrationEnabled ? "Stop spoken step explanations" : "Speak step explanations"}
+          type="button"
+        >
+          <MessageSquareText size={16} />
         </button>
       </div>
 
@@ -224,9 +262,27 @@ function PlaybackBar({
 
 export default function AppRedesign() {
   const app = useCodeAnvil();
+  const audio = useExecutionAudio({
+    enabled: app.soundEnabled,
+    muted: app.isStale,
+    narrationEnabled: app.narrationEnabled,
+    step: app.step,
+  });
+
+  function setSoundPreference(enabled: boolean) {
+    app.setSoundEnabled(enabled);
+    if (enabled) void audio.activateAudio();
+  }
+
+  function setNarrationPreference(enabled: boolean) {
+    app.setNarrationEnabled(enabled);
+    if (enabled) {
+      void audio.activateAudio().then(() => audio.speakCurrentStep());
+    }
+  }
 
   return (
-    <div className="ca-shell">
+    <div className={"ca-shell" + (app.reduceMotion ? " reduce-motion" : "")}>
       <header className="ca-topbar">
         <Brand />
         <nav className="ca-mainnav" aria-label="Workspace">
@@ -285,15 +341,37 @@ export default function AppRedesign() {
             <strong>Settings</strong>
             <span>Stored in this browser</span>
           </header>
-          <label className="ca-toggle">
-            <input
-              checked={app.reduceMotion}
-              onChange={(event) => app.setReduceMotion(event.target.checked)}
-              type="checkbox"
-            />
-            <span aria-hidden="true" />
-            <strong>Reduce motion</strong>
-          </label>
+          <div className="ca-settings__group">
+            <label className="ca-toggle">
+              <input
+                checked={app.reduceMotion}
+                onChange={(event) => app.setReduceMotion(event.target.checked)}
+                type="checkbox"
+              />
+              <span aria-hidden="true" />
+              <strong>Reduce motion</strong>
+            </label>
+            <label className="ca-toggle">
+              <input
+                checked={app.soundEnabled}
+                disabled={!audio.audioSupported}
+                onChange={(event) => setSoundPreference(event.target.checked)}
+                type="checkbox"
+              />
+              <span aria-hidden="true" />
+              <strong>Step sounds</strong>
+            </label>
+            <label className="ca-toggle">
+              <input
+                checked={app.narrationEnabled}
+                disabled={!audio.speechSupported}
+                onChange={(event) => setNarrationPreference(event.target.checked)}
+                type="checkbox"
+              />
+              <span aria-hidden="true" />
+              <strong>Narration</strong>
+            </label>
+          </div>
         </aside>
       ) : null}
 
@@ -318,9 +396,16 @@ export default function AppRedesign() {
             <div className="ca-workspace">
               <section className="ca-workbench">
                 <CodeInputPanel
+                  activeLineNumber={app.activeLineNumber}
+                  canTrace={app.codeLanguage === "python"}
                   code={app.code}
+                  extension={app.codeVariant.extension}
                   isStale={app.isStale}
+                  language={app.codeLanguage}
+                  languageLabel={app.codeVariant.label}
+                  languageOptions={app.codeLanguages}
                   onCodeChange={app.updateCode}
+                  onLanguageChange={app.setCodeLanguage}
                   onTrace={app.traceCode}
                   step={app.step}
                   title={app.trace.title}
@@ -340,18 +425,25 @@ export default function AppRedesign() {
               </section>
 
               <PlaybackBar
+                audioReady={audio.audioReady}
+                audioSupported={audio.audioSupported}
                 disabled={app.isStale}
                 isPlaying={app.isPlaying}
                 maxStepIndex={app.maxStepIndex}
+                narrationEnabled={app.narrationEnabled}
                 onReset={app.reset}
                 onScrub={app.scrubToStep}
                 onStepBackward={app.stepBackward}
                 onStepForward={app.stepForward}
+                onToggleNarration={() => setNarrationPreference(!app.narrationEnabled)}
                 onTogglePlayback={app.togglePlayback}
+                onToggleSound={() => setSoundPreference(!app.soundEnabled)}
                 practiceMode={app.practiceMode}
                 progress={app.progress}
                 setPracticeMode={app.setPracticeMode}
                 setSpeed={app.setSpeed}
+                soundEnabled={app.soundEnabled}
+                speechSupported={audio.speechSupported}
                 speed={app.speed}
                 stepIndex={app.stepIndex}
               />

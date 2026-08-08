@@ -2411,3 +2411,334 @@ body {
     grid-column: 1 / -1;
   }
 }
+
+
+/* Live forge layer, language selector, and sound controls. */
+.ca-main {
+  position: relative;
+  z-index: 1;
+}
+
+.ca-shell::before,
+.ca-shell::after {
+  z-index: 0;
+}
+
+.ca-shell::after {
+  position: absolute;
+  inset: 58px 0 0;
+  pointer-events: none;
+  background:
+    linear-gradient(115deg, transparent 0 42%, rgba(244, 168, 58, 0.08) 48%, transparent 54%),
+    repeating-linear-gradient(115deg, rgba(73, 195, 219, 0.032) 0 1px, transparent 1px 52px),
+    repeating-linear-gradient(0deg, rgba(244, 168, 58, 0.026) 0 1px, transparent 1px 38px);
+  background-position: 0 0, 0 0, 0 0;
+  background-size: 360px 100%, 160px 160px, 100% 38px;
+  content: "";
+  mask-image: linear-gradient(180deg, transparent 0%, black 12%, black 86%, transparent 100%);
+  opacity: 0.44;
+  animation: ca-live-forge 24s linear infinite;
+}
+
+.ca-shell::before {
+  animation: ca-grid-breathe 9s ease-in-out infinite alternate;
+}
+
+.ca-shell.reduce-motion::before,
+.ca-shell.reduce-motion::after {
+  animation: none !important;
+}
+
+.ca-editor-tools {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
+}
+
+.ca-language-select {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  color: var(--ca-muted);
+  font-size: 10px;
+  font-weight: 750;
+}
+
+.ca-language-select span {
+  flex: 0 0 auto;
+  text-transform: uppercase;
+}
+
+.ca-language-select select {
+  width: clamp(86px, 9vw, 122px);
+  min-width: 0;
+  min-height: 30px;
+  border: 1px solid var(--ca-line);
+  border-radius: 5px;
+  background: var(--ca-code);
+  color: var(--ca-text);
+  padding: 0 7px;
+  font-size: 11px;
+}
+
+.ca-settings {
+  display: grid;
+  gap: 12px;
+}
+
+.ca-settings__group {
+  display: grid;
+  gap: 10px;
+}
+
+.ca-settings .ca-toggle {
+  width: 100%;
+  min-height: 28px;
+}
+
+.ca-playback__buttons {
+  flex-wrap: wrap;
+}
+
+.ca-playback button[aria-pressed="true"] {
+  border-color: #39714e;
+  background: var(--ca-green-soft);
+  color: var(--ca-green);
+}
+
+.ca-playback button.is-narration-on {
+  border-color: #326a76;
+  background: var(--ca-cyan-soft);
+  color: var(--ca-cyan);
+}
+
+@keyframes ca-live-forge {
+  from {
+    background-position: 0 0, 0 0, 0 0;
+  }
+  to {
+    background-position: 360px 0, 160px -160px, 0 38px;
+  }
+}
+
+@keyframes ca-grid-breathe {
+  from {
+    opacity: 0.48;
+  }
+  to {
+    opacity: 0.72;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ca-shell::before,
+  .ca-shell::after {
+    animation: none !important;
+  }
+}
+
+@media (max-width: 620px) {
+  .ca-language-select span {
+    display: none;
+  }
+
+  .ca-language-select select {
+    width: 86px;
+    font-size: 10px;
+  }
+
+  .ca-editor-tools {
+    gap: 5px;
+  }
+}
+
+
+/* Readability pass: keep explanations sharp instead of relying on WebGL text. */
+.ca-stage {
+  grid-template-rows: 42px auto 34px auto minmax(300px, 1fr) 32px;
+}
+
+.ca-stage__explanation {
+  min-height: 82px;
+}
+
+.ca-stage__explanation strong {
+  font-size: 17px;
+  line-height: 1.28;
+}
+
+.ca-stage__explanation p {
+  color: #bac3c0;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.ca-stage__action-row {
+  min-height: 38px;
+}
+
+.ca-stage-action {
+  min-height: 24px;
+  padding: 5px 8px;
+  font-size: 10px;
+}
+
+.ca-stage-readout {
+  display: grid;
+  grid-template-columns: minmax(220px, 0.78fr) minmax(0, 1.22fr);
+  gap: 10px;
+  min-width: 0;
+  padding: 10px 11px;
+  border-bottom: 1px solid var(--ca-line-soft);
+  background:
+    linear-gradient(90deg, rgba(244, 168, 58, 0.08), transparent 42%),
+    #0b1011;
+}
+
+.ca-stage-readout__main {
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.ca-stage-readout__main span,
+.ca-runtime-flow__item span {
+  color: var(--ca-amber);
+  font-size: 10px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.ca-stage-readout__main strong {
+  color: var(--ca-text);
+  font-size: 16px;
+  line-height: 1.25;
+}
+
+.ca-stage-readout__main p {
+  margin: 0;
+  color: #b7c0bd;
+  font-size: 12px;
+  line-height: 1.42;
+}
+
+.ca-runtime-flow {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+  min-width: 0;
+}
+
+.ca-runtime-flow__item {
+  display: grid;
+  align-content: center;
+  gap: 4px;
+  min-width: 0;
+  min-height: 58px;
+  padding: 7px 8px;
+  border: 1px solid #263033;
+  border-radius: 5px;
+  background: #0f1517;
+}
+
+.ca-runtime-flow__item strong {
+  overflow-wrap: anywhere;
+  color: var(--ca-text);
+  font-size: 12px;
+  line-height: 1.24;
+}
+
+.ca-runtime-flow__item.ca-tone-compare {
+  border-color: #245765;
+  background: var(--ca-cyan-soft);
+}
+
+.ca-runtime-flow__item.ca-tone-compare span,
+.ca-stage-readout.ca-tone-compare .ca-stage-readout__main span {
+  color: var(--ca-cyan);
+}
+
+.ca-runtime-flow__item.ca-tone-return,
+.ca-runtime-flow__item.ca-tone-done {
+  border-color: #366a48;
+  background: var(--ca-green-soft);
+}
+
+.ca-runtime-flow__item.ca-tone-return span,
+.ca-runtime-flow__item.ca-tone-done span,
+.ca-stage-readout.ca-tone-return .ca-stage-readout__main span,
+.ca-stage-readout.ca-tone-done .ca-stage-readout__main span {
+  color: var(--ca-green);
+}
+
+@media (max-width: 980px) {
+  .ca-stage {
+    grid-template-rows: 42px auto auto auto minmax(300px, 1fr) 32px;
+  }
+
+  .ca-stage-readout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ca-runtime-flow {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 620px) {
+  .ca-stage__explanation strong {
+    font-size: 15px;
+  }
+
+  .ca-stage__explanation p,
+  .ca-stage-readout__main p {
+    font-size: 11px;
+  }
+
+  .ca-stage-readout {
+    padding: 8px;
+  }
+
+  .ca-runtime-flow__item {
+    min-height: 52px;
+  }
+}
+
+
+/* Keep the readable animation panel from clipping the 3D scene on narrower screens. */
+@media (max-width: 980px) {
+  .ca-workbench {
+    grid-template-rows: minmax(360px, auto) minmax(660px, auto) minmax(260px, auto);
+  }
+}
+
+@media (max-width: 620px) {
+  .ca-workbench {
+    grid-template-rows: minmax(360px, auto) minmax(690px, auto) minmax(250px, auto);
+  }
+
+  .ca-stage {
+    min-height: 690px;
+  }
+
+  .ca-runtime-flow {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .ca-runtime-flow__item {
+    min-height: 68px;
+    padding: 6px 5px;
+  }
+
+  .ca-runtime-flow__item span {
+    font-size: 8px;
+  }
+
+  .ca-runtime-flow__item strong {
+    font-size: 10px;
+  }
+}

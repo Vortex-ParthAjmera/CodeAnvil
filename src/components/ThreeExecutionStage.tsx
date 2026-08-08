@@ -11,7 +11,7 @@ interface ThreeExecutionStageProps {
 }
 
 interface StageState {
-  camera: THREE.OrthographicCamera;
+  camera: THREE.PerspectiveCamera;
   dynamic: THREE.Group;
   frameId: number;
   progress: number;
@@ -65,29 +65,40 @@ function makeTextSprite(
   align: CanvasTextAlign = "center",
 ) {
   const canvas = document.createElement("canvas");
-  canvas.width = 768;
-  canvas.height = 144;
+  canvas.width = 1024;
+  canvas.height = 256;
   const context = canvas.getContext("2d");
   if (!context) return new THREE.Sprite();
 
+  const displayText = text.length > 26 ? text.slice(0, 25) + "..." : text;
   context.clearRect(0, 0, canvas.width, canvas.height);
-  context.fillStyle = color;
-  context.font = "600 64px ui-monospace, SFMono-Regular, Consolas, monospace";
+  context.font = "800 88px ui-monospace, SFMono-Regular, Consolas, monospace";
   context.textAlign = align;
   context.textBaseline = "middle";
-  const x = align === "left" ? 22 : align === "right" ? canvas.width - 22 : canvas.width / 2;
-  context.fillText(text.slice(0, 34), x, canvas.height / 2);
+  context.lineJoin = "round";
+  context.strokeStyle = "rgba(4, 7, 7, 0.92)";
+  context.lineWidth = 15;
+  context.shadowColor = "rgba(0, 0, 0, 0.65)";
+  context.shadowBlur = 8;
+  const x = align === "left" ? 34 : align === "right" ? canvas.width - 34 : canvas.width / 2;
+  context.strokeText(displayText, x, canvas.height / 2);
+  context.fillStyle = color;
+  context.fillText(displayText, x, canvas.height / 2);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
   texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+  texture.generateMipmaps = false;
   const material = new THREE.SpriteMaterial({
     map: texture,
     transparent: true,
     depthTest: false,
+    depthWrite: false,
   });
   const sprite = new THREE.Sprite(material);
-  sprite.scale.set(3.4 * scale, 1 * scale, 1);
+  const width = Math.max(1.15, Math.min(4.8, displayText.length * 0.17));
+  sprite.scale.set(width * scale, 0.9 * scale, 1);
   return sprite;
 }
 
@@ -238,6 +249,113 @@ function addSparkBurst(
       spark.scale.setScalar(1 - progress * 0.45);
     });
   }
+}
+
+function clamp01(value: number) {
+  return Math.max(0, Math.min(1, value));
+}
+
+function segment(progress: number, start: number, end: number) {
+  return clamp01((progress - start) / (end - start));
+}
+
+function lerp(from: number, to: number, progress: number) {
+  return from + (to - from) * progress;
+}
+
+function actionUnitLabel(action: TraceAction) {
+  if (action.type === "compare") return "COMPARATOR";
+  if (action.type === "swap" || action.type === "assign") return "WRITE UNIT";
+  if (action.type === "call" || action.type === "return") return "CALL STACK";
+  if (action.type === "output") return "OUTPUT PORT";
+  if (action.type === "visit_node") return "GRAPH UNIT";
+  return "EXECUTE";
+}
+
+function makeProcessorBlock(label: string, detail: string, x: number, tone: number) {
+  const group = new THREE.Group();
+  const body = makeBox(1.72, 0.68, 0.72, 0x0f1719, tone, 0.08);
+  group.add(body);
+  group.add(makeOutline(1.72, 0.68, 0.72, tone));
+  const labelText = makeTextSprite(label, "#f1f2ed", 0.36);
+  labelText.position.set(0, 0.11, 0.42);
+  group.add(labelText);
+  const detailText = makeTextSprite(detail, "#9aa39f", 0.27);
+  detailText.position.set(0, -0.17, 0.42);
+  group.add(detailText);
+  group.position.set(x, 2.62, -0.08);
+  return group;
+}
+
+function makePulseDot(color: number) {
+  return new THREE.Mesh(
+    new THREE.SphereGeometry(0.08, 18, 18),
+    new THREE.MeshStandardMaterial({ color, emissive: color, emissiveIntensity: 0.85 }),
+  );
+}
+
+function addRuntimePipeline(
+  group: THREE.Group,
+  step: TraceStep,
+  model: TraceSceneModel,
+  animations: Array<(progress: number) => void>,
+) {
+  const tone = toneColor(model.tone);
+  const fetchBlock = makeProcessorBlock("FETCH", "source line " + String(step.line), -3.45, palette.active);
+  const decodeBlock = makeProcessorBlock("DECODE", model.action.type.replace(/_/g, " "), -1.16, palette.compare);
+  const executeBlock = makeProcessorBlock(actionUnitLabel(model.action), model.kind, 1.16, tone);
+  const writeBlock = makeProcessorBlock("WRITEBACK", model.action.type === "return" ? "return value" : "state update", 3.45, palette.return);
+  group.add(fetchBlock, decodeBlock, executeBlock, writeBlock);
+
+  const pipelineY = 2.62;
+  group.add(makeLine(new THREE.Vector3(-2.55, pipelineY, 0.18), new THREE.Vector3(-2.06, pipelineY, 0.18), palette.active, 0.42));
+  group.add(makeLine(new THREE.Vector3(-0.3, pipelineY, 0.18), new THREE.Vector3(0.28, pipelineY, 0.18), palette.compare, 0.42));
+  group.add(makeLine(new THREE.Vector3(2.05, pipelineY, 0.18), new THREE.Vector3(2.55, pipelineY, 0.18), palette.return, 0.42));
+  group.add(makeLine(new THREE.Vector3(3.45, 2.22, 0.12), new THREE.Vector3(3.45, -1.55, 0.12), palette.return, 0.22));
+
+  const sourceToken = makePlate("SOURCE", "line " + String(step.line), palette.active, true);
+  sourceToken.scale.set(0.48, 0.48, 0.48);
+  sourceToken.position.set(-4.35, 3.36, 0.2);
+  group.add(sourceToken);
+
+  const opcode = makePlate(model.action.type.toUpperCase().replace(/_/g, " "), actionUnitLabel(model.action), tone, true);
+  opcode.scale.set(0.52, 0.52, 0.52);
+  opcode.position.set(-1.16, 2.62, 0.6);
+  group.add(opcode);
+
+  const pulse = makePulseDot(tone);
+  pulse.position.set(-3.45, 2.62, 0.72);
+  group.add(pulse);
+
+  animations.push((progress) => {
+    const fetch = segment(progress, 0, 0.3);
+    const decode = segment(progress, 0.28, 0.58);
+    const execute = segment(progress, 0.54, 0.82);
+    const write = segment(progress, 0.78, 1);
+
+    sourceToken.position.x = lerp(-4.35, -3.45, fetch);
+    sourceToken.position.y = lerp(3.36, 2.62, fetch);
+    sourceToken.rotation.y = -0.15 + fetch * 0.15;
+    sourceToken.scale.setScalar(0.45 + Math.sin(fetch * Math.PI) * 0.08);
+
+    opcode.position.x = lerp(-1.16, 1.16, execute);
+    opcode.position.z = 0.6 + Math.sin(execute * Math.PI) * 0.34;
+    opcode.scale.setScalar(0.46 + Math.sin(decode * Math.PI) * 0.12);
+
+    const busProgress = progress < 0.34 ? fetch : progress < 0.68 ? decode : write;
+    pulse.position.x = progress < 0.34
+      ? lerp(-3.45, -1.16, busProgress)
+      : progress < 0.68
+        ? lerp(-1.16, 1.16, busProgress)
+        : lerp(1.16, 3.45, busProgress);
+    pulse.position.y = pipelineY;
+    pulse.scale.setScalar(0.75 + Math.sin(progress * Math.PI * 4) * 0.25);
+
+    fetchBlock.scale.setScalar(1 + Math.sin(fetch * Math.PI) * 0.08);
+    decodeBlock.scale.setScalar(1 + Math.sin(decode * Math.PI) * 0.08);
+    executeBlock.scale.setScalar(1 + Math.sin(execute * Math.PI) * 0.1);
+    writeBlock.scale.setScalar(1 + Math.sin(write * Math.PI) * 0.08);
+  });
 }
 
 function toneColor(tone: TraceSceneTone) {
@@ -606,11 +724,24 @@ function buildScene(group: THREE.Group, step: TraceStep, model: TraceSceneModel)
   clearGroup(group);
   makeForgeBackdrop(group, model.tone);
   makeActionBadge(group, step, model);
-  if (model.kind === "recursion") return buildRecursionScene(group, step, model);
-  if (model.kind === "array") return buildArrayScene(group, step, model);
-  if (model.kind === "graph") return buildGraphScene(group, step, model);
-  if (model.kind === "output") return buildOutputScene(group, step);
-  return buildVariablesScene(group, step, model);
+  const runtimeAnimations: Array<(progress: number) => void> = [];
+  addRuntimePipeline(group, step, model, runtimeAnimations);
+  const scene = model.kind === "recursion"
+    ? buildRecursionScene(group, step, model)
+    : model.kind === "array"
+      ? buildArrayScene(group, step, model)
+      : model.kind === "graph"
+        ? buildGraphScene(group, step, model)
+        : model.kind === "output"
+          ? buildOutputScene(group, step)
+          : buildVariablesScene(group, step, model);
+
+  return {
+    update(progress: number) {
+      runtimeAnimations.forEach((animation) => animation(progress));
+      scene.update(progress);
+    },
+  };
 }
 
 function easeOutCubic(value: number) {
@@ -619,6 +750,37 @@ function easeOutCubic(value: number) {
 
 function traceActionLabel(action: TraceAction) {
   return action.type.replace(/_/g, " ");
+}
+
+type RuntimeFlowTone = "active" | "compare" | "return" | "done";
+
+interface RuntimeFlowItem {
+  label: string;
+  tone: RuntimeFlowTone;
+  value: string;
+}
+
+function writeBackLabel(model: TraceSceneModel) {
+  const { action } = model;
+  if (action.type === "swap") return "Array order is rewritten";
+  if (action.type === "compare") return action.result ? "Condition is true" : "Condition is false";
+  if (action.type === "call") return "Frame is pushed";
+  if (action.type === "return") return "Value returns upward";
+  if (action.type === "assign") return action.target + " is updated";
+  if (action.type === "output") return "Output is printed";
+  if (action.type === "read") return "Value enters the step";
+  if (action.type === "loop") return "Iterator advances";
+  if (action.type === "visit_node") return "Node is marked visited";
+  return "State is kept in sync";
+}
+
+function runtimeFlowFor(step: TraceStep, model: TraceSceneModel): RuntimeFlowItem[] {
+  return [
+    { label: "1 Fetch", tone: "active", value: "Line " + String(step.line) },
+    { label: "2 Decode", tone: "compare", value: traceActionLabel(model.action) },
+    { label: "3 Execute", tone: model.tone, value: actionUnitLabel(model.action).toLowerCase() },
+    { label: "4 Write", tone: "return", value: writeBackLabel(model) },
+  ];
 }
 
 export function ThreeExecutionStage({
@@ -641,6 +803,7 @@ export function ThreeExecutionStage({
         antialias: true,
         alpha: false,
         powerPreference: "high-performance",
+        preserveDrawingBuffer: true,
       });
     } catch {
       setWebglFailed(true);
@@ -648,10 +811,10 @@ export function ThreeExecutionStage({
     }
 
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x090d0e);
-    const camera = new THREE.OrthographicCamera(-5, 5, 4, -4, 0.1, 40);
-    camera.position.set(0, 0, 12);
-    camera.lookAt(0, 0, 0);
+    scene.background = new THREE.Color(0x070909);
+    const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 60);
+    camera.position.set(0, -2.7, 10.6);
+    camera.lookAt(0, 0.15, 0);
 
     renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
@@ -660,10 +823,13 @@ export function ThreeExecutionStage({
     renderer.domElement.setAttribute("aria-hidden", "true");
     mount.appendChild(renderer.domElement);
 
-    scene.add(new THREE.HemisphereLight(0xe9f1ed, 0x101515, 2.1));
-    const key = new THREE.DirectionalLight(0xffd58c, 2.5);
-    key.position.set(2, 5, 8);
+    scene.add(new THREE.HemisphereLight(0xe9f1ed, 0x111515, 1.7));
+    const key = new THREE.DirectionalLight(0xffd58c, 2.7);
+    key.position.set(2.5, -2.2, 8);
     scene.add(key);
+    const rim = new THREE.DirectionalLight(0x4ad4ef, 1.4);
+    rim.position.set(-4, 2, 5);
+    scene.add(rim);
 
     const dynamic = new THREE.Group();
     scene.add(dynamic);
@@ -682,12 +848,7 @@ export function ThreeExecutionStage({
     const resize = () => {
       const width = Math.max(280, mount.clientWidth);
       const height = Math.max(260, mount.clientHeight);
-      const aspect = width / height;
-      const viewHeight = 7.6;
-      camera.left = -(viewHeight * aspect) / 2;
-      camera.right = (viewHeight * aspect) / 2;
-      camera.top = viewHeight / 2;
-      camera.bottom = -viewHeight / 2;
+      camera.aspect = width / height;
       camera.updateProjectionMatrix();
       renderer.setSize(width, height, false);
       state.update(state.progress);
@@ -724,7 +885,7 @@ export function ThreeExecutionStage({
     }
 
     const startedAt = performance.now();
-    const duration = model.action.type === "swap" ? 720 : 560;
+    const duration = model.action.type === "swap" ? 2200 : model.action.type === "call" || model.action.type === "return" ? 1900 : 1650;
     const tick = (now: number) => {
       const linear = Math.min(1, (now - startedAt) / duration);
       state.progress = easeOutCubic(linear);
@@ -742,6 +903,7 @@ export function ThreeExecutionStage({
     : model.kind === "array"
       ? ["current values", "compared", "settled"]
       : ["current state", "changed", "completed"];
+  const runtimeFlow = runtimeFlowFor(step, model);
 
   return (
     <section className="ca-stage" aria-label="Execution stage">
@@ -768,6 +930,22 @@ export function ThreeExecutionStage({
             {traceActionLabel(action)}
           </span>
         ))}
+      </div>
+
+      <div className={"ca-stage-readout ca-tone-" + model.tone} data-testid="stage-readout" aria-label="Readable animation explanation">
+        <div className="ca-stage-readout__main">
+          <span>Animation focus</span>
+          <strong>{model.headline}</strong>
+          <p>{model.detail}</p>
+        </div>
+        <div className="ca-runtime-flow" aria-label="Runtime pipeline">
+          {runtimeFlow.map((item) => (
+            <div className={"ca-runtime-flow__item ca-tone-" + item.tone} key={item.label}>
+              <span>{item.label}</span>
+              <strong>{item.value}</strong>
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="ca-three-mount" ref={mountRef}>

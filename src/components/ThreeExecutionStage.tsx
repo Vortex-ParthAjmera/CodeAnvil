@@ -59,46 +59,13 @@ function clearGroup(group: THREE.Group) {
 }
 
 function makeTextSprite(
-  text: string,
-  color = palette.text,
-  scale = 1,
-  align: CanvasTextAlign = "center",
+  _text = "",
+  _color = palette.text,
+  _scale = 1,
+  _align: CanvasTextAlign = "center",
 ) {
-  const canvas = document.createElement("canvas");
-  canvas.width = 1024;
-  canvas.height = 256;
-  const context = canvas.getContext("2d");
-  if (!context) return new THREE.Sprite();
-
-  const displayText = text.length > 26 ? text.slice(0, 25) + "..." : text;
-  context.clearRect(0, 0, canvas.width, canvas.height);
-  context.font = "800 88px ui-monospace, SFMono-Regular, Consolas, monospace";
-  context.textAlign = align;
-  context.textBaseline = "middle";
-  context.lineJoin = "round";
-  context.strokeStyle = "rgba(4, 7, 7, 0.92)";
-  context.lineWidth = 15;
-  context.shadowColor = "rgba(0, 0, 0, 0.65)";
-  context.shadowBlur = 8;
-  const x = align === "left" ? 34 : align === "right" ? canvas.width - 34 : canvas.width / 2;
-  context.strokeText(displayText, x, canvas.height / 2);
-  context.fillStyle = color;
-  context.fillText(displayText, x, canvas.height / 2);
-
-  const texture = new THREE.CanvasTexture(canvas);
-  texture.colorSpace = THREE.SRGBColorSpace;
-  texture.minFilter = THREE.LinearFilter;
-  texture.magFilter = THREE.LinearFilter;
-  texture.generateMipmaps = false;
-  const material = new THREE.SpriteMaterial({
-    map: texture,
-    transparent: true,
-    depthTest: false,
-    depthWrite: false,
-  });
-  const sprite = new THREE.Sprite(material);
-  const width = Math.max(1.15, Math.min(4.8, displayText.length * 0.17));
-  sprite.scale.set(width * scale, 0.9 * scale, 1);
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ transparent: true, opacity: 0 }));
+  sprite.visible = false;
   return sprite;
 }
 
@@ -783,6 +750,29 @@ function runtimeFlowFor(step: TraceStep, model: TraceSceneModel): RuntimeFlowIte
   ];
 }
 
+function stateSummaryFor(step: TraceStep, model: TraceSceneModel) {
+  const { action } = model;
+  if (action.type === "swap") return action.target + " = " + formatValue(action.after);
+  if (action.type === "compare") {
+    return formatValue(action.values[0]) + " > " + formatValue(action.values[1])
+      + (action.result === undefined ? "" : " is " + String(action.result));
+  }
+  if (action.type === "assign") return action.target + " = " + formatValue(action.value);
+  if (action.type === "call") return action.name + "(" + Object.values(action.args).map(formatValue).join(", ") + ")";
+  if (action.type === "return") return action.name + " returns " + formatValue(action.value);
+  if (action.type === "output") return action.value || step.output || "empty output";
+  if (action.type === "read") return action.target + "[" + String(action.index) + "] = " + formatValue(action.value);
+  if (action.type === "loop") return action.iterator + " uses " + formatValue(action.value);
+  if (action.type === "visit_node") return "visited " + action.node;
+
+  const changedNames = step.changed.variables || [];
+  const changed = changedNames
+    .filter((name) => !name.startsWith("__") && Object.prototype.hasOwnProperty.call(step.variables, name))
+    .slice(0, 3)
+    .map((name) => name + " = " + formatValue(step.variables[name]));
+  return changed.length ? changed.join(", ") : model.detail;
+}
+
 export function ThreeExecutionStage({
   isStale,
   reduceMotion,
@@ -904,6 +894,7 @@ export function ThreeExecutionStage({
       ? ["current values", "compared", "settled"]
       : ["current state", "changed", "completed"];
   const runtimeFlow = runtimeFlowFor(step, model);
+  const stateSummary = stateSummaryFor(step, model);
 
   return (
     <section className="ca-stage" aria-label="Execution stage">
@@ -932,23 +923,30 @@ export function ThreeExecutionStage({
         ))}
       </div>
 
-      <div className={"ca-stage-readout ca-tone-" + model.tone} data-testid="stage-readout" aria-label="Readable animation explanation">
-        <div className="ca-stage-readout__main">
-          <span>Animation focus</span>
+      <div className="ca-three-mount" ref={mountRef}>
+        <div className={"ca-animation-banner ca-tone-" + model.tone} data-testid="animation-main-label">
+          <span>{traceActionLabel(model.action)}</span>
           <strong>{model.headline}</strong>
-          <p>{model.detail}</p>
         </div>
-        <div className="ca-runtime-flow" aria-label="Runtime pipeline">
+        <div className={"ca-canvas-readout ca-tone-" + model.tone} data-testid="canvas-readable-overlay" aria-label="Readable animation labels">
+          <div className="ca-canvas-readout__card ca-canvas-readout__card--main">
+            <span>Now animating</span>
+            <strong>{model.headline}</strong>
+            <p>{model.detail}</p>
+          </div>
+          <div className="ca-canvas-readout__card ca-canvas-readout__card--state">
+            <span>State change</span>
+            <strong>{stateSummary}</strong>
+          </div>
+        </div>
+        <div className="ca-animation-labels" data-testid="animation-visible-labels" aria-label="Visible runtime labels">
           {runtimeFlow.map((item) => (
-            <div className={"ca-runtime-flow__item ca-tone-" + item.tone} key={item.label}>
+            <div className={"ca-animation-label ca-tone-" + item.tone} key={item.label}>
               <span>{item.label}</span>
               <strong>{item.value}</strong>
             </div>
           ))}
         </div>
-      </div>
-
-      <div className="ca-three-mount" ref={mountRef}>
         {webglFailed ? (
           <div className="ca-stage-fallback">
             <strong>{model.headline}</strong>

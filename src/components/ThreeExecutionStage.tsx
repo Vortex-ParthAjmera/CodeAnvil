@@ -119,6 +119,20 @@ function easeInOut(value: number) {
   return value < 0.5 ? 2 * value * value : 1 - Math.pow(-2 * value + 2, 2) / 2;
 }
 
+function easeOutBack(value: number) {
+  const c1 = 1.18;
+  const c3 = c1 + 1;
+  return 1 + c3 * Math.pow(value - 1, 3) + c1 * Math.pow(value - 1, 2);
+}
+
+function phase(progress: number, start: number, end: number, easing: (value: number) => number = easeInOut) {
+  return easing(segment(progress, start, end));
+}
+
+function pulseBetween(progress: number, start: number, end: number) {
+  return Math.sin(phase(progress, start, end) * Math.PI);
+}
+
 function toneColor(tone: TraceSceneTone) {
   if (tone === "compare") return palette.blue;
   if (tone === "return" || tone === "done") return palette.green;
@@ -156,50 +170,79 @@ function makeTextSprite(
   text = "",
   color = palette.text,
   scale = 1,
-  options: { align?: CanvasTextAlign; background?: boolean; maxLength?: number } = {},
+  options: {
+    align?: CanvasTextAlign;
+    background?: boolean;
+    maxLength?: number;
+    widthMultiplier?: number;
+    fontSize?: number;
+    heightMultiplier?: number;
+  } = {},
 ) {
   const label = compactLabel(text, options.maxLength ?? 18);
   const canvas = document.createElement("canvas");
   const context = canvas.getContext("2d");
   if (!context) return new THREE.Sprite(new THREE.SpriteMaterial({ opacity: 0, transparent: true }));
 
-  const width = 720;
-  const height = 220;
-  canvas.width = width;
-  canvas.height = height;
-  context.clearRect(0, 0, width, height);
+  const fontSize = options.fontSize ?? 80;
+  const pixelRatio = Math.min(4, Math.max(3, window.devicePixelRatio * 2));
+  const fontWeight = 800;
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = "high";
+  context.font = String(fontWeight) + " " + fontSize + "px Inter, Arial, sans-serif";
+  const measuredWidth = Math.ceil(context.measureText(label || " ").width);
+  const padX = options.background === false ? 34 : 64;
+  const padY = options.background === false ? 24 : 42;
+  const cssWidth = Math.max(128, Math.min(920, measuredWidth + padX * 2));
+  const cssHeight = Math.max(98, fontSize + padY * 2);
+
+  canvas.width = cssWidth * pixelRatio;
+  canvas.height = cssHeight * pixelRatio;
+  context.scale(pixelRatio, pixelRatio);
+  context.clearRect(0, 0, cssWidth, cssHeight);
 
   if (options.background !== false) {
     context.fillStyle = "rgba(2, 8, 7, 0.78)";
     context.strokeStyle = "rgba(18, 165, 135, 0.48)";
     context.lineWidth = 5;
-    drawRoundRect(context, 22, 42, width - 44, height - 84, 34);
+    drawRoundRect(context, 18, 18, cssWidth - 36, cssHeight - 36, 26);
     context.fill();
     context.stroke();
   }
 
   context.fillStyle = color;
-  context.font = "900 86px Inter, Arial, sans-serif";
+  context.imageSmoothingEnabled = true;
+  context.imageSmoothingQuality = "high";
+  context.font = String(fontWeight) + " " + fontSize + "px Inter, Arial, sans-serif";
   context.textAlign = options.align ?? "center";
   context.textBaseline = "middle";
-  context.shadowColor = "rgba(0, 0, 0, 0.92)";
-  context.shadowBlur = 12;
-  context.shadowOffsetY = 5;
-  const x = options.align === "left" ? 70 : options.align === "right" ? width - 70 : width / 2;
-  context.fillText(label || " ", x, height / 2 + 2, width - 110);
+  context.shadowColor = "rgba(0, 0, 0, 0.64)";
+  context.shadowBlur = 4;
+  context.shadowOffsetY = 2;
+  context.strokeStyle = "rgba(0, 0, 0, 0.78)";
+  context.lineJoin = "round";
+  context.lineWidth = Math.max(2.5, fontSize * 0.045);
+  const x = options.align === "left" ? padX : options.align === "right" ? cssWidth - padX : cssWidth / 2;
+  const y = cssHeight / 2 + 2;
+  context.strokeText(label || " ", x, y);
+  context.fillText(label || " ", x, y);
 
   const texture = new THREE.CanvasTexture(canvas);
   texture.colorSpace = THREE.SRGBColorSpace;
-  texture.generateMipmaps = false;
-  texture.minFilter = THREE.LinearFilter;
+  texture.generateMipmaps = true;
+  texture.minFilter = THREE.LinearMipmapLinearFilter;
   texture.magFilter = THREE.LinearFilter;
+  texture.anisotropy = 4;
 
   const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
     depthTest: false,
     map: texture,
     transparent: true,
   }));
-  sprite.scale.set(scale * 2.52, scale * 0.77, 1);
+  const worldHeight = scale * (options.heightMultiplier ?? 0.72);
+  const naturalWidth = worldHeight * (cssWidth / cssHeight);
+  const maxWidth = options.widthMultiplier ? scale * options.widthMultiplier : naturalWidth;
+  sprite.scale.set(Math.min(naturalWidth, maxWidth), worldHeight, 1);
   sprite.renderOrder = 20;
   return sprite;
 }
@@ -304,12 +347,12 @@ function addAmbientBeat(group: THREE.Group, animations: Array<(progress: number)
   const dot = makePulseDot(tone, 0.075);
   group.add(curve, dot);
   animations.push((progress) => {
-    const travel = easeInOut(progress);
+    const travel = phase(progress, 0.04, 0.92);
     dot.position.x = lerp(-1.62, 1.62, travel);
-    dot.position.y = 2.2 + Math.sin(progress * Math.PI * 2) * 0.18;
+    dot.position.y = 2.2 + Math.sin(travel * Math.PI * 2) * 0.18;
     dot.position.z = 0.6;
-    dot.scale.setScalar(0.88 + Math.sin(progress * Math.PI * 2) * 0.2);
-    curve.rotation.z = Math.sin(progress * Math.PI * 2) * 0.012;
+    dot.scale.setScalar(0.82 + pulseBetween(progress, 0.04, 0.92) * 0.28);
+    curve.rotation.z = Math.sin(travel * Math.PI * 2) * 0.012;
   });
 }
 
@@ -365,12 +408,15 @@ function buildArrayReel(group: THREE.Group, step: TraceStep, model: TraceSceneMo
       new THREE.Vector3(rightX, 0.92, 0.34),
     ], palette.blue, 0.9);
     group.add(arc);
+    const arcMaterial = arc.material as THREE.LineBasicMaterial;
     const dot = makePulseDot(palette.blue, 0.07);
     group.add(dot);
     animations.push((progress) => {
-      const travel = easeInOut(progress);
-      dot.position.set(lerp(leftX, rightX, travel), 1.04 + Math.sin(travel * Math.PI) * 0.52, 0.74);
-      dot.scale.setScalar(0.9 + Math.sin(progress * Math.PI * 2) * 0.2);
+      const scan = phase(progress, 0.18, 0.68);
+      const resolve = phase(progress, 0.68, 0.92, easeOutCubic);
+      dot.position.set(lerp(leftX, rightX, scan), 1.04 + Math.sin(scan * Math.PI) * 0.52, 0.74 + resolve * 0.1);
+      dot.scale.setScalar(0.62 + pulseBetween(progress, 0.1, 0.28) * 0.35 + pulseBetween(progress, 0.68, 0.94) * 0.55);
+      arcMaterial.opacity = 0.28 + phase(progress, 0.06, 0.2, easeOutCubic) * 0.5 + resolve * 0.18;
     });
   }
 
@@ -378,21 +424,29 @@ function buildArrayReel(group: THREE.Group, step: TraceStep, model: TraceSceneMo
     const [leftIndex, rightIndex] = model.action.indices;
     const leftX = firstX + leftIndex * spacing;
     const rightX = firstX + rightIndex * spacing;
-    group.add(makeCurve([
+    const topArc = makeCurve([
       new THREE.Vector3(leftX, 0.86, 0.36),
       new THREE.Vector3((leftX + rightX) / 2, 1.82, 0.78),
       new THREE.Vector3(rightX, 0.86, 0.36),
-    ], palette.teal, 0.82));
-    group.add(makeCurve([
+    ], palette.teal, 0.82);
+    const lowArc = makeCurve([
       new THREE.Vector3(rightX, 0.2, 0.32),
       new THREE.Vector3((leftX + rightX) / 2, -0.48, 0.68),
       new THREE.Vector3(leftX, 0.2, 0.32),
-    ], palette.blue, 0.72));
+    ], palette.blue, 0.72);
+    group.add(topArc, lowArc);
+    const topArcMaterial = topArc.material as THREE.LineBasicMaterial;
+    const lowArcMaterial = lowArc.material as THREE.LineBasicMaterial;
     const spark = makePulseDot(palette.teal, 0.11);
     spark.position.set((leftX + rightX) / 2, 0.8, 0.86);
     group.add(spark);
     animations.push((progress) => {
-      spark.scale.setScalar(0.7 + Math.sin(progress * Math.PI) * 1.25);
+      const prepare = phase(progress, 0.08, 0.22, easeOutCubic);
+      const impact = pulseBetween(progress, 0.56, 0.86);
+      topArcMaterial.opacity = 0.22 + prepare * 0.34 + impact * 0.28;
+      lowArcMaterial.opacity = 0.18 + prepare * 0.26 + impact * 0.24;
+      spark.visible = progress > 0.48;
+      spark.scale.setScalar(0.42 + impact * 1.45);
     });
   }
 
@@ -421,18 +475,23 @@ function buildArrayReel(group: THREE.Group, step: TraceStep, model: TraceSceneMo
       const direction = index === model.action.indices[0] ? 1 : -1;
       const startX = firstX + otherIndex * spacing;
       animations.push((progress) => {
-        const travel = easeInOut(progress);
+        const lift = phase(progress, 0.08, 0.24, easeOutCubic);
+        const travel = phase(progress, 0.24, 0.76);
+        const settle = phase(progress, 0.76, 1, easeOutBack);
+        const arc = Math.sin(travel * Math.PI);
         item.position.x = lerp(startX, targetX, travel);
-        item.position.y = targetY + Math.sin(travel * Math.PI) * (direction > 0 ? 0.72 : -0.46);
-        item.position.z = 0.04 + Math.sin(travel * Math.PI) * 0.5;
-        item.rotation.z = direction * Math.sin(travel * Math.PI) * 0.18;
+        item.position.y = targetY + lift * 0.22 + arc * (direction > 0 ? 0.72 : -0.46) - settle * 0.04;
+        item.position.z = 0.04 + lift * 0.16 + arc * 0.5;
+        item.rotation.z = direction * arc * 0.18 * (1 - settle * 0.55);
+        item.scale.setScalar(1 + lift * 0.04 + pulseBetween(progress, 0.74, 1) * 0.05);
       });
     } else if (isSelected) {
       animations.push((progress) => {
-        const pulse = Math.sin(progress * Math.PI);
-        item.position.y = targetY + pulse * 0.22;
-        item.position.z = 0.04 + pulse * 0.18;
-        item.scale.setScalar(1 + pulse * 0.08);
+        const focus = phase(progress, 0.08, 0.34, easeOutCubic) * (1 - phase(progress, 0.72, 1, easeOutCubic));
+        const resolve = pulseBetween(progress, 0.68, 0.98);
+        item.position.y = targetY + focus * 0.24 + resolve * 0.05;
+        item.position.z = 0.04 + focus * 0.18;
+        item.scale.setScalar(1 + focus * 0.08 + resolve * 0.025);
       });
     }
   });
@@ -450,21 +509,115 @@ function buildArrayReel(group: THREE.Group, step: TraceStep, model: TraceSceneMo
   };
 }
 
-function recursionValue(node: VisualNode) {
-  if (!node.value || node.value === "?") return "...";
-  return node.value;
+function numberFromCallLabel(label: string) {
+  const match = label.match(/\((-?\d+)\)/);
+  return match ? Number(match[1]) : undefined;
 }
 
-function makeFrameCard(label: string, value: string, color: number, active: boolean) {
+function frameForNode(step: TraceStep, node: VisualNode) {
+  const n = numberFromCallLabel(node.label);
+  return step.stack.find((frame) => frame.name === node.label)
+    ?? step.stack.find((frame) => typeof n === "number" && frame.locals.n === n);
+}
+
+function nTextForNode(step: TraceStep, node: VisualNode) {
+  const frame = frameForNode(step, node);
+  const n = frame?.locals.n ?? numberFromCallLabel(node.label);
+  return typeof n === "number" ? "n = " + String(n) : "n = ?";
+}
+
+function shortCallName(label: string) {
+  return label.replace(/^factorial\((-?\d+)\)$/, "f($1)");
+}
+
+function recursionStatusForNode(step: TraceStep, node: VisualNode, model: TraceSceneModel) {
+  const frame = frameForNode(step, node);
+  const n = frame?.locals.n ?? numberFromCallLabel(node.label);
+  const isActive = node.id === step.visual.activeNodeId;
+
+  if (node.value && node.value !== "?") return "return " + node.value;
+  if (isActive && step.event === "condition_check" && typeof n === "number") {
+    return n <= 1 ? "base case" : "needs n - 1";
+  }
+  if (isActive && model.action.type === "call") return "push frame";
+  if (isActive && model.action.type === "return") return "returning";
+  if (isActive) return "active";
+  return "waiting";
+}
+
+function recursionFormulaFor(step: TraceStep, model: TraceSceneModel) {
+  const n = step.variables.n;
+  const returned = step.variables.__return__;
+
+  if (step.event === "condition_check" && typeof n === "number") {
+    return n <= 1 ? "n <= 1 -> return 1" : String(n) + " > 1 -> f(" + String(n - 1) + ")";
+  }
+
+  if (step.event === "recursion_call" && typeof n === "number") {
+    return "f(" + String(n + 1) + ") waits for f(" + String(n) + ")";
+  }
+
+  if (model.action.type === "call") {
+    return shortCallName(model.action.name) + " enters stack";
+  }
+
+  if (model.action.type === "return") {
+    if (typeof n === "number" && n <= 1) return "base returns 1";
+    if (typeof n === "number" && typeof returned === "number") {
+      const childValue = returned / n;
+      return String(n) + " x " + String(childValue) + " = " + String(returned);
+    }
+    return shortCallName(model.action.name) + " returns " + formatValue(model.action.value);
+  }
+
+  if (model.action.type === "output") return step.output || "final output";
+  return step.description;
+}
+
+function makeFormulaCard(text: string, color: number) {
   const group = new THREE.Group();
-  const body = makeBox(2.02, 0.56, 0.24, active ? 0x12313a : 0x0a1715, color, active ? 0.2 : 0.04);
-  group.add(body, makeOutline(2.02, 0.56, 0.24, color, active ? 0.95 : 0.5));
-  const title = makeTextSprite(label, palette.text, 0.36, { background: false, maxLength: 10 });
-  title.position.set(-0.38, 0.08, 0.18);
+  const body = makeBox(3.05, 0.46, 0.18, 0x06100e, color, 0.1);
+  group.add(body, makeOutline(3.05, 0.46, 0.18, color, 0.78));
+  const label = makeTextSprite(text, "#f5faf8", 0.32, { background: false, maxLength: 22, widthMultiplier: 7.2, fontSize: 72 });
+  label.position.set(0, 0.02, 0.2);
+  group.add(label);
+  return group;
+}
+
+function makeFrameCard(
+  callLabel: string,
+  nLabel: string,
+  status: string,
+  color: number,
+  active: boolean,
+  done: boolean,
+) {
+  const group = new THREE.Group();
+  const surface = done ? 0x10351f : active ? 0x103532 : 0x071715;
+  const body = makeBox(2.9, 0.68, 0.26, surface, color, active ? 0.22 : done ? 0.14 : 0.035);
+  group.add(body, makeOutline(2.9, 0.68, 0.26, color, active || done ? 0.9 : 0.42));
+
+  const title = makeTextSprite(callLabel, palette.text, 0.34, { background: false, maxLength: 18, widthMultiplier: 4.2, fontSize: 72 });
+  title.position.set(-0.58, 0.15, 0.23);
   group.add(title);
-  const result = makeTextSprite(value, active ? "#78e2bf" : palette.muted, 0.32, { background: false, maxLength: 8 });
-  result.position.set(0.56, -0.12, 0.18);
-  group.add(result);
+
+  const nValue = makeTextSprite(nLabel, active ? "#78e2bf" : palette.muted, 0.28, { background: false, maxLength: 8, widthMultiplier: 3.0, fontSize: 66 });
+  nValue.position.set(0.93, 0.15, 0.23);
+  group.add(nValue);
+
+  const statusLabel = makeTextSprite(status, done ? "#78e2bf" : active ? "#ffffff" : palette.muted, 0.33, { background: false, maxLength: 16, widthMultiplier: 4.6, fontSize: 70 });
+  statusLabel.position.set(0, -0.18, 0.23);
+  group.add(statusLabel);
+  return group;
+}
+
+function makeReturnBadge(text: string) {
+  const group = new THREE.Group();
+  const body = makeBox(0.92, 0.32, 0.14, 0x06100e, palette.green, 0.14);
+  group.add(body, makeOutline(0.92, 0.32, 0.14, palette.green, 0.86));
+  const label = makeTextSprite(text, "#78e2bf", 0.28, { background: false, maxLength: 10, widthMultiplier: 3.0, fontSize: 68 });
+  label.position.set(0, 0.01, 0.14);
+  group.add(label);
   return group;
 }
 
@@ -473,23 +626,47 @@ function buildRecursionReel(group: THREE.Group, step: TraceStep, model: TraceSce
   const animations: Array<(progress: number) => void> = [];
   const tone = toneColor(model.tone);
 
-  const spine = makeLine(new THREE.Vector3(-0.95, 2.05, -0.1), new THREE.Vector3(-0.95, -2.1, -0.1), palette.teal, 0.28);
-  const returnRail = makeLine(new THREE.Vector3(1.35, -2.08, -0.1), new THREE.Vector3(1.35, 2.1, -0.1), palette.green, 0.36);
+  const formula = makeFormulaCard(recursionFormulaFor(step, model), tone);
+  formula.position.set(0, 2.12, 0.12);
+  group.add(formula);
+  animations.push((progress) => {
+    const enter = phase(progress, 0.04, 0.28, easeOutBack);
+    const settle = pulseBetween(progress, 0.7, 1);
+    formula.position.z = 0.12 + enter * 0.12;
+    formula.scale.setScalar(0.96 + enter * 0.04 + settle * 0.015);
+  });
+
+  const spine = makeLine(new THREE.Vector3(-1.82, 1.5, -0.1), new THREE.Vector3(-1.82, -1.62, -0.1), palette.teal, 0.28);
+  const returnRail = makeLine(new THREE.Vector3(1.86, -1.62, -0.1), new THREE.Vector3(1.86, 1.5, -0.1), palette.green, 0.36);
   group.add(spine, returnRail);
 
+  const callTag = makeTextSprite("calls go down", palette.muted, 0.26, { background: false, maxLength: 14 });
+  callTag.position.set(-1.78, 1.82, 0.18);
+  group.add(callTag);
+  const returnTag = makeTextSprite("returns go up", "#78e2bf", 0.26, { background: false, maxLength: 14 });
+  returnTag.position.set(1.78, 1.82, 0.18);
+  group.add(returnTag);
+
   nodes.forEach((node, index) => {
-    const y = 1.74 - index * 0.68;
+    const y = 1.16 - index * 0.7;
     const isActive = node.id === step.visual.activeNodeId;
     const isReturning = node.status === "returning" || (model.action.type === "return" && isActive);
-    const done = node.status === "done" || isReturning;
-    const card = makeFrameCard(node.label, recursionValue(node), done ? palette.green : isActive ? tone : palette.dim, isActive || isReturning);
-    card.position.set(-0.65 + index * 0.12, y, 0.06 + index * 0.035);
+    const done = node.status === "done" || isReturning || Boolean(node.value && node.value !== "?");
+    const card = makeFrameCard(
+      node.label,
+      nTextForNode(step, node),
+      recursionStatusForNode(step, node, model),
+      done ? palette.green : isActive ? tone : palette.dim,
+      isActive || isReturning,
+      done,
+    );
+    card.position.set(0, y, 0.06 + index * 0.035);
     group.add(card);
 
     if (index > 0) {
       group.add(makeLine(
-        new THREE.Vector3(-0.95 + (index - 1) * 0.12, y + 0.34, -0.06),
-        new THREE.Vector3(-0.95 + index * 0.12, y + 0.51, -0.06),
+        new THREE.Vector3(-1.82, y + 0.43, -0.06),
+        new THREE.Vector3(-1.82, y + 0.64, -0.06),
         isActive ? palette.teal : palette.dim,
         0.38,
       ));
@@ -497,28 +674,33 @@ function buildRecursionReel(group: THREE.Group, step: TraceStep, model: TraceSce
 
     if (model.action.type === "call" && isActive) {
       animations.push((progress) => {
-        const travel = easeOutCubic(progress);
-        card.position.y = y + (1 - travel) * 0.58;
-        card.position.z = 0.06 + index * 0.035 + Math.sin(travel * Math.PI) * 0.3;
-        card.scale.setScalar(0.94 + travel * 0.06);
+        const prepare = phase(progress, 0.08, 0.2, easeOutCubic);
+        const travel = phase(progress, 0.2, 0.72, easeOutCubic);
+        const settle = pulseBetween(progress, 0.72, 1);
+        card.position.y = y + (1 - travel) * 0.58 + settle * 0.035;
+        card.position.z = 0.06 + index * 0.035 + prepare * 0.12 + Math.sin(travel * Math.PI) * 0.3;
+        card.scale.setScalar(0.94 + travel * 0.06 + settle * 0.025);
       });
     }
 
     if (isReturning && node.value && node.value !== "?") {
-      const token = makeTextSprite(node.value, "#78e2bf", 0.54, { maxLength: 8 });
-      token.position.set(-0.25 + index * 0.1, y, 0.58);
+      const token = makeReturnBadge("return " + node.value);
+      token.position.set(2.08, y, 0.56);
       group.add(token);
       animations.push((progress) => {
-        const travel = easeInOut(progress);
-        token.position.x = lerp(-0.25 + index * 0.1, 1.35, travel);
-        token.position.y = lerp(y, 1.76 - Math.max(0, index - 1) * 0.58, travel) + Math.sin(travel * Math.PI) * 0.34;
-        token.scale.setScalar(0.86 + Math.sin(travel * Math.PI) * 0.12);
+        const launch = phase(progress, 0.1, 0.26, easeOutCubic);
+        const travel = phase(progress, 0.26, 0.82);
+        const land = pulseBetween(progress, 0.82, 1);
+        token.position.x = lerp(2.08, 2.22, travel);
+        token.position.y = lerp(y, 1.22 - Math.max(0, index - 1) * 0.66, travel) + Math.sin(travel * Math.PI) * 0.28 + launch * 0.06;
+        token.position.z = 0.58 + launch * 0.18 + Math.sin(travel * Math.PI) * 0.18;
+        token.scale.setScalar(0.94 + launch * 0.04 + Math.sin(travel * Math.PI) * 0.06 + land * 0.025);
       });
     }
   });
 
   if (!nodes.length) {
-    const empty = makeTextSprite("No frames", palette.muted, 0.74);
+    const empty = makeTextSprite("No call stack", palette.muted, 0.74, { maxLength: 18 });
     group.add(empty);
   }
 
@@ -557,9 +739,11 @@ function buildVariablesReel(group: THREE.Group, step: TraceStep, model: TraceSce
 
     if (active) {
       animations.push((progress) => {
-        const pulse = Math.sin(progress * Math.PI);
-        chip.position.z = 0.08 + pulse * 0.36;
-        chip.scale.setScalar(1 + pulse * 0.09);
+        const write = phase(progress, 0.16, 0.62, easeOutBack);
+        const settle = pulseBetween(progress, 0.62, 1);
+        chip.position.z = 0.08 + write * 0.28 + settle * 0.08;
+        chip.position.y = 1.3 - row * 1.02 + settle * 0.035;
+        chip.scale.setScalar(1 + write * 0.075 + settle * 0.025);
       });
     }
   });
@@ -609,9 +793,10 @@ function buildGraphReel(group: THREE.Group, step: TraceStep, model: TraceSceneMo
     group.add(label);
     if (active) {
       animations.push((progress) => {
-        const pulse = Math.sin(progress * Math.PI);
-        sphere.scale.setScalar(1 + pulse * 0.24);
-        sphere.position.z = position.z + pulse * 0.24;
+        const visit = phase(progress, 0.12, 0.6, easeOutBack);
+        const settle = pulseBetween(progress, 0.6, 1);
+        sphere.scale.setScalar(1 + visit * 0.18 + settle * 0.08);
+        sphere.position.z = position.z + visit * 0.2 + settle * 0.08;
       });
     }
   });
@@ -639,8 +824,12 @@ function buildOutputReel(group: THREE.Group, step: TraceStep): SceneBuild {
 
   return {
     update(progress) {
-      const pulse = Math.sin(progress * Math.PI);
-      terminal.scale.set(1 + pulse * 0.04, 1 + pulse * 0.04, 1);
+      const open = phase(progress, 0.08, 0.46, easeOutBack);
+      const settle = pulseBetween(progress, 0.5, 1);
+      terminal.position.z = 0.12 + open * 0.08;
+      terminal.scale.set(0.96 + open * 0.04 + settle * 0.02, 0.96 + open * 0.04 + settle * 0.02, 1);
+      output.position.z = 0.34 + open * 0.1;
+      output.scale.setScalar(0.96 + open * 0.04);
     },
   };
 }
@@ -864,8 +1053,12 @@ export function ThreeExecutionStage({
       return;
     }
 
+    const incomingStartOpacity = outgoing ? 0.66 : 1;
+    const outgoingFadeStartOpacity = outgoing ? Math.max(outgoingStartOpacity, 0.82) : 0;
     state.renderer.domElement.dataset.sceneHandoff = outgoing ? "running" : "entering";
-    setGroupTransition(incoming, 0.02, 0, -0.1, -0.22, 0.985);
+    setGroupTransition(incoming, incomingStartOpacity, 0, -0.04, -0.1, 0.995);
+    state.update(0);
+    renderFrame();
 
     const startedAt = performance.now();
     const duration = model.action.type === "swap"
@@ -875,8 +1068,8 @@ export function ThreeExecutionStage({
         : 2200;
     const tick = (now: number) => {
       const linear = Math.min(1, (now - startedAt) / duration);
-      const enter = easeOutCubic(segment(linear, 0, 0.34));
-      const exit = easeOutCubic(segment(linear, 0, 0.28));
+      const enter = easeOutCubic(segment(linear, 0, 0.24));
+      const exit = easeOutCubic(segment(linear, 0.16, 0.48));
       state.progress = easeOutCubic(linear);
       state.update(state.progress);
       state.renderer.domElement.dataset.sceneHandoff = outgoing && exit < 1
@@ -887,16 +1080,16 @@ export function ThreeExecutionStage({
 
       setGroupTransition(
         incoming,
-        Math.max(0.02, enter),
+        lerp(incomingStartOpacity, 1, enter),
         0,
+        lerp(-0.04, 0, enter),
         lerp(-0.1, 0, enter),
-        lerp(-0.22, 0, enter),
-        lerp(0.985, 1, enter),
+        lerp(0.995, 1, enter),
       );
       if (outgoing) {
         setGroupTransition(
           outgoing,
-          outgoingStartOpacity * (1 - exit),
+          outgoingFadeStartOpacity * (1 - exit),
           0,
           lerp(0, -0.08, exit),
           lerp(0, 0.18, exit),
@@ -913,6 +1106,8 @@ export function ThreeExecutionStage({
       state.retiringGroups = [];
       state.renderer.domElement.dataset.sceneHandoff = "idle";
       setGroupTransition(incoming, 1);
+      state.update(1);
+      renderFrame(now);
     };
     state.frameId = requestAnimationFrame(tick);
 
@@ -954,13 +1149,13 @@ export function ThreeExecutionStage({
         ))}
       </div>
 
-      <div className="ca-three-mount" ref={mountRef}>
-        <div className={"ca-animation-banner ca-tone-" + model.tone} key={"animation-banner-" + step.id} data-testid="animation-main-label">
+      <div className={"ca-three-mount ca-three-mount--" + model.kind} ref={mountRef}>
+        <div className={"ca-animation-banner ca-tone-" + model.tone} data-testid="animation-main-label">
           <span>{traceActionLabel(model.action)}</span>
           <strong>{model.headline}</strong>
           <p>{model.detail}</p>
         </div>
-        <div className={"ca-canvas-readout ca-tone-" + model.tone} key={"canvas-readout-" + step.id} data-testid="canvas-readable-overlay" aria-label="Readable animation labels">
+        <div className={"ca-canvas-readout ca-tone-" + model.tone} data-testid="canvas-readable-overlay" aria-label="Readable animation labels">
           <div className="ca-canvas-readout__card ca-canvas-readout__card--main">
             <span>Now animating</span>
             <strong>{model.headline}</strong>

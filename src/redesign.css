@@ -3122,3 +3122,254 @@ body {
     font-size: 12px;
   }
 }
+
+
+/* CodeAnvil teal circuit pass: readable animation text plus a living data-flow surface. */
+:root,
+[data-theme="dark"] {
+  --accent-teal-start: #12a587;
+  --accent-teal-end: #0f9b78;
+  --accent-blue-start: #3b82f6;
+  --accent-blue-end: #1d4ed8;
+  --accent-danger: #ef4444;
+  --accent-danger-soft: #f87171;
+  --ca-bg: #0a1210;
+  --ca-bg-glow: radial-gradient(circle at 15% 10%, rgba(18, 165, 135, 0.12), transparent 55%);
+  --ca-surface: #121a18;
+  --ca-raised: #17211f;
+  --ca-code: #07100e;
+  --ca-line: rgba(255, 255, 255, 0.08);
+  --ca-line-soft: rgba(255, 255, 255, 0.055);
+  --ca-text: #f5faf8;
+  --ca-muted: #8b9c97;
+  --ca-faint: #64766f;
+  --ca-amber: #12a587;
+  --ca-amber-soft: rgba(18, 165, 135, 0.13);
+  --ca-cyan: #3b82f6;
+  --ca-cyan-soft: rgba(59, 130, 246, 0.13);
+  --ca-green: #78e2bf;
+  --ca-green-soft: rgba(18, 165, 135, 0.16);
+  --ca-coral: #ef4444;
+  --ca-coral-soft: rgba(239, 68, 68, 0.16);
+  --ca-radius: 8px;
+  --ca-radius-input: 12px;
+  --ca-radius-pill: 9999px;
+  --ca-shadow: 0 18px 44px rgba(0, 0, 0, 0.34);
+}
+
+body {
+  background: var(--ca-bg-glow), var(--ca-bg);
+  color: var(--ca-text);
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif;
+}
+
+.ca-shell {
+  background:
+    var(--ca-bg-glow),
+    radial-gradient(circle at 82% 18%, rgba(59, 130, 246, 0.11), transparent 34%),
+    linear-gradient(180deg, #0a1210 0%, #0d1614 48%, #08100e 100%);
+}
+
+.ca-shell::before {
+  background:
+    linear-gradient(90deg, transparent 0 27px, rgba(18, 165, 135, 0.18) 28px, transparent 29px 96px),
+    linear-gradient(0deg, transparent 0 35px, rgba(59, 130, 246, 0.12) 36px, transparent 37px 112px),
+    radial-gradient(circle at 24px 24px, rgba(120, 226, 191, 0.18) 0 2px, transparent 3px);
+  background-size: 96px 96px, 112px 112px, 96px 96px;
+  opacity: 0.34;
+  animation: ca-circuit-breathe 7s ease-in-out infinite alternate;
+}
+
+.ca-shell::after {
+  background:
+    linear-gradient(90deg, transparent 0 41%, rgba(18, 165, 135, 0.22) 45%, rgba(59, 130, 246, 0.18) 50%, transparent 56%),
+    repeating-linear-gradient(115deg, rgba(18, 165, 135, 0.07) 0 2px, transparent 2px 68px),
+    repeating-linear-gradient(0deg, rgba(59, 130, 246, 0.04) 0 1px, transparent 1px 44px);
+  background-position: -360px 0, 0 0, 0 0;
+  background-size: 520px 100%, 180px 180px, 100% 44px;
+  opacity: 0.5;
+  animation: ca-circuit-stream 18s linear infinite;
+}
+
+.ca-topbar {
+  border-bottom-color: rgba(18, 165, 135, 0.18);
+  background: rgba(10, 18, 16, 0.94);
+  box-shadow: 0 1px 0 rgba(59, 130, 246, 0.16);
+}
+
+.ca-brand__mark::before,
+.ca-brand__mark::after,
+.ca-brand__mark i {
+  background: linear-gradient(135deg, var(--accent-teal-start), var(--accent-blue-start));
+  box-shadow: 0 0 20px rgba(18, 165, 135, 0.3);
+}
+
+.ca-brand div span,
+.ca-label-uppercase,
+.label-uppercase {
+  color: var(--ca-muted);
+  font-family: "JetBrains Mono", "IBM Plex Mono", ui-monospace, monospace;
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.ca-mainnav,
+.ca-segmented,
+.ca-language-select select,
+.ca-canvas-readout__card,
+.ca-animation-label,
+.ca-animation-banner {
+  border-color: rgba(255, 255, 255, 0.07);
+  background: rgba(18, 26, 24, 0.88);
+}
+
+.ca-mainnav button.is-active,
+.ca-icon-button.is-active,
+.ca-command--primary,
+.btn-primary {
+  border-color: rgba(18, 165, 135, 0.32);
+  background: linear-gradient(135deg, var(--accent-teal-start), var(--accent-teal-end));
+  color: #ffffff;
+}
+
+.ca-three-mount {
+  border-color: rgba(18, 165, 135, 0.22);
+  background:
+    radial-gradient(circle at 50% 28%, rgba(18, 165, 135, 0.18), transparent 38%),
+    radial-gradient(circle at 78% 62%, rgba(59, 130, 246, 0.14), transparent 34%),
+    #07100e;
+}
+
+.ca-animation-banner {
+  top: 38%;
+  width: min(560px, calc(100% - 36px));
+  padding: 15px 20px;
+  border-color: rgba(18, 165, 135, 0.48);
+  background: rgba(6, 14, 12, 0.92);
+  box-shadow:
+    0 18px 38px rgba(0, 0, 0, 0.42),
+    0 0 0 1px rgba(255, 255, 255, 0.06) inset,
+    0 0 38px rgba(18, 165, 135, 0.14);
+}
+
+.ca-animation-banner span,
+.ca-animation-label span,
+.ca-canvas-readout__card span {
+  color: #78e2bf;
+  font-family: "JetBrains Mono", "IBM Plex Mono", ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.05em;
+}
+
+.ca-animation-banner strong {
+  color: #ffffff;
+  font-size: clamp(22px, 2.4vw, 34px);
+  line-height: 1.08;
+  text-shadow: 0 3px 0 #000, 0 0 20px rgba(18, 165, 135, 0.28);
+}
+
+.ca-canvas-readout {
+  top: 12px;
+  right: 12px;
+  left: 12px;
+  grid-template-columns: minmax(0, 1.25fr) minmax(180px, 0.75fr);
+}
+
+.ca-canvas-readout__card {
+  border-radius: 8px;
+  background: rgba(7, 16, 14, 0.92);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.34);
+}
+
+.ca-canvas-readout__card strong {
+  color: #ffffff;
+  text-shadow: 0 2px 0 #000;
+}
+
+.ca-animation-labels {
+  right: 12px;
+  bottom: 12px;
+  left: 12px;
+}
+
+.ca-animation-label {
+  min-height: 76px;
+  border-radius: 8px;
+  background: rgba(7, 16, 14, 0.94);
+}
+
+.ca-animation-label strong {
+  font-size: 16px;
+  line-height: 1.18;
+  text-shadow: 0 2px 0 #000;
+}
+
+.ca-animation-banner.ca-tone-compare span,
+.ca-animation-label.ca-tone-compare span,
+.ca-canvas-flow__item.ca-tone-compare span {
+  color: #7fb2ff;
+}
+
+.ca-animation-label.ca-tone-compare,
+.ca-canvas-flow__item.ca-tone-compare {
+  border-color: rgba(59, 130, 246, 0.42);
+  background: rgba(12, 29, 54, 0.92);
+}
+
+@keyframes ca-circuit-stream {
+  from {
+    background-position: -520px 0, 0 0, 0 0;
+  }
+  to {
+    background-position: 520px 0, 180px -180px, 0 44px;
+  }
+}
+
+@keyframes ca-circuit-breathe {
+  from {
+    opacity: 0.24;
+    filter: saturate(0.8);
+  }
+  to {
+    opacity: 0.5;
+    filter: saturate(1.15);
+  }
+}
+
+@media (max-width: 980px) {
+  .ca-canvas-readout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ca-animation-banner {
+    top: 42%;
+  }
+}
+
+@media (max-width: 620px) {
+  .ca-animation-banner {
+    top: 44%;
+    width: calc(100% - 18px);
+    padding: 12px 10px;
+  }
+
+  .ca-animation-banner strong {
+    font-size: 20px;
+  }
+
+  .ca-canvas-readout {
+    top: 8px;
+    right: 8px;
+    left: 8px;
+  }
+
+  .ca-animation-label {
+    min-height: 64px;
+  }
+
+  .ca-animation-label strong {
+    font-size: 12px;
+  }
+}

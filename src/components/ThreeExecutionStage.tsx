@@ -58,14 +58,82 @@ function clearGroup(group: THREE.Group) {
   }
 }
 
-function makeTextSprite(
-  _text = "",
-  _color = palette.text,
-  _scale = 1,
-  _align: CanvasTextAlign = "center",
+function drawCanvasRoundRect(
+  context: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number,
 ) {
-  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ transparent: true, opacity: 0 }));
-  sprite.visible = false;
+  context.moveTo(x + radius, y);
+  context.lineTo(x + width - radius, y);
+  context.quadraticCurveTo(x + width, y, x + width, y + radius);
+  context.lineTo(x + width, y + height - radius);
+  context.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+  context.lineTo(x + radius, y + height);
+  context.quadraticCurveTo(x, y + height, x, y + height - radius);
+  context.lineTo(x, y + radius);
+  context.quadraticCurveTo(x, y, x + radius, y);
+}
+
+function compactLabel(text = "", maxLength = 24) {
+  const normalized = text.replace(/\s+/g, " ").trim();
+  if (normalized.length <= maxLength) return normalized;
+  return normalized.slice(0, Math.max(0, maxLength - 1)).trimEnd() + "...";
+}
+
+function makeTextSprite(
+  text = "",
+  color = palette.text,
+  scale = 1,
+  align: CanvasTextAlign = "center",
+) {
+  const label = compactLabel(text, scale > 0.62 ? 28 : 18);
+  const canvas = document.createElement("canvas");
+  const context = canvas.getContext("2d");
+  if (!context) {
+    return new THREE.Sprite(new THREE.SpriteMaterial({ transparent: true, opacity: 0 }));
+  }
+
+  const width = 960;
+  const height = 256;
+  canvas.width = width;
+  canvas.height = height;
+
+  context.clearRect(0, 0, width, height);
+  context.fillStyle = "rgba(4, 9, 9, 0.72)";
+  context.strokeStyle = "rgba(18, 165, 135, 0.52)";
+  context.lineWidth = 4;
+  context.beginPath();
+  drawCanvasRoundRect(context, 18, 42, width - 36, height - 84, 28);
+  context.fill();
+  context.stroke();
+
+  context.fillStyle = color;
+  context.font = "900 88px Inter, Arial, sans-serif";
+  context.textAlign = align;
+  context.textBaseline = "middle";
+  context.shadowColor = "rgba(0, 0, 0, 0.92)";
+  context.shadowBlur = 10;
+  context.shadowOffsetY = 5;
+
+  const x = align === "left" ? 68 : align === "right" ? width - 68 : width / 2;
+  context.fillText(label || " ", x, height / 2 + 3, width - 120);
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  texture.generateMipmaps = false;
+  texture.minFilter = THREE.LinearFilter;
+  texture.magFilter = THREE.LinearFilter;
+
+  const sprite = new THREE.Sprite(new THREE.SpriteMaterial({
+    depthTest: false,
+    map: texture,
+    transparent: true,
+  }));
+  sprite.scale.set(scale * 2.95, scale * 0.78, 1);
+  sprite.renderOrder = 12;
   return sprite;
 }
 

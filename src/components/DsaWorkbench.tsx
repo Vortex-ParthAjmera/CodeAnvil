@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -17,11 +17,13 @@ import {
   type SortAlgorithm,
   type TraversalMode,
 } from "../dsa/algorithms";
+import type { DsaAudioCue } from "../hooks/useExecutionAudio";
 
 type DsaTab = "sorting" | "graph";
 
 interface DsaWorkbenchProps {
   activeTab: DsaTab;
+  onSoundCue?: (cue: DsaAudioCue) => void;
   onTabChange: (tab: DsaTab) => void;
   reduceMotion: boolean;
 }
@@ -42,6 +44,7 @@ function clampSize(value: number) {
 
 export function DsaWorkbench({
   activeTab,
+  onSoundCue,
   onTabChange,
   reduceMotion,
 }: DsaWorkbenchProps) {
@@ -56,6 +59,8 @@ export function DsaWorkbench({
   const [graphIndex, setGraphIndex] = useState(0);
   const [graphPlaying, setGraphPlaying] = useState(false);
   const [speed, setSpeed] = useState(1);
+  const lastSortSoundIndexRef = useRef(sortIndex);
+  const lastGraphSoundIndexRef = useRef(graphIndex);
 
   const sortFrames = useMemo(
     () => createSortFrames(sourceValues, algorithm),
@@ -72,6 +77,7 @@ export function DsaWorkbench({
     if (!sortPlaying) return;
     if (sortIndex >= sortFrames.length - 1) {
       setSortPlaying(false);
+      onSoundCue?.("complete");
       return;
     }
     const timer = window.setTimeout(
@@ -79,12 +85,13 @@ export function DsaWorkbench({
       Math.max(180, 650 / speed),
     );
     return () => window.clearTimeout(timer);
-  }, [sortFrames.length, sortIndex, sortPlaying, speed]);
+  }, [onSoundCue, sortFrames.length, sortIndex, sortPlaying, speed]);
 
   useEffect(() => {
     if (!graphPlaying) return;
     if (graphIndex >= traversalFrames.length - 1) {
       setGraphPlaying(false);
+      onSoundCue?.("complete");
       return;
     }
     const timer = window.setTimeout(
@@ -92,11 +99,36 @@ export function DsaWorkbench({
       Math.max(220, 760 / speed),
     );
     return () => window.clearTimeout(timer);
-  }, [graphIndex, graphPlaying, speed, traversalFrames.length]);
+  }, [graphIndex, graphPlaying, onSoundCue, speed, traversalFrames.length]);
+
+  useEffect(() => {
+    if (activeTab !== "sorting" || lastSortSoundIndexRef.current === sortIndex) return;
+    lastSortSoundIndexRef.current = sortIndex;
+    if (sortIndex === 0) return;
+    const cue = sortFrame.changed.length
+      ? "sort_swap"
+      : sortFrame.compared.length
+        ? "sort_compare"
+        : "sort_step";
+    onSoundCue?.(cue);
+  }, [activeTab, onSoundCue, sortFrame.changed.length, sortFrame.compared.length, sortIndex]);
+
+  useEffect(() => {
+    if (activeTab !== "graph" || lastGraphSoundIndexRef.current === graphIndex) return;
+    lastGraphSoundIndexRef.current = graphIndex;
+    if (graphIndex === 0) return;
+    const cue = graphFrame.active
+      ? "graph_visit"
+      : graphFrame.frontier.length
+        ? "graph_frontier"
+        : "graph_step";
+    onSoundCue?.(cue);
+  }, [activeTab, graphFrame.active, graphFrame.frontier.length, graphIndex, onSoundCue]);
 
   function selectTab(tab: DsaTab) {
     setSortPlaying(false);
     setGraphPlaying(false);
+    onSoundCue?.("control");
     onTabChange(tab);
   }
 
@@ -104,6 +136,8 @@ export function DsaWorkbench({
     setAlgorithm(next);
     setSortIndex(0);
     setSortPlaying(false);
+    lastSortSoundIndexRef.current = 0;
+    onSoundCue?.("control");
   }
 
   function changeSize(next: number) {
@@ -112,6 +146,7 @@ export function DsaWorkbench({
     setSourceValues(makeDemoArray(clamped, seed));
     setSortIndex(0);
     setSortPlaying(false);
+    lastSortSoundIndexRef.current = 0;
   }
 
   function generateValues() {
@@ -120,11 +155,17 @@ export function DsaWorkbench({
     setSourceValues(makeDemoArray(size, nextSeed));
     setSortIndex(0);
     setSortPlaying(false);
+    lastSortSoundIndexRef.current = 0;
+    onSoundCue?.("control");
   }
 
   function toggleSort() {
+    onSoundCue?.("control");
     setSortPlaying((current) => {
-      if (!current && sortIndex >= sortFrames.length - 1) setSortIndex(0);
+      if (!current && sortIndex >= sortFrames.length - 1) {
+        setSortIndex(0);
+        lastSortSoundIndexRef.current = 0;
+      }
       return !current;
     });
   }
@@ -133,17 +174,25 @@ export function DsaWorkbench({
     setTraversal(next);
     setGraphIndex(0);
     setGraphPlaying(false);
+    lastGraphSoundIndexRef.current = 0;
+    onSoundCue?.("control");
   }
 
   function changeStartNode(next: GraphNode) {
     setStartNode(next);
     setGraphIndex(0);
     setGraphPlaying(false);
+    lastGraphSoundIndexRef.current = 0;
+    onSoundCue?.("control");
   }
 
   function toggleGraph() {
+    onSoundCue?.("control");
     setGraphPlaying((current) => {
-      if (!current && graphIndex >= traversalFrames.length - 1) setGraphIndex(0);
+      if (!current && graphIndex >= traversalFrames.length - 1) {
+        setGraphIndex(0);
+        lastGraphSoundIndexRef.current = 0;
+      }
       return !current;
     });
   }

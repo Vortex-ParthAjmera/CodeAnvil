@@ -85,12 +85,17 @@ function setGroupTransition(
   x = 0,
   y = 0,
   z = 0,
-  scale = 1,
+  scaleX = 1,
+  scaleY = scaleX,
+  scaleZ = scaleX,
+  rotationX = 0,
+  rotationY = 0,
 ) {
   const sceneOpacity = clamp01(opacity);
   group.userData.transitionOpacity = sceneOpacity;
   group.position.set(x, y, z);
-  group.scale.setScalar(scale);
+  group.rotation.set(rotationX, rotationY, 0);
+  group.scale.set(scaleX, scaleY, scaleZ);
   group.traverse((child) => {
     const renderable = child as THREE.Mesh;
     const material = renderable.material;
@@ -1020,9 +1025,6 @@ export function ThreeExecutionStage({
     state.retiringGroups = [];
 
     const outgoing = state.currentGroup;
-    const outgoingStartOpacity = outgoing
-      ? Number(outgoing.userData.transitionOpacity ?? 1)
-      : 0;
     const incoming = new THREE.Group();
     incoming.name = "trace-step-" + step.id;
     state.dynamic.add(incoming);
@@ -1053,10 +1055,10 @@ export function ThreeExecutionStage({
       return;
     }
 
-    const incomingStartOpacity = outgoing ? 0.66 : 1;
-    const outgoingFadeStartOpacity = outgoing ? Math.max(outgoingStartOpacity, 0.82) : 0;
-    state.renderer.domElement.dataset.sceneHandoff = outgoing ? "running" : "entering";
-    setGroupTransition(incoming, incomingStartOpacity, 0, -0.04, -0.1, 0.995);
+    if (outgoing) disposeGroup(state.dynamic, outgoing);
+    state.retiringGroups = [];
+    state.renderer.domElement.dataset.sceneHandoff = outgoing ? "settling" : "entering";
+    setGroupTransition(incoming, 1, 0.04, -0.06, 0.14, 0.985);
     state.update(0);
     renderFrame();
 
@@ -1068,41 +1070,26 @@ export function ThreeExecutionStage({
         : 2200;
     const tick = (now: number) => {
       const linear = Math.min(1, (now - startedAt) / duration);
-      const enter = easeOutCubic(segment(linear, 0, 0.24));
-      const exit = easeOutCubic(segment(linear, 0.16, 0.48));
+      const settleIn = easeOutCubic(segment(linear, 0, 0.22));
+      const settlePulse = pulseBetween(linear, 0.22, 0.52);
       state.progress = easeOutCubic(linear);
       state.update(state.progress);
-      state.renderer.domElement.dataset.sceneHandoff = outgoing && exit < 1
-        ? "running"
-        : enter < 1
-          ? "entering"
-          : "idle";
+      state.renderer.domElement.dataset.sceneHandoff = settleIn < 1 ? "settling" : "idle";
 
       setGroupTransition(
         incoming,
-        lerp(incomingStartOpacity, 1, enter),
-        0,
-        lerp(-0.04, 0, enter),
-        lerp(-0.1, 0, enter),
-        lerp(0.995, 1, enter),
+        1,
+        lerp(0.04, 0, settleIn),
+        lerp(-0.06, 0, settleIn) + settlePulse * 0.006,
+        lerp(0.14, 0, settleIn),
+        lerp(0.985, 1, settleIn) + settlePulse * 0.003,
       );
-      if (outgoing) {
-        setGroupTransition(
-          outgoing,
-          outgoingFadeStartOpacity * (1 - exit),
-          0,
-          lerp(0, -0.08, exit),
-          lerp(0, 0.18, exit),
-          lerp(1, 0.985, exit),
-        );
-      }
 
       renderFrame(now);
       if (linear < 1) {
         state.frameId = requestAnimationFrame(tick);
         return;
       }
-      if (outgoing) disposeGroup(state.dynamic, outgoing);
       state.retiringGroups = [];
       state.renderer.domElement.dataset.sceneHandoff = "idle";
       setGroupTransition(incoming, 1);

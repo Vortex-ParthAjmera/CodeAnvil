@@ -462,6 +462,7 @@ export default function AppRedesign() {
         {app.mode === "dsa" ? (
           <DsaWorkbench
             activeTab={app.dsaTab}
+            onSoundCue={audio.playDsaCue}
             onTabChange={app.setDsaTab}
             reduceMotion={app.reduceMotion}
           />

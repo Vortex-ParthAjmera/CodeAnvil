@@ -1,9 +1,14 @@
+import { useState } from "react";
 import {
   BookOpen,
   Code2,
   Database,
   Flame,
+  Maximize2,
   MessageSquareText,
+  Minimize2,
+  PanelLeftClose,
+  PanelLeftOpen,
   Pause,
   Play,
   RotateCcw,
@@ -21,6 +26,15 @@ import { ThreeExecutionStage } from "./components/ThreeExecutionStage";
 import { WorkbenchInspector } from "./components/WorkbenchInspector";
 import { useCodeAnvil } from "./hooks/useCodeAnvil";
 import { useExecutionAudio } from "./hooks/useExecutionAudio";
+
+type WorkspaceFocus = "balanced" | "animation" | "code" | "inspector";
+
+function focusLabel(focus: WorkspaceFocus) {
+  if (focus === "animation") return "Animation expanded";
+  if (focus === "code") return "Code expanded";
+  if (focus === "inspector") return "Inspector expanded";
+  return "Balanced panels";
+}
 
 function Brand() {
   return (
@@ -42,16 +56,20 @@ function actionLabel(type: string) {
 
 function ForgeCatalog({
   activeTitle,
+  collapsed,
   focusMode,
   onSelect,
   onOpenDsa,
+  onToggleCollapsed,
   step,
   traces,
 }: {
   activeTitle: string;
+  collapsed: boolean;
   focusMode: boolean;
   onSelect: (traceTitle: string) => void;
   onOpenDsa: (tab: "sorting" | "graph") => void;
+  onToggleCollapsed: () => void;
   step: ReturnType<typeof useCodeAnvil>["step"];
   traces: ReturnType<typeof useCodeAnvil>["traceCatalog"];
 }) {
@@ -60,12 +78,22 @@ function ForgeCatalog({
   const currentActions = (semanticActions.length ? semanticActions : step.actions).slice(0, 4);
 
   return (
-    <aside className={"ca-catalog" + (focusMode ? " is-focused" : "")} aria-label="CodeAnvil catalog">
+    <aside className={"ca-catalog" + (focusMode ? " is-focused" : "") + (collapsed ? " is-collapsed" : "")} aria-label="CodeAnvil catalog">
       <header className="ca-catalog__hero">
         <span>
           <Flame size={14} />
           Forge queue
         </span>
+        <button
+          aria-expanded={!collapsed}
+          className="ca-catalog__collapse"
+          onClick={onToggleCollapsed}
+          title={collapsed ? "Restore forge queue" : "Minimize forge queue"}
+          type="button"
+        >
+          {collapsed ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
+          <span>{collapsed ? "Restore" : "Minimize"}</span>
+        </button>
         <strong>Pick code, trace it, then inspect every move.</strong>
       </header>
 
@@ -118,6 +146,59 @@ function ForgeCatalog({
         ))}
       </section>
     </aside>
+  );
+}
+
+function LayoutToolbar({
+  catalogCollapsed,
+  focus,
+  onFocusChange,
+  onToggleCatalog,
+}: {
+  catalogCollapsed: boolean;
+  focus: WorkspaceFocus;
+  onFocusChange: (focus: WorkspaceFocus) => void;
+  onToggleCatalog: () => void;
+}) {
+  const options: Array<{ focus: WorkspaceFocus; icon: JSX.Element; label: string; title: string }> = [
+    { focus: "balanced", icon: <Minimize2 size={15} />, label: "Balanced", title: "Show balanced workspace" },
+    { focus: "animation", icon: <Maximize2 size={15} />, label: "Animation", title: "Expand animation section" },
+    { focus: "code", icon: <Code2 size={15} />, label: "Code", title: "Expand code editor" },
+    { focus: "inspector", icon: <Database size={15} />, label: "Inspector", title: "Expand inspector" },
+  ];
+
+  return (
+    <section className="ca-layout-toolbar" aria-label="Workspace layout controls">
+      <div className="ca-layout-toolbar__status">
+        <span>Layout</span>
+        <strong>{focusLabel(focus)}</strong>
+      </div>
+      <div className="ca-layout-toolbar__actions">
+        {options.map((option) => (
+          <button
+            aria-pressed={focus === option.focus}
+            className={focus === option.focus ? "is-active" : ""}
+            key={option.focus}
+            onClick={() => onFocusChange(option.focus)}
+            title={option.title}
+            type="button"
+          >
+            {option.icon}
+            <span>{option.label}</span>
+          </button>
+        ))}
+        <button
+          aria-pressed={catalogCollapsed}
+          className={catalogCollapsed ? "is-active" : ""}
+          onClick={onToggleCatalog}
+          title={catalogCollapsed ? "Restore forge queue" : "Minimize forge queue"}
+          type="button"
+        >
+          {catalogCollapsed ? <PanelLeftOpen size={15} /> : <PanelLeftClose size={15} />}
+          <span>Queue</span>
+        </button>
+      </div>
+    </section>
   );
 }
 
@@ -262,6 +343,8 @@ function PlaybackBar({
 
 export default function AppRedesign() {
   const app = useCodeAnvil();
+  const [workspaceFocus, setWorkspaceFocus] = useState<WorkspaceFocus>("balanced");
+  const [catalogCollapsed, setCatalogCollapsed] = useState(false);
   const audio = useExecutionAudio({
     enabled: app.soundEnabled,
     muted: app.isStale,
@@ -383,18 +466,26 @@ export default function AppRedesign() {
             reduceMotion={app.reduceMotion}
           />
         ) : (
-          <section className={"ca-forge-layout" + (app.mode === "examples" ? " is-catalog-focus" : "")}>
+          <section className={"ca-forge-layout" + (app.mode === "examples" ? " is-catalog-focus" : "") + (catalogCollapsed ? " is-catalog-collapsed" : "")}>
             <ForgeCatalog
               activeTitle={app.trace.title}
+              collapsed={catalogCollapsed}
               focusMode={app.mode === "examples"}
               onOpenDsa={app.openDsa}
               onSelect={app.selectTrace}
+              onToggleCollapsed={() => setCatalogCollapsed((collapsed) => !collapsed)}
               step={app.step}
               traces={app.traceCatalog}
             />
 
             <div className="ca-workspace">
-              <section className="ca-workbench">
+              <LayoutToolbar
+                catalogCollapsed={catalogCollapsed}
+                focus={workspaceFocus}
+                onFocusChange={setWorkspaceFocus}
+                onToggleCatalog={() => setCatalogCollapsed((collapsed) => !collapsed)}
+              />
+              <section className={"ca-workbench ca-workbench--" + workspaceFocus}>
                 <CodeInputPanel
                   activeLineNumber={app.activeLineNumber}
                   canTrace={app.codeLanguage === "python"}

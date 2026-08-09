@@ -12,10 +12,12 @@ interface ThreeExecutionStageProps {
 
 interface StageState {
   camera: THREE.PerspectiveCamera;
+  currentGroup: THREE.Group | null;
   dynamic: THREE.Group;
   frameId: number;
   progress: number;
   renderer: THREE.WebGLRenderer;
+  retiringGroups: THREE.Group[];
   scene: THREE.Scene;
   update: (progress: number) => void;
 }
@@ -58,6 +60,43 @@ function clearGroup(group: THREE.Group) {
     const child = group.children.pop();
     if (child) disposeObject(child);
   }
+}
+
+function disposeGroup(parent: THREE.Group, group: THREE.Group) {
+  parent.remove(group);
+  disposeObject(group);
+}
+
+function setMaterialSceneOpacity(material: THREE.Material, sceneOpacity: number) {
+  if (typeof material.userData.caBaseOpacity !== "number") {
+    material.userData.caBaseOpacity = material.opacity;
+    material.userData.caBaseTransparent = material.transparent;
+  }
+  const baseOpacity = material.userData.caBaseOpacity as number;
+  const baseTransparent = Boolean(material.userData.caBaseTransparent);
+  material.opacity = baseOpacity * sceneOpacity;
+  material.transparent = baseTransparent || sceneOpacity < 0.999 || baseOpacity < 0.999;
+  material.needsUpdate = true;
+}
+
+function setGroupTransition(
+  group: THREE.Group,
+  opacity: number,
+  x = 0,
+  y = 0,
+  z = 0,
+  scale = 1,
+) {
+  const sceneOpacity = clamp01(opacity);
+  group.userData.transitionOpacity = sceneOpacity;
+  group.position.set(x, y, z);
+  group.scale.setScalar(scale);
+  group.traverse((child) => {
+    const renderable = child as THREE.Mesh;
+    const material = renderable.material;
+    if (Array.isArray(material)) material.forEach((item) => setMaterialSceneOpacity(item, sceneOpacity));
+    else if (material) setMaterialSceneOpacity(material, sceneOpacity);
+  });
 }
 
 function clamp01(value: number) {
@@ -741,10 +780,12 @@ export function ThreeExecutionStage({
 
     const state: StageState = {
       camera,
+      currentGroup: null,
       dynamic,
       frameId: 0,
       progress: 1,
       renderer,
+      retiringGroups: [],
       scene,
       update: () => undefined,
     };
@@ -772,6 +813,8 @@ export function ThreeExecutionStage({
     return () => {
       cancelAnimationFrame(state.frameId);
       observer.disconnect();
+      state.currentGroup = null;
+      state.retiringGroups = [];
       clearGroup(dynamic);
       renderer.dispose();
       renderer.domElement.remove();
@@ -784,33 +827,92 @@ export function ThreeExecutionStage({
     if (!state || isStale) return;
 
     cancelAnimationFrame(state.frameId);
-    const built = buildScene(state.dynamic, step, model);
+    state.retiringGroups.forEach((group) => disposeGroup(state.dynamic, group));
+    state.retiringGroups = [];
+
+    const outgoing = state.currentGroup;
+    const outgoingStartOpacity = outgoing
+      ? Number(outgoing.userData.transitionOpacity ?? 1)
+      : 0;
+    const incoming = new THREE.Group();
+    incoming.name = "trace-step-" + step.id;
+    state.dynamic.add(incoming);
+    state.currentGroup = incoming;
+
+    const built = buildScene(incoming, step, model);
     state.update = built.update;
     state.progress = reduceMotion ? 1 : 0;
+    if (outgoing) state.retiringGroups = [outgoing];
 
-    const renderFrame = () => {
+    const renderFrame = (now = performance.now()) => {
       if (!reduceMotion) {
-        state.camera.position.x = Math.sin(state.progress * Math.PI * 2) * 0.1;
-        state.camera.position.y = -1.72 + Math.sin(state.progress * Math.PI) * 0.06;
+        const clock = now * 0.001;
+        state.camera.position.x = Math.sin(clock * 0.58) * 0.08;
+        state.camera.position.y = -1.72 + Math.sin(clock * 0.43) * 0.045;
       }
       state.camera.lookAt(0, 0.08, 0);
       state.renderer.render(state.scene, state.camera);
     };
 
     if (reduceMotion) {
+      if (outgoing) disposeGroup(state.dynamic, outgoing);
+      state.retiringGroups = [];
+      state.renderer.domElement.dataset.sceneHandoff = "idle";
+      setGroupTransition(incoming, 1);
       state.update(1);
       renderFrame();
       return;
     }
 
+    state.renderer.domElement.dataset.sceneHandoff = outgoing ? "running" : "entering";
+    setGroupTransition(incoming, 0.02, 0, -0.1, -0.22, 0.985);
+
     const startedAt = performance.now();
-    const duration = model.action.type === "swap" ? 2600 : model.action.type === "call" || model.action.type === "return" ? 2300 : 1900;
+    const duration = model.action.type === "swap"
+      ? 2850
+      : model.action.type === "call" || model.action.type === "return"
+        ? 2500
+        : 2200;
     const tick = (now: number) => {
       const linear = Math.min(1, (now - startedAt) / duration);
+      const enter = easeOutCubic(segment(linear, 0, 0.34));
+      const exit = easeOutCubic(segment(linear, 0, 0.28));
       state.progress = easeOutCubic(linear);
       state.update(state.progress);
-      renderFrame();
-      if (linear < 1) state.frameId = requestAnimationFrame(tick);
+      state.renderer.domElement.dataset.sceneHandoff = outgoing && exit < 1
+        ? "running"
+        : enter < 1
+          ? "entering"
+          : "idle";
+
+      setGroupTransition(
+        incoming,
+        Math.max(0.02, enter),
+        0,
+        lerp(-0.1, 0, enter),
+        lerp(-0.22, 0, enter),
+        lerp(0.985, 1, enter),
+      );
+      if (outgoing) {
+        setGroupTransition(
+          outgoing,
+          outgoingStartOpacity * (1 - exit),
+          0,
+          lerp(0, -0.08, exit),
+          lerp(0, 0.18, exit),
+          lerp(1, 0.985, exit),
+        );
+      }
+
+      renderFrame(now);
+      if (linear < 1) {
+        state.frameId = requestAnimationFrame(tick);
+        return;
+      }
+      if (outgoing) disposeGroup(state.dynamic, outgoing);
+      state.retiringGroups = [];
+      state.renderer.domElement.dataset.sceneHandoff = "idle";
+      setGroupTransition(incoming, 1);
     };
     state.frameId = requestAnimationFrame(tick);
 
@@ -838,7 +940,7 @@ export function ThreeExecutionStage({
         </div>
       </header>
 
-      <div className={"ca-stage__explanation ca-tone-" + model.tone} aria-live="polite">
+      <div className={"ca-stage__explanation ca-tone-" + model.tone} key={"stage-explanation-" + step.id} aria-live="polite">
         <span>Line {step.line}</span>
         <strong>{model.headline}</strong>
         <p>{model.detail}</p>
@@ -846,19 +948,19 @@ export function ThreeExecutionStage({
 
       <div className="ca-stage__action-row" aria-label="Trace action sequence">
         {step.actions.slice(0, 5).map((action, index) => (
-          <span className={"ca-stage-action ca-stage-action--" + action.type} key={String(index) + action.type}>
+          <span className={"ca-stage-action ca-stage-action--" + action.type} key={step.id + String(index) + action.type}>
             {traceActionLabel(action)}
           </span>
         ))}
       </div>
 
       <div className="ca-three-mount" ref={mountRef}>
-        <div className={"ca-animation-banner ca-tone-" + model.tone} data-testid="animation-main-label">
+        <div className={"ca-animation-banner ca-tone-" + model.tone} key={"animation-banner-" + step.id} data-testid="animation-main-label">
           <span>{traceActionLabel(model.action)}</span>
           <strong>{model.headline}</strong>
           <p>{model.detail}</p>
         </div>
-        <div className={"ca-canvas-readout ca-tone-" + model.tone} data-testid="canvas-readable-overlay" aria-label="Readable animation labels">
+        <div className={"ca-canvas-readout ca-tone-" + model.tone} key={"canvas-readout-" + step.id} data-testid="canvas-readable-overlay" aria-label="Readable animation labels">
           <div className="ca-canvas-readout__card ca-canvas-readout__card--main">
             <span>Now animating</span>
             <strong>{model.headline}</strong>
@@ -871,7 +973,7 @@ export function ThreeExecutionStage({
         </div>
         <div className="ca-animation-labels" data-testid="animation-visible-labels" aria-label="Visible runtime labels">
           {runtimeFlow.map((item) => (
-            <div className={"ca-animation-label ca-tone-" + item.tone} key={item.label}>
+            <div className={"ca-animation-label ca-tone-" + item.tone} key={step.id + item.label}>
               <span>{item.label}</span>
               <strong>{item.value}</strong>
             </div>

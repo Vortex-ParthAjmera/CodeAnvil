@@ -10,7 +10,7 @@ const savedSessionsKey = "codeanvil.savedSessions.v3";
 const legacySavedSessionsKey = "codeanvil.savedSessions.v2";
 const preferencesKey = "codeanvil.preferences.v1";
 
-type Mode = "code" | "examples" | "dsa";
+type Mode = "home" | "code" | "examples" | "dsa";
 type DsaTab = "sorting" | "graph";
 
 function isSavedSession(value: unknown): value is SavedSession {
@@ -123,7 +123,7 @@ export function useCodeAnvil() {
   const [practiceAnswer, setPracticeAnswer] = useState("");
   const [practiceResult, setPracticeResult] = useState<"idle" | "correct" | "wrong">("idle");
   const [savedSessions, setSavedSessions] = useState<SavedSession[]>(loadSavedSessions);
-  const [mode, setMode] = useState<Mode>("code");
+  const [mode, setMode] = useState<Mode>("home");
   const [dsaTab, setDsaTab] = useState<DsaTab>("sorting");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [initialPreferences] = useState(loadPreferences);

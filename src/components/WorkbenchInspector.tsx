@@ -19,10 +19,11 @@ interface Diagnostic {
   line?: number;
 }
 
-type InspectorTab = "variables" | "stack" | "output" | "sessions";
+export type InspectorTab = "variables" | "stack" | "output" | "sessions";
 
 interface WorkbenchInspectorProps {
   diagnostics: Diagnostic[];
+  initialTab?: InspectorTab;
   onDeleteSession: (sessionId: string) => void;
   onResumeSession: (session: SavedSession) => void;
   savedSessions: SavedSession[];
@@ -53,12 +54,13 @@ function savedLabel(savedAt: string) {
 
 export function WorkbenchInspector({
   diagnostics,
+  initialTab = "variables",
   onDeleteSession,
   onResumeSession,
   savedSessions,
   step,
 }: WorkbenchInspectorProps) {
-  const [activeTab, setActiveTab] = useState<InspectorTab>("variables");
+  const [activeTab, setActiveTab] = useState<InspectorTab>(initialTab);
   const [copied, setCopied] = useState(false);
   const changedVariables = new Set(step.changed.variables || []);
   const stackFrames = [...step.stack].reverse();
@@ -70,6 +72,10 @@ export function WorkbenchInspector({
   useEffect(() => {
     setCopied(false);
   }, [step.output]);
+
+  useEffect(() => {
+    setActiveTab(initialTab);
+  }, [initialTab]);
 
   async function copyOutput() {
     if (!step.output) return;

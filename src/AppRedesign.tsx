@@ -4,6 +4,7 @@ import {
   Code2,
   Database,
   Flame,
+  Home,
   Maximize2,
   MessageSquareText,
   Minimize2,
@@ -20,10 +21,11 @@ import {
   VolumeX,
 } from "lucide-react";
 import { CodeInputPanel } from "./components/CodeInputPanel";
+import { LandingPage } from "./components/LandingPage";
 import { DsaWorkbench } from "./components/DsaWorkbench";
 import { PracticePanel } from "./components/PracticePanel";
 import { ThreeExecutionStage } from "./components/ThreeExecutionStage";
-import { WorkbenchInspector } from "./components/WorkbenchInspector";
+import { WorkbenchInspector, type InspectorTab } from "./components/WorkbenchInspector";
 import { useCodeAnvil } from "./hooks/useCodeAnvil";
 import { useExecutionAudio } from "./hooks/useExecutionAudio";
 
@@ -345,6 +347,7 @@ export default function AppRedesign() {
   const app = useCodeAnvil();
   const [workspaceFocus, setWorkspaceFocus] = useState<WorkspaceFocus>("balanced");
   const [catalogCollapsed, setCatalogCollapsed] = useState(false);
+  const [initialInspectorTab, setInitialInspectorTab] = useState<InspectorTab>("variables");
   const audio = useExecutionAudio({
     enabled: app.soundEnabled,
     muted: app.isStale,
@@ -364,14 +367,43 @@ export default function AppRedesign() {
     }
   }
 
+  function openCodeWorkbench(focus: WorkspaceFocus = "balanced", inspectorTab: InspectorTab = "variables") {
+    setCatalogCollapsed(false);
+    setWorkspaceFocus(focus);
+    setInitialInspectorTab(inspectorTab);
+    app.setMode("code");
+  }
+
+  function openExamples() {
+    setCatalogCollapsed(false);
+    setInitialInspectorTab("variables");
+    app.setMode("examples");
+  }
+
+  function openSortingLab() {
+    app.openDsa("sorting");
+  }
+
+  function openGraphLab() {
+    app.openDsa("graph");
+  }
+
   return (
     <div className={"ca-shell" + (app.reduceMotion ? " reduce-motion" : "")}>
       <header className="ca-topbar">
         <Brand />
         <nav className="ca-mainnav" aria-label="Workspace">
           <button
+            className={app.mode === "home" ? "is-active" : ""}
+            onClick={() => app.setMode("home")}
+            type="button"
+          >
+            <Home size={16} />
+            <span>Launch</span>
+          </button>
+          <button
             className={app.mode === "code" ? "is-active" : ""}
-            onClick={() => app.setMode("code")}
+            onClick={() => openCodeWorkbench()}
             type="button"
           >
             <Code2 size={16} />
@@ -379,7 +411,7 @@ export default function AppRedesign() {
           </button>
           <button
             className={app.mode === "examples" ? "is-active" : ""}
-            onClick={() => app.setMode("examples")}
+            onClick={openExamples}
             type="button"
           >
             <BookOpen size={16} />
@@ -387,7 +419,7 @@ export default function AppRedesign() {
           </button>
           <button
             className={app.mode === "dsa" ? "is-active" : ""}
-            onClick={() => app.openDsa("sorting")}
+            onClick={openSortingLab}
             type="button"
           >
             <Database size={16} />
@@ -397,9 +429,9 @@ export default function AppRedesign() {
         <div className="ca-topbar__actions">
           <button
             className="ca-command"
-            disabled={app.isStale || app.mode === "dsa"}
+            disabled={app.isStale || app.mode === "dsa" || app.mode === "home"}
             onClick={app.saveSession}
-            title="Save current trace position"
+            title={app.mode === "home" ? "Open the visualizer to save a session" : "Save current trace position"}
             type="button"
           >
             <Save size={16} />
@@ -458,8 +490,21 @@ export default function AppRedesign() {
         </aside>
       ) : null}
 
-      <main className="ca-main">
-        {app.mode === "dsa" ? (
+      <main className={"ca-main" + (app.mode === "home" ? " ca-main--home" : "")}>
+        {app.mode === "home" ? (
+          <LandingPage
+            currentTraceTitle={app.trace.title}
+            onOpenExamples={openExamples}
+            onOpenGraph={openGraphLab}
+            onOpenRenderer={() => openCodeWorkbench("animation")}
+            onOpenSessions={() => openCodeWorkbench("inspector", "sessions")}
+            onOpenSorting={openSortingLab}
+            onStartVisualizing={() => openCodeWorkbench()}
+            onToggleSound={() => setSoundPreference(!app.soundEnabled)}
+            savedSessionCount={app.savedSessions.length}
+            soundEnabled={app.soundEnabled}
+          />
+        ) : app.mode === "dsa" ? (
           <DsaWorkbench
             activeTab={app.dsaTab}
             onSoundCue={audio.playDsaCue}
@@ -509,6 +554,7 @@ export default function AppRedesign() {
                 />
                 <WorkbenchInspector
                   diagnostics={app.diagnostics}
+                  initialTab={initialInspectorTab}
                   onDeleteSession={app.deleteSession}
                   onResumeSession={app.resumeSession}
                   savedSessions={app.savedSessions}

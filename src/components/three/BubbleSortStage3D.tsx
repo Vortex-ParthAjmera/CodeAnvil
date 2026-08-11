@@ -402,7 +402,7 @@ export function BubbleSortStage3D({ step }: { step: TraceStep }) {
         dpr={[1.25, 2]}
         camera={{ position: [0, 3.35, 7.6], fov: 38 }}
         gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
-        style={{ background: "transparent" }}
+        style={{ width: "100%", height: "100%", background: "transparent" }}
       >
         <Scene model={model} p={p} />
       </Canvas>

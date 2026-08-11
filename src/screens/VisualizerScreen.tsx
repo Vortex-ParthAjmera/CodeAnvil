@@ -23,6 +23,7 @@ import {
 import { detectAndGenerate, type DetectionResult } from "../engine/detect";
 import { storyScriptTrace, DEFAULT_STORY_SCRIPT } from "../engine/storyscript";
 import { useStepPlayback } from "../engine/useStepPlayback";
+import { isBubbleSortTraceStep } from "../engine/sortStage";
 import { registerGeneratedExample } from "../data/examples";
 import { VISUALIZER_DRAFT_KEY } from "../data/dsaCatalog";
 import type { Route } from "../router";
@@ -185,6 +186,7 @@ export function VisualizerScreen({ onNavigate }: { onNavigate: (route: Route) =>
   const trace = result.trace;
   const playback = useStepPlayback(trace?.steps.length ?? 0);
   const step = trace?.steps[Math.min(playback.index, (trace?.steps.length ?? 1) - 1)];
+  const useSpecializedStage = step ? viewMode === "stage" && isBubbleSortTraceStep(step) : false;
 
   useEffect(() => {
     if (!runToken || !trace?.steps.length) return;
@@ -370,14 +372,18 @@ export function VisualizerScreen({ onNavigate }: { onNavigate: (route: Route) =>
                 ) : (
                   <ExecutionStage3D step={step} />
                 )}
-                <div className="pointer-events-none absolute left-3 top-3 rounded-lg border border-ink-700/80 bg-ink-950/80 px-3 py-2 shadow-xl backdrop-blur-md">
-                  <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-ink-500">active instruction</p>
-                  <p className="mt-1 flex items-center gap-2 text-xs text-ink-200"><span className="font-mono font-semibold text-ember-300">L{step.line}</span>{step.event.replaceAll("_", " ")}</p>
-                </div>
-                <div className="pointer-events-none absolute right-3 top-3 rounded-lg border border-ink-700/80 bg-ink-950/80 px-3 py-2 text-right shadow-xl backdrop-blur-md">
-                  <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-ink-500">trace</p>
-                  <p className="mt-1 font-mono text-xs text-arc-300">{playback.index + 1} / {trace.steps.length}</p>
-                </div>
+                {!useSpecializedStage && (
+                  <>
+                    <div className="pointer-events-none absolute left-3 top-3 rounded-lg border border-ink-700/80 bg-ink-950/80 px-3 py-2 shadow-xl backdrop-blur-md">
+                      <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-ink-500">active instruction</p>
+                      <p className="mt-1 flex items-center gap-2 text-xs text-ink-200"><span className="font-mono font-semibold text-ember-300">L{step.line}</span>{step.event.replaceAll("_", " ")}</p>
+                    </div>
+                    <div className="pointer-events-none absolute right-3 top-3 rounded-lg border border-ink-700/80 bg-ink-950/80 px-3 py-2 text-right shadow-xl backdrop-blur-md">
+                      <p className="font-mono text-[9px] uppercase tracking-[0.16em] text-ink-500">trace</p>
+                      <p className="mt-1 font-mono text-xs text-arc-300">{playback.index + 1} / {trace.steps.length}</p>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="border-t border-ink-800 bg-ink-900/95 px-4 py-3">

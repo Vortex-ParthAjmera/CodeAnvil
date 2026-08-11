@@ -1,0 +1,721 @@
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------ */
+/* CodeAnvil brand tokens (docs/28-brand-guide.md)                     */
+/* Dark workshop, graphite surfaces, VIOLET PLASMA accent (replaced     */
+/* the original warm amber), blue secondary.                           */
+/* ------------------------------------------------------------------ */
+@theme {
+  --color-ink-950: #0b0c0f;
+  --color-ink-900: #121318;
+  --color-ink-850: #17181e;
+  --color-ink-800: #1c1d24;
+  --color-ink-700: #262833;
+  --color-ink-600: #363947;
+  --color-ink-500: #4a4e5e;
+  --color-ink-400: #7a7f92;
+  --color-ink-300: #a3a8b8;
+  --color-ink-200: #c9cdd8;
+  --color-ink-100: #e7e9ef;
+
+  /* Plasma violet — the new brand accent (was warm amber #f5a524). */
+  --color-ember-300: #c4b5fd;
+  --color-ember-400: #a78bfa;
+  --color-ember-500: #8b5cf6;
+  --color-ember-600: #7c3aed;
+
+  --color-arc-300: #7dd3fc;
+  --color-arc-400: #38bdf8;
+  --color-arc-500: #0ea5e9;
+
+  --color-verdant-300: #6ee7b7;
+  --color-verdant-400: #34d399;
+  --color-verdant-500: #10b981;
+
+  --color-rose-300: #fca5a5;
+  --color-rose-400: #f87171;
+  --color-rose-500: #ef4444;
+
+  --font-sans: "Space Grotesk Variable", ui-sans-serif, system-ui, -apple-system,
+    "Segoe UI", Roboto, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo,
+    Consolas, monospace;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background-color: var(--color-ink-950);
+  color: var(--color-ink-100);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Thin dark scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-ink-600) transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--color-ink-600);
+  border-radius: 4px;
+}
+
+/* ------------------------------------------------------------------ */
+/* Lively ambient background (app shell)                                */
+/* Aurora blobs + workshop grid + rising ember particles, all themed    */
+/* through the brand tokens so Story themes repaint them too.           */
+/* ------------------------------------------------------------------ */
+.app-ambient {
+  background: radial-gradient(
+    1100px 640px at 78% -12%,
+    color-mix(in srgb, var(--color-ember-500) 12%, transparent),
+    transparent 62%
+  );
+}
+
+.app-blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(84px);
+  opacity: 0.55;
+  mix-blend-mode: screen;
+  will-change: transform;
+}
+.app-blob-1 {
+  width: 46vw;
+  height: 46vw;
+  left: -13vw;
+  top: -16vh;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--color-ember-400) 42%, transparent),
+    transparent 70%
+  );
+  animation: blob-drift-1 30s ease-in-out infinite alternate;
+}
+.app-blob-2 {
+  width: 38vw;
+  height: 38vw;
+  right: -11vw;
+  top: 20vh;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--color-arc-500) 34%, transparent),
+    transparent 70%
+  );
+  animation: blob-drift-2 38s ease-in-out infinite alternate;
+}
+.app-blob-3 {
+  width: 32vw;
+  height: 32vw;
+  left: 18vw;
+  bottom: -18vh;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--color-verdant-500) 26%, transparent),
+    transparent 70%
+  );
+  animation: blob-drift-3 34s ease-in-out infinite alternate;
+}
+
+@keyframes blob-drift-1 {
+  to {
+    transform: translate3d(8vw, 6vh, 0) scale(1.14);
+  }
+}
+@keyframes blob-drift-2 {
+  to {
+    transform: translate3d(-7vw, 9vh, 0) scale(1.18);
+  }
+}
+@keyframes blob-drift-3 {
+  to {
+    transform: translate3d(6vw, -7vh, 0) scale(1.1);
+  }
+}
+
+/* Faint engineering grid over the ambient (reads as a forge floor plan) */
+.app-grid-overlay {
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--color-ink-400) 7%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--color-ink-400) 7%, transparent) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse 92% 82% at 50% 38%, black, transparent 78%);
+  opacity: 0.55;
+}
+
+/* Rising ember particles (sizes/durations randomized inline) */
+.app-ember {
+  position: absolute;
+  bottom: -12px;
+  border-radius: 9999px;
+  background: var(--color-ember-300);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--color-ember-400) 80%, transparent);
+  animation: ember-rise var(--dur, 14s) linear infinite;
+  animation-delay: var(--delay, 0s);
+  opacity: 0;
+}
+@keyframes ember-rise {
+  0% {
+    transform: translate3d(0, 0, 0);
+    opacity: 0;
+  }
+  8% {
+    opacity: 0.85;
+  }
+  85% {
+    opacity: 0.45;
+  }
+  100% {
+    transform: translate3d(var(--drift, 30px), -94vh, 0);
+    opacity: 0;
+  }
+}
+
+/* Soft glow that trails the cursor across the whole app */
+.cursor-glow {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 560px;
+  height: 560px;
+  border-radius: 9999px;
+  pointer-events: none;
+  z-index: 30;
+  transform: translate3d(-9999px, -9999px, 0);
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--color-ember-400) 13%, transparent),
+    transparent 68%
+  );
+  mix-blend-mode: screen;
+  transition: transform 0.12s ease-out;
+}
+
+/* Blinking caret used by the live commentary typewriter */
+@keyframes caret-blink {
+  0%,
+  45% {
+    opacity: 1;
+  }
+  50%,
+  100% {
+    opacity: 0;
+  }
+}
+.caret {
+  display: inline-block;
+  width: 1px;
+  height: 1em;
+  margin-left: 2px;
+  vertical-align: -0.12em;
+  background: var(--color-ember-400);
+  animation: caret-blink 0.9s step-end infinite;
+}
+
+/* ------------------------------------------------------------------ */
+/* CodeMirror (code panel)                                              */
+/* ------------------------------------------------------------------ */
+.cm-editor {
+  height: 100%;
+  background: transparent;
+  font-size: 13px;
+}
+.cm-editor .cm-scroller {
+  font-family: var(--font-mono);
+  line-height: 1.6;
+}
+.cm-editor .cm-gutters {
+  background: transparent;
+  color: var(--color-ink-500);
+  border-right: 1px solid var(--color-ink-700);
+}
+.cm-editor .cm-content {
+  color: var(--color-ink-200);
+}
+.cm-editor.cm-focused {
+  outline: none;
+}
+
+/* Active (currently executing) line */
+.cm-ca-active {
+  background: color-mix(in srgb, var(--color-ember-400) 12%, transparent) !important;
+  box-shadow: inset 3px 0 0 var(--color-ember-400);
+}
+.cm-ca-active .cm-gutterElement {
+  color: var(--color-ember-400) !important;
+  font-weight: 700;
+}
+
+/* Syntax colors (dark, tuned for Python) */
+.cm-editor .ͼb {
+  color: var(--color-arc-400); /* keywords */
+}
+.cm-editor .ͼc {
+  color: var(--color-verdant-400); /* strings */
+}
+.cm-editor .ͼd {
+  color: var(--color-ember-400); /* numbers */
+}
+.cm-editor .ͼe {
+  color: var(--color-ink-300); /* comments */
+}
+
+/* ------------------------------------------------------------------ */
+/* Unlockable themes (docs/02 — story mode unlockable visual themes).    */
+/* Story Mode writes data-theme on <html>; these override the accent    */
+/* tokens with the arc / verdant palettes.                              */
+/* ------------------------------------------------------------------ */
+:root[data-theme="arc"] {
+  --color-ember-300: #7dd3fc;
+  --color-ember-400: #38bdf8;
+  --color-ember-500: #0ea5e9;
+  --color-ember-600: #0284c7;
+}
+:root[data-theme="verdant"] {
+  --color-ember-300: #6ee7b7;
+  --color-ember-400: #34d399;
+  --color-ember-500: #10b981;
+  --color-ember-600: #059669;
+}
+
+/* The forged-gradient headline follows the unlockable story themes too.
+   Only background-image is swapped — never the shorthand, so the
+   background-clip: text from .text-forged survives (see light-mode note). */
+:root[data-theme="arc"] .text-forged {
+  background-image: linear-gradient(
+    180deg,
+    #d9f4ff 0%,
+    #38bdf8 55%,
+    #0369a1 100%
+  );
+}
+:root[data-theme="verdant"] .text-forged {
+  background-image: linear-gradient(
+    180deg,
+    #d9fbf0 0%,
+    #34d399 55%,
+    #047857 100%
+  );
+}
+:root[data-mode="light"][data-theme="arc"] .text-forged {
+  background-image: linear-gradient(
+    180deg,
+    #0c4a6e 0%,
+    #0369a1 55%,
+    #082f49 100%
+  );
+}
+:root[data-mode="light"][data-theme="verdant"] .text-forged {
+  background-image: linear-gradient(
+    180deg,
+    #064e3b 0%,
+    #047857 55%,
+    #022c22 100%
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Light mode (docs/18 — UI/UX)                                        */
+/* One attribute on <html> (data-mode="light") flips the whole palette  */
+/* because every utility reads these CSS variables. Surfaces invert,    */
+/* accents deepen so text keeps contrast on white.                      */
+/* ------------------------------------------------------------------ */
+:root[data-mode="light"] {
+  /* Surfaces: near-white page, white cards, light borders */
+  --color-ink-950: #f5f5f8;
+  --color-ink-900: #ffffff;
+  --color-ink-850: #f2f2f6;
+  --color-ink-800: #e9e9ef;
+  --color-ink-700: #d8d9e2;
+  --color-ink-600: #b6b8c6;
+  --color-ink-500: #8e92a1;
+  --color-ink-400: #6f7485;
+  --color-ink-300: #555a6b;
+  --color-ink-200: #3c4152;
+  --color-ink-100: #262a37;
+
+  /* Accents deepened for contrast on light surfaces */
+  --color-ember-300: #7c3aed;
+  --color-ember-400: #6d28d9;
+  --color-ember-500: #5b21b6;
+  --color-ember-600: #4c1d95;
+
+  --color-arc-300: #0369a1;
+  --color-arc-400: #0284c7;
+  --color-arc-500: #075985;
+
+  --color-verdant-300: #047857;
+  --color-verdant-400: #059669;
+  --color-verdant-500: #065f46;
+
+  --color-rose-300: #dc2626;
+  --color-rose-400: #b91c1c;
+  --color-rose-500: #991b1b;
+
+  /* Native scrollbars + form controls follow the light palette */
+  color-scheme: light;
+}
+
+/* Story unlockable themes repainted for light surfaces */
+:root[data-mode="light"][data-theme="arc"] {
+  --color-ember-300: #0284c7;
+  --color-ember-400: #0369a1;
+  --color-ember-500: #075985;
+  --color-ember-600: #0c4a6e;
+}
+:root[data-mode="light"][data-theme="verdant"] {
+  --color-ember-300: #059669;
+  --color-ember-400: #047857;
+  --color-ember-500: #065f46;
+  --color-ember-600: #064e3b;
+}
+
+/* Light-specific surface tweaks that can't ride the tokens */
+:root[data-mode="light"] .panel-glass {
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.82),
+    rgba(245, 245, 248, 0.94)
+  );
+}
+/* Only swap the gradient IMAGE here — never the shorthand, or the
+   `background` reset would clobber `background-clip: text` (making the
+   gradient word render as a solid box with invisible text on light bg). */
+:root[data-mode="light"] .text-forged {
+  background-image: linear-gradient(
+    180deg,
+    #3b2f63 0%,
+    #7c3aed 55%,
+    #4c1d95 100%
+  );
+}
+:root[data-mode="light"] .app-blob {
+  mix-blend-mode: multiply;
+  opacity: 0.3;
+}
+:root[data-mode="light"] .cursor-glow {
+  mix-blend-mode: multiply;
+  opacity: 0.5;
+}
+
+/* The 3D backdrops restyle themselves for light mode via theme3d (fog,
+   grid, text and accents all follow the light palette), so they only need
+   a gentle lift in presence instead of heavy dimming. */
+:root[data-mode="light"] .cosmos-layer {
+  opacity: 0.55;
+}
+:root[data-mode="light"] .ambient3d-layer {
+  opacity: 0.65;
+}
+
+/* Landing hero vignette — dark in dark mode; a soft violet edge wash in
+   light mode (the near-black rgba version would read as a dirty blob on a
+   light page). */
+.landing-vignette {
+  background: radial-gradient(
+    ellipse at center,
+    transparent 50%,
+    rgba(11, 12, 15, 0.55)
+  );
+}
+:root[data-mode="light"] .landing-vignette {
+  background: radial-gradient(
+    ellipse at center,
+    transparent 44%,
+    rgba(93, 77, 138, 0.16)
+  );
+}
+
+/* Glow used on the forge stage */
+@keyframes pulse-glow {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+.animate-pulse-glow {
+  animation: pulse-glow 1.6s ease-in-out infinite;
+}
+
+/* ------------------------------------------------------------------ */
+/* 3D depth utilities (CSS-only polish across every screen)             */
+/* ------------------------------------------------------------------ */
+
+/* Gentle vertical float for heroes and orbs */
+@keyframes float-y {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+.animate-float {
+  animation: float-y 5s ease-in-out infinite;
+}
+.animate-float-slow {
+  animation: float-y 8s ease-in-out infinite;
+}
+
+/* 3D orb (used for story-mode worlds, dashboard accents) */
+.orb {
+  border-radius: 9999px;
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.28), transparent 42%),
+    radial-gradient(circle at 68% 74%, rgba(0, 0, 0, 0.55), transparent 52%),
+    var(--orb-color, var(--color-ember-400));
+  box-shadow:
+    0 18px 44px -12px color-mix(in srgb, var(--orb-color, var(--color-ember-400)) 45%, transparent),
+    inset 0 2px 6px rgba(255, 255, 255, 0.35),
+    inset 0 -6px 14px rgba(0, 0, 0, 0.4);
+  transform: translateZ(0);
+}
+
+/* Light mode: soften the orb's hardcoded black inner shading so accent orbs
+   (story worlds, dashboard) read as glossy balls instead of dark smudges. */
+:root[data-mode="light"] .orb {
+  background:
+    radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.55), transparent 42%),
+    radial-gradient(circle at 68% 74%, rgba(0, 0, 0, 0.2), transparent 52%),
+    var(--orb-color, var(--color-ember-400));
+  box-shadow:
+    0 18px 44px -12px color-mix(in srgb, var(--orb-color, var(--color-ember-400)) 35%, transparent),
+    inset 0 2px 6px rgba(255, 255, 255, 0.55),
+    inset 0 -6px 14px rgba(0, 0, 0, 0.12);
+}
+
+/* Glassy inspector / panel surfaces */
+.panel-glass {
+  background: linear-gradient(
+    180deg,
+    rgba(28, 29, 36, 0.72),
+    rgba(18, 19, 24, 0.9)
+  );
+  backdrop-filter: blur(10px);
+}
+
+/* Gradient headline used on heroes (reads as light catching an edge) */
+.text-forged {
+  background: linear-gradient(180deg, #f3efff 0%, #a78bfa 55%, #6d28d9 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+/* Browsers without background-clip:text support fall back to a readable
+   solid accent instead of invisible gradient-box text. */
+@supports not ((-webkit-background-clip: text) or (background-clip: text)) {
+  .text-forged {
+    background: none;
+    -webkit-text-fill-color: currentcolor;
+    color: var(--color-ember-400);
+  }
+}
+
+/* 3D depth on interactive rows: lift + glow on hover */
+.lift-3d {
+  transition:
+    transform 0.18s ease-out,
+    box-shadow 0.18s ease-out,
+    border-color 0.18s ease-out;
+}
+.lift-3d:hover {
+  transform: translateY(-2px) scale(1.012);
+  box-shadow: 0 14px 34px -14px rgba(0, 0, 0, 0.7),
+    0 0 22px -6px color-mix(in srgb, var(--color-ember-400) 24%, transparent);
+}
+
+/* Duel timer ring: conic sweep with inner depth */
+.timer-ring {
+  background: conic-gradient(
+    var(--color-ember-400) var(--pct, 100%),
+    var(--color-ink-700) 0
+  );
+  box-shadow:
+    0 0 24px -4px color-mix(in srgb, var(--color-ember-400) 38%, transparent),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+/* ------------------------------------------------------------------ */
+/* Landing hero effects                                                  */
+/* ------------------------------------------------------------------ */
+
+/* Continuous light sweep across primary CTAs */
+.btn-shine {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+.btn-shine::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    rgba(255, 255, 255, 0.32) 50%,
+    transparent 60%
+  );
+  transform: translateX(-130%);
+  animation: shine-sweep 3.4s ease-in-out infinite;
+  mix-blend-mode: screen;
+}
+@keyframes shine-sweep {
+  0% {
+    transform: translateX(-130%);
+  }
+  55%,
+  100% {
+    transform: translateX(130%);
+  }
+}
+
+/* Scanning beam that periodically sweeps the 3D viewport */
+.viewport-sweep {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    105deg,
+    transparent 42%,
+    color-mix(in srgb, var(--color-ember-400) 9%, transparent) 50%,
+    transparent 58%
+  );
+  transform: translateX(-130%);
+  animation: sweep 6s ease-in-out infinite;
+}
+@keyframes sweep {
+  0% {
+    transform: translateX(-130%);
+  }
+  60%,
+  100% {
+    transform: translateX(130%);
+  }
+}
+
+/* Breathing border + glow on the 3D viewport frame */
+.viewport-frame {
+  animation: frame-pulse 6s ease-in-out infinite;
+}
+@keyframes frame-pulse {
+  0%,
+  100% {
+    border-color: color-mix(in srgb, var(--color-ember-500) 26%, var(--color-ink-700));
+    box-shadow:
+      0 0 44px -18px color-mix(in srgb, var(--color-ember-500) 45%, transparent),
+      inset 0 0 34px -20px color-mix(in srgb, var(--color-ember-500) 42%, transparent);
+  }
+  50% {
+    border-color: color-mix(in srgb, var(--color-ember-400) 48%, var(--color-ink-700));
+    box-shadow:
+      0 0 64px -14px color-mix(in srgb, var(--color-ember-400) 62%, transparent),
+      inset 0 0 46px -16px color-mix(in srgb, var(--color-ember-400) 55%, transparent);
+  }
+}
+
+/* Forge heat gauge (live element in the sidebar) */
+.heat-track {
+  height: 5px;
+  border-radius: 999px;
+  background: var(--color-ink-700);
+  overflow: hidden;
+}
+.heat-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--color-ember-600) 60%, transparent),
+    var(--color-ember-400)
+  );
+  box-shadow: 0 0 12px color-mix(in srgb, var(--color-ember-400) 70%, transparent);
+  transition: width 0.5s ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-float,
+  .animate-float-slow,
+  .app-blob-1,
+  .app-blob-2,
+  .app-blob-3,
+  .app-ember,
+  .cursor-glow,
+  .btn-shine::after,
+  .viewport-sweep,
+  .viewport-frame {
+    animation: none;
+  }
+  .cursor-glow {
+    display: none;
+  }
+}
+
+/* Fade-slide for changed values */
+@keyframes value-flash {
+  0% {
+    background-color: color-mix(in srgb, var(--color-ember-400) 34%, transparent);
+  }
+  100% {
+    background-color: transparent;
+  }
+}
+.value-flash {
+  animation: value-flash 0.9s ease-out;
+}
+
+/* Coordinate paper used behind the atlas and holographic workbench. */
+.atlas-grid {
+  background-image:
+    linear-gradient(rgba(56, 189, 248, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56, 189, 248, 0.045) 1px, transparent 1px);
+  background-size: 28px 28px;
+  mask-image: linear-gradient(to right, black, transparent 88%);
+}
+
+.trace-range {
+  height: 3px;
+  cursor: pointer;
+  appearance: none;
+  border-radius: 999px;
+  background: var(--color-ink-700);
+  accent-color: var(--color-ember-400);
+}
+.trace-range::-webkit-slider-thumb {
+  width: 11px;
+  height: 11px;
+  appearance: none;
+  border: 2px solid var(--color-ink-950);
+  border-radius: 999px;
+  background: var(--color-ember-400);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--color-ember-400) 45%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

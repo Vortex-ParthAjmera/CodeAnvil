@@ -1,0 +1,1130 @@
+/**
+ * Trace generator library — every playable algorithm as a parameterized
+ * generator. Inputs (array, n, target, text) are validated and converted into
+ * a schema-conformant trace by OUR OWN simulators; nothing user-supplied is
+ * ever executed. Powers the lab's editable inputs, the new playable examples,
+ * and the universal visualizer's pattern detection.
+ */
+
+import type { TraceDocument } from "../types/trace";
+import { detectLanguage } from "./detect";
+import {
+  binarySearchSteps,
+  bubbleSortSteps,
+  gridSearchSteps,
+  insertionSortSteps,
+  selectionSortSteps,
+  type MazeSpec,
+  type SearchKind,
+} from "./sim";
+import {
+  arrayMemory,
+  arrayVisual,
+  buildRecursionTrace,
+  buildSortTrace,
+  gridMemory,
+  gridVisual,
+  TraceBuilder,
+} from "../data/traces/builders";
+
+
+export type PlayableKind =
+  | "sum-array"
+  | "max-array"
+  | "factorial-loop"
+  | "factorial-recursion"
+  | "fibonacci-recursion"
+  | "binary-search"
+  | "bubble-sort"
+  | "selection-sort"
+  | "insertion-sort"
+  | "merge-sort"
+  | "quick-sort"
+  | "heap-sort"
+  | "palindrome"
+  | "inorder"
+  | "two-sum"
+  | "bfs-grid"
+  | "dfs-grid";
+
+export interface PlayableConfig {
+  array?: number[];
+  n?: number;
+  target?: number;
+  text?: string;
+  tree?: (number | null)[];
+  maze?: MazeSpec;
+}
+
+const clone = <T,>(a: T[]): T[] => [...a];
+
+/* ------------------------------------------------------------------ */
+/* New step recorders                                                  */
+/* ------------------------------------------------------------------ */
+
+export interface MergeStep {
+  array: number[];
+  /** Active merge window (start..end inclusive). */
+  range: [number, number];
+  /** Index currently being written. */
+  writing: number;
+  description: string;
+  comparisons: number;
+  writes: number;
+}
+
+/** Recursive merge sort that records compare + write operations. */
+export function mergeSortSteps(input: number[]): MergeStep[] {
+  const a = clone(input);
+  const steps: MergeStep[] = [];
+  let comparisons = 0;
+  let writes = 0;
+
+  const record = (range: [number, number], writing: number, description: string) => {
+    steps.push({ array: clone(a), range, writing, description, comparisons, writes });
+  };
+
+  record([0, a.length - 1], -1, `Merge sort splits ${a.length} elements down to single-element runs, then merges them back up in sorted order.`);
+
+  function merge(lo: number, mid: number, hi: number) {
+    const left = a.slice(lo, mid + 1);
+    const right = a.slice(mid + 1, hi + 1);
+    let i = 0;
+    let j = 0;
+    let k = lo;
+    while (i < left.length && j < right.length) {
+      comparisons++;
+      const takeLeft = left[i] <= right[j];
+      record([lo, hi], k, takeLeft
+        ? `Compare ${left[i]} vs ${right[j]} — take ${left[i]} from the left run.`
+        : `Compare ${left[i]} vs ${right[j]} — take ${right[j]} from the right run.`);
+      a[k] = takeLeft ? left[i++] : right[j++];
+      writes++;
+      record([lo, hi], k, `Write ${a[k]} into merged position ${k}.`);
+      k++;
+    }
+    while (i < left.length) {
+      a[k] = left[i++];
+      writes++;
+      record([lo, hi], k, `Left run has ${left[i - 1]} left — copy it to position ${k}.`);
+      k++;
+    }
+    while (j < right.length) {
+      a[k] = right[j++];
+      writes++;
+      record([lo, hi], k, `Right run has ${right[j - 1]} left — copy it to position ${k}.`);
+      k++;
+    }
+  }
+
+  function sort(lo: number, hi: number) {
+    if (lo >= hi) return;
+    const mid = Math.floor((lo + hi) / 2);
+    record([lo, hi], -1, `Split [${lo}..${hi}] at mid ${mid}.`);
+    sort(lo, mid);
+    sort(mid + 1, hi);
+    merge(lo, mid, hi);
+  }
+
+  sort(0, a.length - 1);
+  steps.push({ array: clone(a), range: [0, a.length - 1], writing: -1, description: `Sorted! ${comparisons} comparisons and ${writes} writes.`, comparisons, writes });
+  return steps;
+}
+
+/** Quick sort (Lomuto partition) — records compares, swaps, and the pivot. */
+export function quickSortSteps(input: number[]): ReturnType<typeof bubbleSortSteps> {
+  const a = clone(input);
+  const steps: ReturnType<typeof bubbleSortSteps> = [];
+  let comparisons = 0;
+  let swaps = 0;
+
+  steps.push({
+    array: clone(a),
+    sortedUpTo: -1,
+    description: `Quick sort picks a pivot and partitions the array so smaller values sit left and larger values sit right, then recurses.`,
+    comparisons,
+    swaps,
+  });
+
+  function partition(lo: number, hi: number): number {
+    const pivot = a[hi];
+    let i = lo;
+    for (let j = lo; j < hi; j++) {
+      comparisons++;
+      steps.push({
+        array: clone(a),
+        compare: [j, hi],
+        key: hi,
+        sortedUpTo: -1,
+        description: `Compare a[${j}] = ${a[j]} with pivot ${pivot}.`,
+        comparisons,
+        swaps,
+      });
+      if (a[j] < pivot) {
+        [a[i], a[j]] = [a[j], a[i]];
+        if (i !== j) {
+          swaps++;
+          steps.push({
+            array: clone(a),
+            swap: [i, j],
+            key: hi,
+            sortedUpTo: -1,
+            description: `${a[j]} < pivot — swap it into the "smaller" zone at index ${i}.`,
+            comparisons,
+            swaps,
+          });
+        }
+        i++;
+      }
+    }
+    [a[i], a[hi]] = [a[hi], a[i]];
+    swaps++;
+    steps.push({
+      array: clone(a),
+      swap: [i, hi],
+      key: i,
+      sortedUpTo: -1,
+      description: `Place the pivot ${pivot} at its final position ${i}.`,
+      comparisons,
+      swaps,
+    });
+    return i;
+  }
+
+  function sort(lo: number, hi: number) {
+    if (lo > hi) return;
+    if (lo === hi) {
+      steps.push({
+        array: clone(a),
+        sortedUpTo: -1,
+        key: lo,
+        description: `Single element at ${lo} — it is sorted by definition.`,
+        comparisons,
+        swaps,
+      });
+      return;
+    }
+    const p = partition(lo, hi);
+    sort(lo, p - 1);
+    sort(p + 1, hi);
+  }
+
+  sort(0, a.length - 1);
+  steps.push({
+    array: clone(a),
+    sortedUpTo: a.length - 1,
+    description: `Sorted! ${comparisons} comparisons and ${swaps} swaps.`,
+    comparisons,
+    swaps,
+  });
+  return steps;
+}
+
+/** Heap sort — heapify with swaps, then extract the max into the sorted tail. */
+export function heapSortSteps(input: number[]): ReturnType<typeof bubbleSortSteps> {
+  const a = clone(input);
+  const steps: ReturnType<typeof bubbleSortSteps> = [];
+  let comparisons = 0;
+  let swaps = 0;
+
+  steps.push({
+    array: clone(a),
+    sortedUpTo: -1,
+    description: `Heap sort first builds a max-heap (largest value at index 0), then repeatedly swaps the root to the end and re-heapifies.`,
+    comparisons,
+    swaps,
+  });
+
+  const rec = (arr: number[], description: string, key?: number, sortedUpTo = -1, swap?: [number, number], compare?: [number, number]) => {
+    steps.push({ array: clone(arr), description, comparisons, swaps, key, sortedUpTo, swap, compare });
+  };
+
+  function siftDown(n: number, i: number, sortedUpTo: number) {
+    while (true) {
+      let largest = i;
+      const l = 2 * i + 1;
+      const r = 2 * i + 2;
+      if (l < n) {
+        comparisons++;
+        rec(a, `Compare child a[${l}] = ${a[l]} with parent a[${i}] = ${a[i]}.`, i, sortedUpTo, undefined, [i, l]);
+        if (a[l] > a[largest]) largest = l;
+      }
+      if (r < n) {
+        comparisons++;
+        rec(a, `Compare child a[${r}] = ${a[r]} with the current largest a[${largest}] = ${a[largest]}.`, largest, sortedUpTo, undefined, [largest, r]);
+        if (a[r] > a[largest]) largest = r;
+      }
+      if (largest === i) break;
+      [a[i], a[largest]] = [a[largest], a[i]];
+      swaps++;
+      rec(a, `${a[i]} is the larger — swap parent and child.`, largest, sortedUpTo, [i, largest]);
+      i = largest;
+    }
+  }
+
+  // Build max-heap (bottom-up).
+  for (let i = Math.floor(a.length / 2) - 1; i >= 0; i--) {
+    rec(a, `Heapify from index ${i}.`, i);
+    siftDown(a.length, i, -1);
+  }
+  rec(a, `Max-heap built — the largest value ${a[0]} sits at the root.`, 0);
+
+  // Extract.
+  for (let end = a.length - 1; end > 0; end--) {
+    [a[0], a[end]] = [a[end], a[0]];
+    swaps++;
+    rec(a, `Swap the root ${a[end]} into its final sorted position ${end}.`, 0, end, [0, end]);
+    siftDown(end, 0, end);
+    rec(a, `The tail [${end}..${a.length - 1}] is now sorted.`, 0, end);
+  }
+
+  steps.push({
+    array: clone(a),
+    sortedUpTo: a.length - 1,
+    description: `Sorted! ${comparisons} comparisons and ${swaps} swaps.`,
+    comparisons,
+    swaps,
+  });
+  return steps;
+}
+
+/* ------------------------------------------------------------------ */
+/* Two-pointer + tree recorders                                        */
+/* ------------------------------------------------------------------ */
+
+export interface PalindromeStep {
+  chars: string[];
+  l: number;
+  r: number;
+  status: "probe" | "ok" | "invalid" | "done";
+  description: string;
+  comparisons: number;
+}
+
+/** Valid-palindrome check with converging pointers. */
+export function palindromeSteps(text: string): PalindromeStep[] {
+  const chars = [...text];
+  const steps: PalindromeStep[] = [];
+  let comparisons = 0;
+
+  steps.push({
+    chars: clone(chars),
+    l: 0,
+    r: Math.max(0, chars.length - 1),
+    status: "probe",
+    description: `Pointers start at both ends: l = 0, r = ${chars.length - 1}. Compare pairs while moving inward.`,
+    comparisons,
+  });
+
+  let l = 0;
+  let r = chars.length - 1;
+  while (l < r) {
+    comparisons++;
+    steps.push({
+      chars: clone(chars),
+      l,
+      r,
+      status: "probe",
+      description: `Compare '${chars[l]}' (l = ${l}) with '${chars[r]}' (r = ${r}).`,
+      comparisons,
+    });
+    if (chars[l] !== chars[r]) {
+      steps.push({
+        chars: clone(chars),
+        l,
+        r,
+        status: "invalid",
+        description: `'${chars[l]}' ≠ '${chars[r]}' — not a palindrome.`,
+        comparisons,
+      });
+      return steps;
+    }
+    steps.push({
+      chars: clone(chars),
+      l,
+      r,
+      status: "ok",
+      description: `'${chars[l]}' == '${chars[r]}' — matched. Move both pointers inward.`,
+      comparisons,
+    });
+    l++;
+    r--;
+  }
+  steps.push({
+    chars: clone(chars),
+    l,
+    r,
+    status: "done",
+    description: `All ${comparisons} pairs matched — "${text}" is a palindrome.`,
+    comparisons,
+  });
+  return steps;
+}
+
+export interface TwoSumStep {
+  array: number[];
+  l: number;
+  r: number;
+  sum: number;
+  target: number;
+  status: "probe" | "found" | "not-found";
+  description: string;
+  probes: number;
+}
+
+/** Two-sum on a SORTED array with converging pointers. */
+export function twoSumSortedSteps(input: number[], target: number): TwoSumStep[] {
+  const a = clone(input).sort((x, y) => x - y);
+  const steps: TwoSumStep[] = [];
+  let l = 0;
+  let r = a.length - 1;
+  let probes = 0;
+
+  steps.push({
+    array: clone(a),
+    l,
+    r,
+    sum: a[l] + a[r],
+    target,
+    status: "probe",
+    description: `Two pointers start at the ends of the sorted list. Target: ${target}.`,
+    probes,
+  });
+
+  while (l < r) {
+    const sum = a[l] + a[r];
+    probes++;
+    steps.push({
+      array: clone(a),
+      l,
+      r,
+      sum,
+      target,
+      status: "probe",
+      description: `a[${l}] + a[${r}] = ${a[l]} + ${a[r]} = ${sum}.`,
+      probes,
+    });
+    if (sum === target) {
+      steps.push({
+        array: clone(a),
+        l,
+        r,
+        sum,
+        target,
+        status: "found",
+        description: `${sum} == ${target} — found! Indices ${l} and ${r} (values ${a[l]} and ${a[r]}).`,
+        probes,
+      });
+      return steps;
+    }
+    if (sum < target) {
+      l++;
+      steps.push({
+        array: clone(a),
+        l,
+        r,
+        sum,
+        target,
+        status: "probe",
+        description: `${sum} < ${target} — move the left pointer right (l = ${l}) to increase the sum.`,
+        probes,
+      });
+    } else {
+      r--;
+      steps.push({
+        array: clone(a),
+        l,
+        r,
+        sum,
+        target,
+        status: "probe",
+        description: `${sum} > ${target} — move the right pointer left (r = ${r}) to decrease the sum.`,
+        probes,
+      });
+    }
+  }
+
+  steps.push({
+    array: clone(a),
+    l,
+    r,
+    sum: a[l] + a[r],
+    target,
+    status: "not-found",
+    description: `Pointers crossed — no pair sums to ${target} (${probes} probes).`,
+    probes,
+  });
+  return steps;
+}
+
+export interface TreeStep {
+  tree: (number | null)[];
+  /** Heap index of the node being visited. */
+  node: number;
+  visited: number[];
+  result: number[];
+  description: string;
+}
+
+/** Inorder traversal of a heap-indexed binary tree (left → node → right). */
+export function inorderSteps(tree: (number | null)[]): TreeStep[] {
+  const steps: TreeStep[] = [];
+  const visited: number[] = [];
+  const result: number[] = [];
+
+  const record = (node: number, description: string) => {
+    steps.push({ tree: clone(tree), node, visited: [...visited], result: [...result], description });
+  };
+
+  record(-1, `Inorder traversal visits the left subtree, then the node, then the right subtree — for a BST that yields sorted order.`);
+
+  const leftChild = (i: number) => (tree[2 * i + 1] === undefined ? -1 : 2 * i + 1);
+  const rightChild = (i: number) => (tree[2 * i + 2] === undefined ? -1 : 2 * i + 2);
+  const stack: number[] = [];
+  let i = 0;
+
+  while (stack.length > 0 || (i >= 0 && i < tree.length && tree[i] !== undefined && tree[i] !== null)) {
+    // Descend left as far as possible.
+    while (i >= 0 && i < tree.length && tree[i] !== undefined && tree[i] !== null) {
+      stack.push(i);
+      record(i, `Push node ${tree[i]} (index ${i}) onto the stack and descend left.`);
+      i = leftChild(i);
+    }
+    if (stack.length === 0) break;
+    i = stack.pop()!;
+    visited.push(i);
+    result.push(tree[i] as number);
+    record(i, `Pop ${tree[i]} — visit it. Result so far: [${result.join(", ")}].`);
+    i = rightChild(i);
+  }
+
+  record(-1, `Traversal complete. Inorder: [${result.join(", ")}].`);
+  return steps;
+}
+
+/* ------------------------------------------------------------------ */
+/* Trace builders                                                      */
+/* ------------------------------------------------------------------ */
+
+function sumArrayTrace(values: number[], code: string): TraceDocument {
+  const b = new TraceBuilder({
+    title: "Sum of Array",
+    code,
+    topic: "arrays",
+    difficulty: "beginner",
+    language: detectLanguage(code),
+    durationSeconds: 60,
+  });
+  b.step({
+    line: 1,
+    event: "program_start",
+    description: "Initialize total = 0.",
+    variables: { total: 0, arr: `[${values.join(", ")}]` },
+    memory: [arrayMemory("arr", "arr", values, [{ index: 0, role: "reading" }])],
+    visual: arrayVisual("arr"),
+    changed: { variables: ["total"] },
+  });
+  let total = 0;
+  values.forEach((v, i) => {
+    b.step({
+      line: 2,
+      event: "loop_iteration",
+      description: `i = ${i}. Read arr[${i}] = ${v}.`,
+      variables: { total, i, arr: `[${values.join(", ")}]` },
+      memory: [arrayMemory("arr", "arr", values, [{ index: i, role: "reading" }])],
+      visual: arrayVisual("arr"),
+      changed: { variables: ["i"] },
+    });
+    total += v;
+    b.step({
+      line: 3,
+      event: "assignment",
+      description: `total = ${total - v} + ${v} = ${total}.`,
+      variables: { total, i, arr: `[${values.join(", ")}]` },
+      memory: [arrayMemory("arr", "arr", values, [{ index: i, role: "reading" }])],
+      visual: arrayVisual("arr"),
+      changed: { variables: ["total"] },
+    });
+  });
+  b.step({
+    line: 4,
+    event: "output_write",
+    description: `print("Total:", total) writes: Total: ${total}`,
+    variables: { total, arr: `[${values.join(", ")}]` },
+    output: `Total: ${total}`,
+    memory: [arrayMemory("arr", "arr", values)],
+    visual: arrayVisual("arr"),
+    changed: { output: true },
+  });
+  b.step({
+    line: 4,
+    event: "program_end",
+    description: `Program finished. Sum of the array is ${total}.`,
+    variables: { total, arr: `[${values.join(", ")}]` },
+    output: `Total: ${total}`,
+    memory: [arrayMemory("arr", "arr", values)],
+    visual: arrayVisual("arr"),
+  });
+  b.prompt({
+    stepId: `step-${String(2 * values.length + 1).padStart(3, "0")}`,
+    type: "predict_variable",
+    question: `What is the final value of total after adding all ${values.length} elements?`,
+    target: { variable: "total" },
+    answer: String(total),
+    choices: [String(total), String(total - values[values.length - 1]), "0", String(values[0])],
+    explanation: `Each element is added once: ${values.join(" + ")} = ${total}.`,
+  });
+  return b.build();
+}
+
+function maxArrayTrace(values: number[], code: string): TraceDocument {
+  const b = new TraceBuilder({
+    title: "Max in Array",
+    code,
+    topic: "arrays",
+    difficulty: "beginner",
+    language: detectLanguage(code),
+    durationSeconds: 60,
+  });
+  b.step({
+    line: 1,
+    event: "program_start",
+    description: `Start with the first element as the maximum: max_val = ${values[0]}.`,
+    variables: { max_val: values[0], arr: `[${values.join(", ")}]` },
+    memory: [arrayMemory("arr", "arr", values, [{ index: 0, role: "max" }])],
+    visual: arrayVisual("arr"),
+    changed: { variables: ["max_val"] },
+  });
+  let max = values[0];
+  let maxIdx = 0;
+  for (let i = 1; i < values.length; i++) {
+    const v = values[i];
+    const prevMax = max;
+    const update = v > max;
+    b.step({
+      line: 2,
+      event: "loop_iteration",
+      description: `i = ${i}. Compare arr[${i}] = ${v} with max_val = ${max}.`,
+      variables: { max_val: max, i, arr: `[${values.join(", ")}]` },
+      memory: [arrayMemory("arr", "arr", values, [{ index: i, role: "reading" }, { index: maxIdx, role: "max" }])],
+      visual: arrayVisual("arr"),
+      changed: { variables: ["i"] },
+    });
+    if (update) {
+      max = v;
+      maxIdx = i;
+      b.step({
+        line: 3,
+        event: "assignment",
+        description: `${v} > ${prevMax} → new maximum: max_val = ${v}.`,
+        variables: { max_val: max, i, arr: `[${values.join(", ")}]` },
+        memory: [arrayMemory("arr", "arr", values, [{ index: i, role: "max" }, { index: i, role: "reading" }])],
+        visual: arrayVisual("arr"),
+        changed: { variables: ["max_val"] },
+      });
+    }
+  }
+  b.step({
+    line: 4,
+    event: "output_write",
+    description: `The maximum value in the array is ${max}.`,
+    variables: { max_val: max, arr: `[${values.join(", ")}]` },
+    output: `Max: ${max}`,
+    memory: [arrayMemory("arr", "arr", values)],
+    visual: arrayVisual("arr"),
+    changed: { output: true },
+  });
+  b.step({
+    line: 4,
+    event: "program_end",
+    description: `Program finished. max_val = ${max}.`,
+    variables: { max_val: max, arr: `[${values.join(", ")}]` },
+    output: `Max: ${max}`,
+    memory: [arrayMemory("arr", "arr", values)],
+    visual: arrayVisual("arr"),
+  });
+  return b.build();
+}
+
+function factorialLoopTrace(n: number, code: string): TraceDocument {
+  const b = new TraceBuilder({
+    title: "Factorial (Loop)",
+    code,
+    topic: "loops",
+    difficulty: "beginner",
+    language: detectLanguage(code),
+    durationSeconds: 60,
+  });
+  b.step({
+    line: 1,
+    event: "program_start",
+    description: `Initialize result = 1, then multiply by every integer from 1 to ${n}.`,
+    variables: { result: 1, n },
+    changed: { variables: ["result"] },
+  });
+  let result = 1;
+  for (let i = 1; i <= n; i++) {
+    result *= i;
+    b.step({
+      line: 2,
+      event: "loop_iteration",
+      description: `i = ${i}. result = ${result / i} × ${i} = ${result}.`,
+      variables: { result, i, n },
+      changed: { variables: ["result", "i"] },
+    });
+  }
+  b.step({
+    line: 4,
+    event: "output_write",
+    description: `print("Factorial:", result) writes: Factorial: ${result}`,
+    variables: { result, n },
+    output: `Factorial: ${result}`,
+    changed: { output: true },
+  });
+  b.step({
+    line: 4,
+    event: "program_end",
+    description: `${n}! = ${result}.`,
+    variables: { result, n },
+    output: `Factorial: ${result}`,
+  });
+  return b.build();
+}
+
+function binarySearchTraceGen(values: number[], target: number, code: string): TraceDocument {
+  const steps = binarySearchSteps(values, target);
+  const b = new TraceBuilder({
+    title: "Binary Search",
+    code,
+    topic: "searching",
+    difficulty: "intermediate",
+    language: detectLanguage(code),
+    durationSeconds: 90,
+  });
+  steps.forEach((s, i) => {
+    const highlights: { index: number; role: string }[] = [];
+    for (let j = 0; j < s.array.length; j++) {
+      if (s.mid === j) highlights.push({ index: j, role: "mid" });
+      else if (j >= s.low && j <= s.high) highlights.push({ index: j, role: "range" });
+      else highlights.push({ index: j, role: "out" });
+    }
+    b.step({
+      line: i === 0 ? 1 : i % 2 === 0 ? 4 : 5,
+      event: i === 0 ? "program_start" : s.status === "found" ? "comparison" : i === steps.length - 1 ? "program_end" : "line_enter",
+      description: s.description,
+      variables: { target, low: s.low, high: s.high, mid: s.mid ?? "—", probes: s.probes },
+      memory: [arrayMemory("arr", "arr", s.array, highlights)],
+      visual: arrayVisual("arr"),
+      changed: { variables: ["low", "high", "mid", "probes"] },
+    });
+  });
+  return b.build();
+}
+
+const SORT_LINES: Record<string, { setup: number; compare: number; swap: number; settled: number; done: number }> = {
+  bubble: { setup: 1, compare: 5, swap: 6, settled: 4, done: 7 },
+  insertion: { setup: 1, compare: 5, swap: 6, settled: 4, done: 7 },
+  selection: { setup: 1, compare: 6, swap: 8, settled: 4, done: 9 },
+  quick: { setup: 1, compare: 6, swap: 7, settled: 4, done: 11 },
+  heap: { setup: 1, compare: 5, swap: 10, settled: 4, done: 12 },
+};
+
+function sortTrace(
+  kind: "bubble" | "selection" | "insertion" | "quick" | "heap",
+  values: number[],
+  code: string,
+): TraceDocument {
+  const steps =
+    kind === "bubble"
+      ? bubbleSortSteps(values)
+      : kind === "selection"
+        ? selectionSortSteps(values)
+        : kind === "insertion"
+          ? insertionSortSteps(values)
+          : kind === "quick"
+            ? quickSortSteps(values)
+            : heapSortSteps(values);
+  const titles: Record<string, string> = {
+    bubble: "Bubble Sort",
+    selection: "Selection Sort",
+    insertion: "Insertion Sort",
+    quick: "Quick Sort",
+    heap: "Heap Sort",
+  };
+  return buildSortTrace(
+    {
+      title: titles[kind],
+      code,
+      topic: "sorting",
+      difficulty: kind === "bubble" || kind === "selection" || kind === "insertion" ? "beginner" : "intermediate",
+      language: detectLanguage(code),
+      durationSeconds: 120,
+      lines: SORT_LINES[kind],
+    },
+    steps,
+  );
+}
+
+function mergeTrace(values: number[], code: string): TraceDocument {
+  const steps = mergeSortSteps(values);
+  const b = new TraceBuilder({
+    title: "Merge Sort",
+    code,
+    topic: "sorting",
+    difficulty: "intermediate",
+    language: detectLanguage(code),
+    durationSeconds: 120,
+  });
+  steps.forEach((s, i) => {
+    const highlights: { index: number; role: string }[] = [];
+    if (s.range[0] >= 0 && s.range[0] < s.array.length) {
+      for (let j = s.range[0]; j <= s.range[1]; j++) highlights.push({ index: j, role: "range" });
+    }
+    if (s.writing >= 0) highlights.push({ index: s.writing, role: "writing" });
+    const isFirst = i === 0;
+    const isLast = i === steps.length - 1;
+    b.step({
+      line: isFirst ? 1 : isLast ? 11 : s.writing >= 0 ? 10 : 5,
+      event: isFirst ? "program_start" : isLast ? "program_end" : s.writing >= 0 ? "array_write" : "line_enter",
+      description: s.description,
+      variables: { comparisons: s.comparisons, writes: s.writes, arr: `[${s.array.join(", ")}]` },
+      memory: [arrayMemory("arr", "arr", s.array, highlights)],
+      visual: arrayVisual("arr"),
+      changed: { variables: s.writing >= 0 ? ["arr", "writes"] : ["comparisons"] },
+      actions: [s.writing >= 0 ? { type: "array_write", index: s.writing } : { type: "merge_split", range: s.range }],
+    });
+  });
+  b.prompt({
+    stepId: "step-002",
+    type: "predict_variable",
+    question: "After the first merge pass, which value lands at the very front of the merged run?",
+    target: { variable: "arr[0]" },
+    answer: String(Math.min(values[0], values[1])),
+    choices: [String(Math.min(values[0], values[1])), String(Math.max(values[0], values[1])), String(values[0]), String(values[1])],
+    explanation: `The first merge compares the two halves and takes the smaller leading value first.`,
+  });
+  return b.build();
+}
+
+function palindromeTrace(text: string, code: string): TraceDocument {
+  const steps = palindromeSteps(text);
+  const b = new TraceBuilder({
+    title: "Palindrome Check",
+    code,
+    topic: "two pointers",
+    difficulty: "beginner",
+    language: detectLanguage(code),
+    durationSeconds: 60,
+  });
+  steps.forEach((s, i) => {
+    const highlights: { index: number; role: string }[] = [];
+    s.chars.forEach((_, j) => {
+      if (j === s.l || j === s.r) highlights.push({ index: j, role: s.status === "invalid" ? "swap" : "compare" });
+      else if (j < s.l || j > s.r) highlights.push({ index: j, role: "sorted" });
+    });
+    b.step({
+      line: i === 0 ? 1 : i === steps.length - 1 ? 6 : s.status === "ok" ? 3 : 4,
+      event: i === 0 ? "program_start" : i === steps.length - 1 ? "program_end" : s.status === "invalid" ? "comparison" : "line_enter",
+      description: s.description,
+      variables: { l: s.l, r: s.r, comparisons: s.comparisons, result: s.status === "invalid" ? "false" : s.status === "done" ? "true" : "…" },
+      memory: [arrayMemory("s", "s", s.chars, highlights)],
+      visual: arrayVisual("s"),
+      changed: { variables: ["l", "r", "comparisons"] },
+      actions: [{ type: "compare", indices: [s.l, s.r] }],
+    });
+  });
+  return b.build();
+}
+
+function inorderTrace(tree: (number | null)[], code: string): TraceDocument {
+  const steps = inorderSteps(tree);
+  const b = new TraceBuilder({
+    title: "Inorder Traversal",
+    code,
+    topic: "trees",
+    difficulty: "intermediate",
+    language: detectLanguage(code),
+    durationSeconds: 90,
+  });
+  steps.forEach((s, i) => {
+    const highlights: { index: number; role: string }[] = [];
+    s.tree.forEach((v, j) => {
+      if (v === undefined || v === null) return;
+      if (s.visited.includes(j)) highlights.push({ index: j, role: "sorted" });
+      else if (j === s.node) highlights.push({ index: j, role: "mid" });
+      else highlights.push({ index: j, role: "default" });
+    });
+    const isFirst = i === 0;
+    const isLast = i === steps.length - 1;
+    b.step({
+      line: isFirst ? 1 : isLast ? 8 : s.visited.includes(s.node) && steps[i - 1]?.node !== s.node ? 6 : 4,
+      event: isFirst ? "program_start" : isLast ? "program_end" : "line_enter",
+      description: s.description,
+      variables: { result: `[${s.result.join(", ")}]`, visited: s.visited.length },
+      memory: [
+        arrayMemory("tree", "tree", s.tree, highlights),
+        arrayMemory("result", "result", s.result, s.result.map((_, j) => ({ index: j, role: "sorted" }))),
+      ],
+      visual: arrayVisual("tree"),
+      changed: { variables: ["result", "visited"] },
+      actions: [{ type: "visit_node", index: s.node }],
+    });
+  });
+  return b.build();
+}
+
+function twoSumTrace(values: number[], target: number, code: string): TraceDocument {
+  const steps = twoSumSortedSteps(values, target);
+  const b = new TraceBuilder({
+    title: "Two Sum (Sorted)",
+    code,
+    topic: "two pointers",
+    difficulty: "beginner",
+    language: detectLanguage(code),
+    durationSeconds: 60,
+  });
+  steps.forEach((s, i) => {
+    const highlights: { index: number; role: string }[] = [];
+    s.array.forEach((_, j) => {
+      if (j === s.l || j === s.r) highlights.push({ index: j, role: s.status === "found" ? "swap" : "compare" });
+      else highlights.push({ index: j, role: "default" });
+    });
+    const isFirst = i === 0;
+    const isLast = i === steps.length - 1;
+    b.step({
+      line: isFirst ? 1 : isLast ? 9 : 5,
+      event: isFirst ? "program_start" : isLast ? "program_end" : s.status === "found" ? "comparison" : "line_enter",
+      description: s.description,
+      variables: { target, l: s.l, r: s.r, sum: s.sum, probes: s.probes },
+      memory: [arrayMemory("arr", "arr", s.array, highlights)],
+      visual: arrayVisual("arr"),
+      changed: { variables: ["l", "r", "sum", "probes"] },
+      actions: [{ type: "compare", indices: [s.l, s.r] }],
+    });
+  });
+  return b.build();
+}
+
+function gridTraceGen(kind: "bfs-grid" | "dfs-grid", maze: MazeSpec, code: string): TraceDocument {
+  const searchKind: SearchKind = kind === "bfs-grid" ? "bfs" : "dfs";
+  const b = new TraceBuilder({
+    title: kind === "bfs-grid" ? "BFS on a Grid" : "DFS on a Grid",
+    code,
+    topic: "graphs",
+    difficulty: "intermediate",
+    language: detectLanguage(code),
+    durationSeconds: 120,
+  });
+  const steps = gridSearchSteps(maze, searchKind);
+  steps.forEach((s, i) => {
+    const highlights: Array<{ row: number; col: number; role: string }> = [];
+    highlights.push({ row: maze.start[0], col: maze.start[1], role: "start" });
+    highlights.push({ row: maze.goal[0], col: maze.goal[1], role: "goal" });
+    maze.grid.forEach((row, r) => row.forEach((cell, c) => { if (cell === 1) highlights.push({ row: r, col: c, role: "wall" }); }));
+    s.visited.forEach(([r, c]) => highlights.push({ row: r, col: c, role: "visited" }));
+    s.frontier.forEach(([r, c]) => highlights.push({ row: r, col: c, role: "frontier" }));
+    if (s.current) highlights.push({ row: s.current[0], col: s.current[1], role: "current" });
+    s.path?.forEach(([r, c]) => highlights.push({ row: r, col: c, role: "path" }));
+    const isFirst = i === 0;
+    const isLast = i === steps.length - 1;
+    b.step({
+      line: isFirst ? 2 : isLast ? 4 : 6,
+      event: isFirst ? "program_start" : isLast ? "program_end" : "line_enter",
+      description: s.description,
+      variables: { visited_count: s.visitedCount, frontier_size: s.frontier.length },
+      memory: [gridMemory("grid", "grid", maze.grid, highlights)],
+      visual: gridVisual("grid"),
+      changed: { variables: ["visited_count", "frontier_size"] },
+      actions: [{ type: kind, cell: s.current }],
+    });
+  });
+  return b.build();
+}
+
+/* ------------------------------------------------------------------ */
+/* Code templates + the input registry                                 */
+/* ------------------------------------------------------------------ */
+
+export function codeFor(kind: PlayableKind, config: PlayableConfig): string {
+  const arr = config.array ?? [5, 2, 8, 1];
+  const n = config.n ?? 5;
+  const target = config.target ?? 7;
+  const text = config.text ?? "racecar";
+  switch (kind) {
+    case "sum-array":
+      return `arr = [${arr.join(", ")}]\ntotal = 0\nfor i in range(len(arr)):\n    total = total + arr[i]\nprint("Total:", total)`;
+    case "max-array":
+      return `arr = [${arr.join(", ")}]\nmax_val = arr[0]\nfor i in range(1, len(arr)):\n    if arr[i] > max_val:\n        max_val = arr[i]\nprint("Max:", max_val)`;
+    case "factorial-loop":
+      return `result = 1\nfor i in range(1, ${n} + 1):\n    result = result * i\nprint("Factorial:", result)`;
+    case "factorial-recursion":
+      return `def fact(n):\n    if n <= 1:\n        return 1\n    return n * fact(n - 1)\n\nprint(fact(${n}))`;
+    case "fibonacci-recursion":
+      return `def fib(n):\n    if n <= 1:\n        return n\n    return fib(n - 1) + fib(n - 2)\n\nprint(fib(${n}))`;
+    case "binary-search":
+      return `arr = [${arr.join(", ")}]\ntarget = ${target}\nlow, high = 0, len(arr) - 1\nwhile low <= high:\n    mid = (low + high) // 2\n    if arr[mid] == target:\n        print("Found at", mid)\n        break\n    elif arr[mid] < target:\n        low = mid + 1\n    else:\n        high = mid - 1`;
+    case "bubble-sort":
+      return `arr = [${arr.join(", ")}]\nn = len(arr)\nfor i in range(n - 1):\n    for j in range(n - 1 - i):\n        if arr[j] > arr[j + 1]:\n            arr[j], arr[j + 1] = arr[j + 1], arr[j]\nprint(arr)`;
+    case "selection-sort":
+      return `arr = [${arr.join(", ")}]\nn = len(arr)\nfor i in range(n - 1):\n    min_idx = i\n    for j in range(i + 1, n):\n        if arr[j] < arr[min_idx]:\n            min_idx = j\n    arr[i], arr[min_idx] = arr[min_idx], arr[i]\nprint(arr)`;
+    case "insertion-sort":
+      return `arr = [${arr.join(", ")}]\nn = len(arr)\nfor i in range(1, n):\n    j = i\n    while j > 0 and arr[j - 1] > arr[j]:\n        arr[j], arr[j - 1] = arr[j - 1], arr[j]\n        j -= 1\nprint(arr)`;
+    case "quick-sort":
+      return `arr = [${arr.join(", ")}]\ndef partition(a, lo, hi):\n    pivot = a[hi]\n    i = lo\n    for j in range(lo, hi):\n        if a[j] < pivot:\n            a[i], a[j] = a[j], a[i]\n            i += 1\n    a[i], a[hi] = a[hi], a[i]\n    return i\nprint(arr)`;
+    case "heap-sort":
+      return `arr = [${arr.join(", ")}]\ndef heapify(a, n, i):\n    largest = i\n    l, r = 2 * i + 1, 2 * i + 2\n    if l < n and a[l] > a[largest]:\n        largest = l\n    if r < n and a[r] > a[largest]:\n        largest = r\n    if largest != i:\n        a[i], a[largest] = a[largest], a[i]\n        heapify(a, n, largest)\nprint(arr)`;
+    case "merge-sort":
+      return `arr = [${arr.join(", ")}]\ndef merge(a, lo, mid, hi):\n    tmp = []\n    i, j = lo, mid + 1\n    while i <= mid and j <= hi:\n        if a[i] <= a[j]:\n            tmp.append(a[i]); i += 1\n        else:\n            tmp.append(a[j]); j += 1\n    a[lo:hi + 1] = tmp\nprint(arr)`;
+    case "palindrome":
+      return `s = "${text}"\nl, r = 0, len(s) - 1\nwhile l < r:\n    if s[l] != s[r]:\n        print("Not a palindrome")\n        break\n    l += 1\n    r -= 1\nelse:\n    print("Palindrome!")`;
+    case "inorder":
+      return `# Tree stored heap-style: index i → children at 2i+1, 2i+2\ntree = [${arr.join(", ")}]\nresult = []\nstack = []\nnode = 0\nwhile stack or node < len(tree):\n    while node < len(tree):\n        stack.append(node)\n        node = 2 * node + 1\n    node = stack.pop()\n    result.append(tree[node])\n    node = 2 * node + 2\nprint("Inorder:", result)`;
+    case "two-sum":
+      return `arr = [${arr.join(", ")}]\ntarget = ${target}\nl, r = 0, len(arr) - 1\nwhile l < r:\n    s = arr[l] + arr[r]\n    if s == target:\n        print(l, r)\n        break\n    elif s < target:\n        l += 1\n    else:\n        r -= 1`;
+    case "bfs-grid":
+    case "dfs-grid":
+      return `# ${kind === "bfs-grid" ? "BFS" : "DFS"} on a grid from (0,0) to goal\nqueue = [(0, 0)]\nvisited = {(0, 0)}\nwhile queue:\n    (r, c) = queue.pop(${kind === "bfs-grid" ? "0" : ""})\n    if (r, c) == goal:\n        print("Path found")\n        break\n    for (nr, nc) in neighbors((r, c)):\n        if (nr, nc) not in visited:\n            visited.add((nr, nc))\n            queue.append((nr, nc))`;
+  }
+}
+
+/** The main entry point: kind + validated config → a full trace document. */
+export function generateTrace(
+  kind: PlayableKind,
+  config: PlayableConfig,
+  code?: string,
+): TraceDocument {
+  const values = config.array ?? [5, 2, 8, 1];
+  const source = code ?? codeFor(kind, config);
+  switch (kind) {
+    case "sum-array":
+      return sumArrayTrace(values, source);
+    case "max-array":
+      return maxArrayTrace(values, source);
+    case "factorial-loop":
+      return factorialLoopTrace(Math.min(config.n ?? 5, 12), source);
+    case "factorial-recursion": {
+      const n = Math.min(config.n ?? 4, 8);
+      return buildRecursionTrace({
+        title: "Factorial Recursion",
+        code: source,
+        topic: "recursion",
+        difficulty: "beginner",
+        language: "python",
+        durationSeconds: 90,
+        fnName: "fact",
+        defLine: 1,
+        baseLine: 2,
+        baseReturnLine: 3,
+        callLine: 4,
+        printLine: 6,
+        arg: n,
+        baseCondition: () => "n <= 1",
+        isBase: (m) => m <= 1,
+        baseResult: () => 1,
+        children: (m) => [m - 1],
+        fn: (m) => {
+          let r = 1;
+          for (let i = 2; i <= m; i++) r *= i;
+          return r;
+        },
+        describeReturn: (m, childValues, total) => `fact(${m}) = ${m} × ${childValues[0] ?? "?"} = ${total}`,
+      });
+    }
+    case "fibonacci-recursion": {
+      const n = Math.min(config.n ?? 5, 9);
+      return buildRecursionTrace({
+        title: "Fibonacci Recursion",
+        code: source,
+        topic: "recursion",
+        difficulty: "intermediate",
+        language: "python",
+        durationSeconds: 120,
+        fnName: "fib",
+        defLine: 1,
+        baseLine: 2,
+        baseReturnLine: 3,
+        callLine: 4,
+        printLine: 6,
+        arg: n,
+        baseCondition: () => "n <= 1",
+        isBase: (m) => m <= 1,
+        baseResult: (m) => m,
+        children: (m) => [m - 1, m - 2],
+        fn: (m) => {
+          const fib = (k: number): number => (k <= 1 ? k : fib(k - 1) + fib(k - 2));
+          return fib(m);
+        },
+        describeReturn: (m, childValues, total) => `fib(${m}) = ${childValues[0]} + ${childValues[1]} = ${total}`,
+      });
+    }
+    case "binary-search":
+      return binarySearchTraceGen(values, config.target ?? values[Math.floor(values.length / 2)], source);
+    case "bubble-sort":
+      return sortTrace("bubble", values, source);
+    case "selection-sort":
+      return sortTrace("selection", values, source);
+    case "insertion-sort":
+      return sortTrace("insertion", values, source);
+    case "quick-sort":
+      return sortTrace("quick", values, source);
+    case "heap-sort":
+      return sortTrace("heap", values, source);
+    case "merge-sort":
+      return mergeTrace(values, source);
+    case "palindrome":
+      return palindromeTrace(config.text ?? "racecar", source);
+    case "inorder":
+      return inorderTrace((config.tree ?? values) as (number | null)[], source);
+    case "two-sum":
+      return twoSumTrace(values, config.target ?? 9, source);
+    case "bfs-grid":
+    case "dfs-grid": {
+      const maze = config.maze ?? {
+        grid: [
+          [0, 0, 0, 0, 0],
+          [0, 1, 1, 1, 0],
+          [0, 0, 0, 1, 0],
+          [1, 1, 0, 0, 0],
+          [0, 0, 0, 1, 0],
+        ],
+        start: [0, 0] as [number, number],
+        goal: [4, 4] as [number, number],
+      };
+      return gridTraceGen(kind, maze, source);
+    }
+  }
+}
+
+/** Registry of playable kinds with their editable inputs (lab "Inputs" panel). */
+export interface InputField {
+  key: "array" | "n" | "target" | "text" | "tree";
+  label: string;
+  default: unknown;
+  help: string;
+}
+
+export const PLAYABLE_INPUTS: Partial<Record<PlayableKind, InputField[]>> = {
+  "sum-array": [{ key: "array", label: "Numbers", default: [4, 7, 1, 9], help: "Comma-separated integers" }],
+  "max-array": [{ key: "array", label: "Numbers", default: [3, 8, 2, 9, 5], help: "Comma-separated integers" }],
+  "factorial-loop": [{ key: "n", label: "n", default: 5, help: "Compute n!" }],
+  "factorial-recursion": [{ key: "n", label: "n", default: 4, help: "fact(n) — max 8" }],
+  "fibonacci-recursion": [{ key: "n", label: "n", default: 5, help: "fib(n) — max 9" }],
+  "binary-search": [
+    { key: "array", label: "Sorted numbers", default: [1, 3, 5, 7, 9, 11], help: "Auto-sorted" },
+    { key: "target", label: "Target", default: 7, help: "Value to find" },
+  ],
+  "bubble-sort": [{ key: "array", label: "Numbers", default: [5, 2, 8, 1], help: "Comma-separated integers" }],
+  "selection-sort": [{ key: "array", label: "Numbers", default: [6, 3, 8, 2, 9], help: "Comma-separated integers" }],
+  "insertion-sort": [{ key: "array", label: "Numbers", default: [5, 2, 8, 1], help: "Comma-separated integers" }],
+  "quick-sort": [{ key: "array", label: "Numbers", default: [9, 3, 7, 1, 8, 2], help: "Comma-separated integers" }],
+  "heap-sort": [{ key: "array", label: "Numbers", default: [4, 10, 3, 5, 1], help: "Comma-separated integers" }],
+  "merge-sort": [{ key: "array", label: "Numbers", default: [8, 3, 5, 1, 9, 2], help: "Comma-separated integers" }],
+  palindrome: [{ key: "text", label: "Word", default: "racecar", help: "Letters only" }],
+  inorder: [{ key: "array", label: "Heap-layout tree", default: [8, 3, 10, 1, 6, 9, 14], help: "Index i → children 2i+1, 2i+2" }],
+  "two-sum": [
+    { key: "array", label: "Numbers", default: [2, 7, 11, 15], help: "Auto-sorted" },
+    { key: "target", label: "Target", default: 9, help: "Pair sum to find" },
+  ],
+  "bfs-grid": [],
+  "dfs-grid": [],
+};

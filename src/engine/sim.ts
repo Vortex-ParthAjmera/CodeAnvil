@@ -18,8 +18,10 @@ export interface SortStep {
   compare?: [number, number];
   /** Indices just swapped. */
   swap?: [number, number];
-  /** Everything below this index is sorted. */
+  /** Prefix-sorted index for algorithms that lock values from the left. */
   sortedUpTo: number;
+  /** Exact locked indices for algorithms like Bubble Sort that lock a suffix. */
+  sortedIndices?: number[];
   /** The element being inserted (insertion sort). */
   key?: number;
   description: string;
@@ -37,10 +39,13 @@ export function bubbleSortSteps(input: number[]): SortStep[] {
   let comparisons = 0;
   let swaps = 0;
   const n = a.length;
+  const sortedTail = (locked: number) =>
+    Array.from({ length: locked }, (_, index) => n - locked + index);
 
   steps.push({
     array: clone(a),
     sortedUpTo: -1,
+    sortedIndices: [],
     description: `Bubble sort starts with ${n} elements. Pass by pass, the largest remaining value "bubbles" to the end.`,
     comparisons,
     swaps,
@@ -53,7 +58,8 @@ export function bubbleSortSteps(input: number[]): SortStep[] {
       steps.push({
         array: clone(a),
         compare: [j, j + 1],
-        sortedUpTo: n - 1 - i,
+        sortedUpTo: -1,
+        sortedIndices: sortedTail(i),
         description: `Compare a[${j}] = ${a[j]} with a[${j + 1}] = ${a[j + 1]}.`,
         comparisons,
         swaps,
@@ -64,7 +70,8 @@ export function bubbleSortSteps(input: number[]): SortStep[] {
         steps.push({
           array: clone(a),
           swap: [j, j + 1],
-          sortedUpTo: n - 1 - i,
+          sortedUpTo: -1,
+          sortedIndices: sortedTail(i),
           description: `${a[j + 1]} > ${a[j]}, so swap them.`,
           comparisons,
           swaps,
@@ -75,18 +82,29 @@ export function bubbleSortSteps(input: number[]): SortStep[] {
     if (!swapped) {
       steps.push({
         array: clone(a),
-        sortedUpTo: n - 1 - i,
+        sortedUpTo: n - 1,
+        sortedIndices: sortedTail(n),
         description: `No swaps in this pass — the array is already sorted. Remaining elements settle in place.`,
         comparisons,
         swaps,
       });
       break;
     }
+
+    steps.push({
+      array: clone(a),
+      sortedUpTo: -1,
+      sortedIndices: sortedTail(i + 1),
+      description: `Pass ${i + 1} complete — ${a[n - 1 - i]} is locked at index ${n - 1 - i}.`,
+      comparisons,
+      swaps,
+    });
   }
 
   steps.push({
     array: clone(a),
     sortedUpTo: n - 1,
+    sortedIndices: sortedTail(n),
     description: `Sorted! ${comparisons} comparisons and ${swaps} swaps.`,
     comparisons,
     swaps,

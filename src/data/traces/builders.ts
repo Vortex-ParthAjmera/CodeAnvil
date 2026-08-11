@@ -159,9 +159,9 @@ export function buildSortTrace(spec: SortTraceSpec, steps: SortStep[]): TraceDoc
     if (s.compare) highlights.push({ index: s.compare[1], role: "compare" });
     if (s.swap) highlights.push({ index: s.swap[0], role: "swap" });
     if (s.swap) highlights.push({ index: s.swap[1], role: "swap" });
-    if (s.sortedUpTo >= 0) {
-      for (let i = 0; i <= s.sortedUpTo; i++) highlights.push({ index: i, role: "sorted" });
-    }
+    const sortedIndices =
+      s.sortedIndices ?? (s.sortedUpTo >= 0 ? Array.from({ length: s.sortedUpTo + 1 }, (_, i) => i) : []);
+    for (const index of sortedIndices) highlights.push({ index, role: "sorted" });
     if (s.key !== undefined) highlights.push({ index: s.key, role: "key" });
     return [arrayMemory("arr", "arr", s.array, highlights)];
   };
@@ -186,7 +186,7 @@ export function buildSortTrace(spec: SortTraceSpec, steps: SortStep[]): TraceDoc
     } else if (s.swap) {
       line = spec.lines.swap;
       event = "swap";
-    } else if (s.description.startsWith("No swaps") || s.description.startsWith("a[")) {
+    } else if (s.description.startsWith("No swaps") || s.description.startsWith("Pass ") || s.description.startsWith("a[")) {
       line = spec.lines.settled;
       event = "line_enter";
     }

@@ -156,8 +156,14 @@ function sortStates(step: SortStep): BarDescriptor[] {
   step.compare?.forEach((i) => states.push({ index: i, role: "compare" }));
   step.swap?.forEach((i) => states.push({ index: i, role: "swap" }));
   if (step.key !== undefined) states.push({ index: step.key, role: "key" });
-  for (let i = 0; i <= step.sortedUpTo; i++) states.push({ index: i, role: "sorted" });
+  const sortedIndices =
+    step.sortedIndices ?? (step.sortedUpTo >= 0 ? Array.from({ length: step.sortedUpTo + 1 }, (_, i) => i) : []);
+  sortedIndices.forEach((index) => states.push({ index, role: "sorted" }));
   return states;
+}
+
+function sortedCount(step: SortStep): number {
+  return step.sortedIndices?.length ?? Math.max(step.sortedUpTo + 1, 0);
 }
 
 function SortTab() {
@@ -243,8 +249,8 @@ function SortTab() {
         />
         <Metric
           icon={Flag}
-          label="Sorted prefix"
-          value={`${Math.max(step.sortedUpTo + 1, 0)} / ${array.length}`}
+          label="Sorted"
+          value={`${sortedCount(step)} / ${array.length}`}
           hint="elements locked in place"
         />
         <Metric

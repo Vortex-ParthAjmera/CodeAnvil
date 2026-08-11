@@ -1,8 +1,10 @@
 import type { GridHighlight, MemoryHighlight, TraceStep } from "../../types/trace";
 import { ThreeGrid } from "./ThreeGrid";
+import { BubbleSortStage3D } from "./BubbleSortStage3D";
 import { ThreeStage } from "./ThreeStage";
 import type { BarDescriptor } from "./ThreeBars";
 import { selectRendererForStep } from "../../engine/traceActions";
+import { isBubbleSortTraceStep } from "../../engine/sortStage";
 
 function isArrayHighlight(
   h: MemoryHighlight | GridHighlight,
@@ -19,6 +21,10 @@ function isArrayHighlight(
 export function ExecutionStage3D({ step }: { step: TraceStep }) {
   const visual = step.visual;
   const dispatch = selectRendererForStep(step);
+
+  if (dispatch.kind === "array" && isBubbleSortTraceStep(step)) {
+    return <BubbleSortStage3D step={step} />;
+  }
 
   if (dispatch.kind === "grid" && visual?.type === "grid") {
     const item = step.memory?.find((m) => m.id === visual.itemId);

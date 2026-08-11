@@ -1,5 +1,5 @@
 import { useLayoutEffect, useMemo, useRef } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Edges, Grid as InfiniteGrid, Html, Line, OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import type { TraceStep } from "../../types/trace";
@@ -47,6 +47,47 @@ function identityForValues(values: number[]): string[] {
 
 function xForIndex(index: number, count: number): number {
   return (index - (count - 1) / 2) * GAP;
+}
+
+function CanvasSizeSync() {
+  const { gl } = useThree();
+
+  useLayoutEffect(() => {
+    const host = gl.domElement.parentElement;
+    if (!host) return;
+
+    const resize = () => {
+      const rect = host.getBoundingClientRect();
+      if (rect.width <= 0 || rect.height <= 0) return;
+
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      const width = Math.max(1, Math.floor(rect.width * dpr));
+      const height = Math.max(1, Math.floor(rect.height * dpr));
+      const canvas = gl.domElement;
+
+      canvas.width = width;
+      canvas.height = height;
+      canvas.style.width = "100%";
+      canvas.style.height = "100%";
+      gl.setPixelRatio(dpr);
+      gl.setSize(rect.width, rect.height, false);
+      gl.setViewport(0, 0, width, height);
+    };
+
+    resize();
+    const observer = new ResizeObserver(resize);
+    observer.observe(host);
+    const frame = window.requestAnimationFrame(resize);
+    window.addEventListener("resize", resize);
+
+    return () => {
+      observer.disconnect();
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("resize", resize);
+    };
+  }, [gl]);
+
+  return null;
 }
 
 function usePulsedScale(base = 1, amount = 0.04, speed = 4) {
@@ -397,13 +438,14 @@ export function BubbleSortStage3D({ step }: { step: TraceStep }) {
   if (!model) return null;
 
   return (
-    <div className="relative h-full min-h-[22rem] w-full overflow-hidden rounded-md">
+    <div className="codeanvil-canvas-fill relative h-full min-h-[22rem] w-full overflow-hidden rounded-md">
       <Canvas
         dpr={[1.25, 2]}
         camera={{ position: [0, 3.35, 7.6], fov: 38 }}
         gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
         style={{ width: "100%", height: "100%", background: "transparent" }}
       >
+        <CanvasSizeSync />
         <Scene model={model} p={p} />
       </Canvas>
       <Overlay model={model} />

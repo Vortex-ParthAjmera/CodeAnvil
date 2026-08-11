@@ -1,6 +1,7 @@
 import type { GridHighlight, MemoryItem, TraceStep } from "../types/trace";
 import { cn } from "../lib/cn";
 import { RecursionTree } from "./RecursionTree";
+import { selectRendererForStep } from "../engine/traceActions";
 
 /** Big array view used when the step highlights array memory (e.g. binary search). */
 function ArrayStage({ item }: { item: MemoryItem }) {
@@ -195,8 +196,9 @@ export function VisualStage({
   onScrub: (index: number) => void;
 }) {
   const visual = step.visual;
+  const dispatch = selectRendererForStep(step);
 
-  if (visual?.type === "recursion_tree") {
+  if (dispatch.kind === "recursion_tree" && visual?.type === "recursion_tree") {
     return (
       <RecursionTree
         nodes={visual.nodes}
@@ -208,12 +210,12 @@ export function VisualStage({
     );
   }
 
-  if (visual?.type === "array") {
+  if (dispatch.kind === "array" && visual?.type === "array") {
     const item = step.memory?.find((m) => m.id === visual.itemId);
     if (item) return <ArrayStage item={item} />;
   }
 
-  if (visual?.type === "grid") {
+  if (dispatch.kind === "grid" && visual?.type === "grid") {
     const item = step.memory?.find((m) => m.id === visual.itemId);
     if (item) return <GridStage item={item} />;
   }

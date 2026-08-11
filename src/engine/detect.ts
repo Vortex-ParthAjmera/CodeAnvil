@@ -11,6 +11,7 @@ import type { TraceDocument } from "../types/trace";
 import { arrayMemory, arrayVisual, buildRecursionTrace, buildSortTrace, TraceBuilder } from "../data/traces/builders";
 import { binarySearchSteps, bubbleSortSteps } from "./sim";
 import { buildStructuralStoryboard } from "./storyboard";
+import { validateTrace } from "./validateTrace";
 
 export type DetectionKind =
   | "sum-array"
@@ -757,11 +758,16 @@ export function detectAndGenerate(code: string): DetectionResult {
       } else {
         trace = bubbleTrace(values ?? [5, 2, 8, 1], trimmed);
       }
+      const validatedTrace = clampLines(trace, sourceLines);
+      const blockingIssues = validateTrace(validatedTrace).filter((issue) => issue.level === "error");
+      if (blockingIssues.length > 0) {
+        throw new Error(blockingIssues.map((issue) => issue.message).join("; "));
+      }
       return {
         kind,
         confidence: info.confidence,
         language,
-        trace: clampLines(trace, sourceLines),
+        trace: validatedTrace,
         note: info.note,
         matched: matches,
       };

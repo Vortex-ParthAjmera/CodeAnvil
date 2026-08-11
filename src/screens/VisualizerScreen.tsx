@@ -9,6 +9,8 @@ import {
   FileCode2,
   FileSearch,
   Gauge,
+  Maximize2,
+  Minimize2,
   Pause,
   Play,
   RotateCcw,
@@ -128,6 +130,36 @@ function getInitialCode() {
   return SAMPLES[0].code;
 }
 
+type FocusPanel = "all" | "source" | "stage";
+
+function focusClass(panel: Exclude<FocusPanel, "all">, focused: FocusPanel) {
+  if (focused === "all") return "";
+  return focused === panel ? "" : "hidden";
+}
+
+function FocusButton({
+  active,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  const Icon = active ? Minimize2 : Maximize2;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={active ? "Restore all panels" : `Focus ${label}`}
+      className="flex h-7 items-center gap-1 rounded-md border border-ink-700 bg-ink-950 px-2 text-[10px] font-medium text-ink-400 transition-colors hover:border-ember-500/50 hover:text-ember-300"
+    >
+      <Icon size={11} />
+      {active ? "Restore" : "Focus"}
+    </button>
+  );
+}
+
 function ConfidenceMeter({ value }: { value: number }) {
   const pct = Math.round(value * 100);
   return (
@@ -148,6 +180,7 @@ export function VisualizerScreen({ onNavigate }: { onNavigate: (route: Route) =>
   const [viewMode, setViewMode] = useState<"stage" | "galaxy">(
     () => (detectAndGenerate(initialCode).kind === "storyboard" ? "galaxy" : "stage"),
   );
+  const [focusedPanel, setFocusedPanel] = useState<FocusPanel>("all");
   const fileInput = useRef<HTMLInputElement>(null);
   const trace = result.trace;
   const playback = useStepPlayback(trace?.steps.length ?? 0);
@@ -236,8 +269,18 @@ export function VisualizerScreen({ onNavigate }: { onNavigate: (route: Route) =>
         </div>
       </header>
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 lg:grid-cols-[minmax(360px,0.9fr)_minmax(480px,1.35fr)]">
-        <section className="flex min-h-[480px] min-w-0 flex-col border-b border-ink-700 bg-ink-900 lg:min-h-0 lg:border-b-0 lg:border-r">
+      <div
+        className={cn(
+          "grid min-h-0 flex-1 grid-cols-1",
+          focusedPanel === "all"
+            ? "lg:grid-cols-[minmax(360px,0.9fr)_minmax(480px,1.35fr)]"
+            : "lg:grid-cols-1",
+        )}
+      >
+        <section
+          data-panel="source"
+          className={cn("flex min-h-[480px] min-w-0 flex-col border-b border-ink-700 bg-ink-900 lg:min-h-0 lg:border-b-0 lg:border-r", focusClass("source", focusedPanel))}
+        >
           <div className="flex flex-wrap items-center gap-1.5 border-b border-ink-800 px-3 py-2">
             <span className="mr-1 flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-ink-500"><Code2 size={12} /> Source</span>
             {SAMPLES.slice(0, 4).map((sample) => (
@@ -247,6 +290,13 @@ export function VisualizerScreen({ onNavigate }: { onNavigate: (route: Route) =>
               <select aria-label="More samples" defaultValue="" onChange={(event) => { const sample = SAMPLES.find((item) => item.label === event.target.value); if (sample) loadSample(sample); event.target.value = ""; }} className="h-7 appearance-none rounded-md border border-ink-700 bg-ink-950 pl-2 pr-7 text-[10px] text-ink-400 outline-none hover:border-ink-600">
                 <option value="" disabled>More</option>{SAMPLES.slice(4).map((sample) => <option key={sample.label}>{sample.label}</option>)}
               </select><ChevronDown size={11} className="pointer-events-none absolute right-2 top-2 text-ink-500" />
+            </div>
+            <div className="ml-auto">
+              <FocusButton
+                active={focusedPanel === "source"}
+                label="source"
+                onClick={() => setFocusedPanel(focusedPanel === "source" ? "all" : "source")}
+              />
             </div>
           </div>
 
@@ -274,7 +324,10 @@ export function VisualizerScreen({ onNavigate }: { onNavigate: (route: Route) =>
           </div>
         </section>
 
-        <section className="flex min-h-[600px] min-w-0 flex-col bg-[radial-gradient(circle_at_50%_30%,rgba(14,165,233,0.07),transparent_55%)] lg:min-h-0">
+        <section
+          data-panel="stage"
+          className={cn("flex min-h-[600px] min-w-0 flex-col bg-[radial-gradient(circle_at_50%_30%,rgba(14,165,233,0.07),transparent_55%)] lg:min-h-0", focusClass("stage", focusedPanel))}
+        >
           <div className="flex flex-wrap items-center gap-2 border-b border-ink-800 bg-ink-900/85 px-3 py-2.5 backdrop-blur">
             <span className="flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-ink-500"><Box size={12} /> 3D execution world</span>
             <div className="ml-1 flex overflow-hidden rounded-md border border-ink-700">
@@ -295,6 +348,11 @@ export function VisualizerScreen({ onNavigate }: { onNavigate: (route: Route) =>
               ))}
             </div>
             <div className="ml-auto flex items-center gap-2">
+              <FocusButton
+                active={focusedPanel === "stage"}
+                label="animation"
+                onClick={() => setFocusedPanel(focusedPanel === "stage" ? "all" : "stage")}
+              />
               <Badge tone={result.kind === "storyboard" ? "blue" : "amber"}>{result.kind === "storyboard" ? "spatial storyboard" : result.kind}</Badge>
               <ConfidenceMeter value={result.confidence} />
             </div>

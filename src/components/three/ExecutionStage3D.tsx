@@ -2,6 +2,7 @@ import type { GridHighlight, MemoryHighlight, TraceStep } from "../../types/trac
 import { ThreeGrid } from "./ThreeGrid";
 import { ThreeStage } from "./ThreeStage";
 import type { BarDescriptor } from "./ThreeBars";
+import { selectRendererForStep } from "../../engine/traceActions";
 
 function isArrayHighlight(
   h: MemoryHighlight | GridHighlight,
@@ -17,8 +18,9 @@ function isArrayHighlight(
  */
 export function ExecutionStage3D({ step }: { step: TraceStep }) {
   const visual = step.visual;
+  const dispatch = selectRendererForStep(step);
 
-  if (visual?.type === "grid") {
+  if (dispatch.kind === "grid" && visual?.type === "grid") {
     const item = step.memory?.find((m) => m.id === visual.itemId);
     if (item && item.type === "grid") {
       const grid = item.value as unknown as number[][];
@@ -32,7 +34,7 @@ export function ExecutionStage3D({ step }: { step: TraceStep }) {
   let values: number[] | undefined;
   let states: BarDescriptor[] | undefined;
 
-  if (visual?.type === "array") {
+  if (dispatch.kind === "array" && visual?.type === "array") {
     const item = step.memory?.find((m) => m.id === visual.itemId);
     if (item) {
       values = item.value.map((v) => Number(v));

@@ -7,6 +7,8 @@ import {
   Grid3X3,
   Hammer,
   Languages,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 
 // The 3D execution stage is code-split so three.js stays out of the main bundle
@@ -40,6 +42,36 @@ import { Badge } from "../components/ui";
 import { AnimatedHeading } from "../components/motionfx";
 import { cn } from "../lib/cn";
 
+type FocusPanel = "all" | "code" | "stage" | "inspector";
+
+function panelFocusClass(panel: Exclude<FocusPanel, "all">, focused: FocusPanel) {
+  if (focused === "all") return "";
+  return focused === panel ? "" : "hidden";
+}
+
+function FocusButton({
+  active,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  onClick: () => void;
+}) {
+  const Icon = active ? Minimize2 : Maximize2;
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title={active ? "Restore all panels" : `Focus ${label}`}
+      className="flex items-center gap-1 rounded-md border border-ink-700 bg-ink-950 px-2 py-1 text-[10px] font-medium text-ink-400 transition-colors hover:border-ember-500/50 hover:text-ember-300"
+    >
+      <Icon size={11} />
+      {active ? "Restore" : "Focus"}
+    </button>
+  );
+}
+
 export function PlaybackLab({
   route,
   onNavigate,
@@ -53,6 +85,7 @@ export function PlaybackLab({
   const [customExample, setCustomExample] = useState<ReturnType<typeof forgeExample> | null>(null);
   const [config, setConfig] = useState<PlayableConfig>({});
   const [lang, setLang] = useState<VariantLanguage>("python");
+  const [focusedPanel, setFocusedPanel] = useState<FocusPanel>("all");
   const appliedResume = useRef<string | null>(null);
 
   const effectiveId = exampleId ?? route.exampleId ?? EXAMPLES[0].id;
@@ -240,8 +273,18 @@ export function PlaybackLab({
       </header>
 
       {/* Workspace */}
-      <div className="grid min-h-0 flex-1 grid-cols-1 gap-px bg-ink-700 lg:grid-cols-[minmax(0,5fr)_minmax(0,5fr)_minmax(0,4fr)]">
-        <div className="flex h-52 min-h-0 flex-col bg-ink-900 lg:h-auto" data-panel="code">
+      <div
+        className={cn(
+          "grid min-h-0 flex-1 grid-cols-1 gap-px bg-ink-700",
+          focusedPanel === "all"
+            ? "lg:grid-cols-[minmax(0,5fr)_minmax(0,5fr)_minmax(0,4fr)]"
+            : "lg:grid-cols-1",
+        )}
+      >
+        <div
+          className={cn("flex h-52 min-h-0 flex-col bg-ink-900 lg:h-auto", panelFocusClass("code", focusedPanel))}
+          data-panel="code"
+        >
           {/* Source language switcher + editable inputs */}
           <div className="flex shrink-0 flex-wrap items-center gap-1.5 border-b border-ink-800 px-2 py-1.5">
             {variants && (
@@ -263,6 +306,13 @@ export function PlaybackLab({
                 ))}
               </div>
             )}
+            <div className="ml-auto">
+              <FocusButton
+                active={focusedPanel === "code"}
+                label="source"
+                onClick={() => setFocusedPanel(focusedPanel === "code" ? "all" : "code")}
+              />
+            </div>
             {inputFields && inputFields.length > 0 && (
               <div className="ml-auto flex flex-wrap items-center gap-1.5">
                 {inputFields.map((field) => (
@@ -324,14 +374,20 @@ export function PlaybackLab({
           )}
         </div>
         <div
-          className="flex h-72 min-h-0 flex-col bg-ink-900 lg:h-auto"
+          className={cn("flex h-72 min-h-0 flex-col bg-ink-900 lg:h-auto", panelFocusClass("stage", focusedPanel))}
           data-panel="stage"
         >
           <div className="flex shrink-0 items-center justify-between border-b border-ink-800 px-3 py-1.5">
             <span className="text-[10px] font-semibold uppercase tracking-widest text-ink-500">
               {step.visual?.type === "recursion_tree" ? "Recursion tree" : "Execution stage"}
             </span>
-            <div className="flex overflow-hidden rounded-md border border-ink-700">
+            <div className="flex items-center gap-2">
+              <FocusButton
+                active={focusedPanel === "stage"}
+                label="stage"
+                onClick={() => setFocusedPanel(focusedPanel === "stage" ? "all" : "stage")}
+              />
+              <div className="flex overflow-hidden rounded-md border border-ink-700">
                 <button
                   type="button"
                   onClick={() => setView3d(false)}
@@ -357,6 +413,7 @@ export function PlaybackLab({
                   <Box size={11} /> 3D
                 </button>
               </div>
+            </div>
           </div>
           <div className="min-h-0 flex-1">
             {!view3d ? (
@@ -390,8 +447,23 @@ export function PlaybackLab({
             )}
           </div>
         </div>
-        <div className="h-72 min-h-0 bg-ink-900 lg:h-auto" data-panel="inspector">
-          <InspectorPanels step={step} />
+        <div
+          className={cn("flex h-72 min-h-0 flex-col bg-ink-900 lg:h-auto", panelFocusClass("inspector", focusedPanel))}
+          data-panel="inspector"
+        >
+          <div className="flex shrink-0 items-center justify-between border-b border-ink-800 px-3 py-1.5">
+            <span className="text-[10px] font-semibold uppercase tracking-widest text-ink-500">
+              Inspector
+            </span>
+            <FocusButton
+              active={focusedPanel === "inspector"}
+              label="inspector"
+              onClick={() => setFocusedPanel(focusedPanel === "inspector" ? "all" : "inspector")}
+            />
+          </div>
+          <div className="min-h-0 flex-1">
+            <InspectorPanels step={step} />
+          </div>
         </div>
       </div>
 

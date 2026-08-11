@@ -200,11 +200,11 @@ export function buildSortTrace(spec: SortTraceSpec, steps: SortStep[]): TraceDoc
       changed: {
         variables: s.swap ? ["arr", "swaps"] : s.compare ? ["comparisons"] : [],
       },
-      actions: [
-        s.swap
-          ? { type: "swap", indices: s.swap }
-          : { type: "compare", indices: s.compare },
-      ],
+      actions: s.swap
+        ? [{ type: "swap", indices: s.swap }]
+        : s.compare
+          ? [{ type: "compare", indices: s.compare }]
+          : [],
     });
   });
 

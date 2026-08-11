@@ -69,6 +69,39 @@ describe("validateTrace", () => {
     const issues = validateTrace(trace);
     expect(issues.some((i) => i.message.includes("unknown step"))).toBe(true);
   });
+
+  it("rejects malformed known trace actions", () => {
+    const trace = fakeTrace();
+    trace.steps[0] = {
+      ...trace.steps[0],
+      actions: [{ type: "compare" }],
+    };
+    const issues = validateTrace(trace);
+    expect(issues.some((i) => i.message.includes("compare action needs"))).toBe(true);
+    expect(traceIsValid(trace)).toBe(false);
+  });
+
+  it("warns for unknown actions but keeps safe fallback playback valid", () => {
+    const trace = fakeTrace();
+    trace.steps[0] = {
+      ...trace.steps[0],
+      actions: [{ type: "future_action", payload: true }],
+    };
+    const issues = validateTrace(trace);
+    expect(issues.some((i) => i.level === "warning" && i.message.includes("unknown action"))).toBe(true);
+    expect(traceIsValid(trace)).toBe(true);
+  });
+
+  it("rejects visuals pointing at missing memory", () => {
+    const trace = fakeTrace();
+    trace.steps[0] = {
+      ...trace.steps[0],
+      memory: [],
+      visual: { type: "array", itemId: "arr" },
+    };
+    const issues = validateTrace(trace);
+    expect(issues.some((i) => i.message.includes("is missing from memory"))).toBe(true);
+  });
 });
 
 describe("example traces", () => {
@@ -76,6 +109,17 @@ describe("example traces", () => {
     for (const ex of EXAMPLES) {
       const issues = validateTrace(ex.trace);
       expect(issues, `${ex.id}: ${issues.map((i) => i.message).join("; ")}`).toEqual([]);
+    }
+  });
+
+  it("every curated action passes the action schema", () => {
+    for (const ex of EXAMPLES) {
+      for (const s of ex.trace.steps) {
+        const issues = validateTrace(ex.trace).filter((i) =>
+          i.message.includes(`Step ${s.id} action`),
+        );
+        expect(issues, `${ex.id} ${s.id}`).toEqual([]);
+      }
     }
   });
 

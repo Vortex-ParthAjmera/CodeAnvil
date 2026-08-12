@@ -31,6 +31,7 @@ const RecursionTree3D = lazy(() =>
 );
 import { EXAMPLES, forgeExample, getExample, PLAYABLE_KIND_BY_EXAMPLE } from "../data/examples";
 import { PLAYABLE_INPUTS, type PlayableConfig } from "../engine/tracegen";
+import { isFactorialRecursionStep } from "../engine/recursionStage";
 import { LANGUAGE_VARIANTS, type VariantLanguage } from "../data/languageVariants";
 import { usePlayback } from "../engine/usePlayback";
 import { bumpHeat } from "../engine/session";

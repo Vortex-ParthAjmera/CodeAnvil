@@ -86,12 +86,13 @@ export function isFactorialRecursionStep(step: TraceStep): boolean {
 export function getFactorialRecursionSceneModel(step: TraceStep): FactorialRecursionSceneModel | null {
   if (!isFactorialRecursionStep(step) || step.visual?.type !== "recursion_tree") return null;
 
-  const frames = step.visual.nodes
+  const visual = step.visual;
+  const frames = visual.nodes
     .map(parseFactNode)
     .filter((frame): frame is FactorialFrame => frame !== null)
     .map((frame) => ({
       ...frame,
-      active: frame.id === step.visual?.activeNodeId,
+      active: frame.id === visual.activeNodeId,
     }))
     .sort((a, b) => a.depth - b.depth || b.n - a.n);
 

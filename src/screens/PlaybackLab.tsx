@@ -18,6 +18,12 @@ const ExecutionStage3D = lazy(() =>
     default: m.ExecutionStage3D,
   })),
 );
+const FactorialRecursionStage3D = lazy(() =>
+  import("../components/three/FactorialRecursionStage3D").then((m) => ({
+    default: m.FactorialRecursionStage3D,
+  })),
+);
+
 const RecursionTree3D = lazy(() =>
   import("../components/three/RecursionTree3D").then((m) => ({
     default: m.RecursionTree3D,
@@ -418,11 +424,25 @@ export function PlaybackLab({
           <div className="min-h-0 flex-1">
             {!view3d ? (
               <VisualStage step={step} steps={example.trace.steps} onScrub={scrub} />
+            ) : step.visual?.type === "recursion_tree" && isFactorialRecursionStep(step) ? (
+              <Suspense
+                fallback={
+                  <div className="flex h-full items-center justify-center text-xs text-ink-500">
+                    Loading factorial stage...
+                  </div>
+                }
+              >
+                <FactorialRecursionStage3D
+                  step={step}
+                  steps={example.trace.steps}
+                  onScrub={scrub}
+                />
+              </Suspense>
             ) : step.visual?.type === "recursion_tree" ? (
               <Suspense
                 fallback={
                   <div className="flex h-full items-center justify-center text-xs text-ink-500">
-                    Loading 3D tree…
+                    Loading 3D tree...
                   </div>
                 }
               >

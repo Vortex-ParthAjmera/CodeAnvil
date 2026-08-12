@@ -23,6 +23,7 @@ import {
 import { detectAndGenerate, type DetectionResult } from "../engine/detect";
 import { storyScriptTrace, DEFAULT_STORY_SCRIPT } from "../engine/storyscript";
 import { useStepPlayback } from "../engine/useStepPlayback";
+import { isFactorialRecursionStep } from "../engine/recursionStage";
 import { isBubbleSortTraceStep } from "../engine/sortStage";
 import { registerGeneratedExample } from "../data/examples";
 import { VISUALIZER_DRAFT_KEY } from "../data/dsaCatalog";
@@ -186,7 +187,9 @@ export function VisualizerScreen({ onNavigate }: { onNavigate: (route: Route) =>
   const trace = result.trace;
   const playback = useStepPlayback(trace?.steps.length ?? 0);
   const step = trace?.steps[Math.min(playback.index, (trace?.steps.length ?? 1) - 1)];
-  const useSpecializedStage = step ? viewMode === "stage" && isBubbleSortTraceStep(step) : false;
+  const useSpecializedStage = step
+    ? viewMode === "stage" && (isBubbleSortTraceStep(step) || isFactorialRecursionStep(step))
+    : false;
 
   useEffect(() => {
     if (!runToken || !trace?.steps.length) return;

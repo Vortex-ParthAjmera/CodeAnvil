@@ -48,6 +48,11 @@ function FrameBlock({
   const color = colorForFrame(frame, p);
   const target = new THREE.Vector3(0, yForDepth(frame.depth), 0);
   const clickable = firstStep !== undefined && onScrub !== undefined;
+  const handleClick = clickable
+    ? () => {
+        if (firstStep !== undefined) onScrub?.(firstStep);
+      }
+    : undefined;
 
   useLayoutEffect(() => {
     if (!group.current || mounted.current) return;
@@ -67,10 +72,7 @@ function FrameBlock({
   });
 
   return (
-    <group
-      ref={group}
-      onClick={clickable ? () => onScrub(firstStep) : undefined}
-    >
+    <group ref={group} onClick={handleClick}>
       <mesh ref={mesh}>
         <boxGeometry args={[FRAME_WIDTH, FRAME_HEIGHT, FRAME_DEPTH]} />
         <meshStandardMaterial
@@ -118,23 +120,25 @@ function MovingPacket({
   const group = useRef<THREE.Group>(null);
   const returning = model.operation === "return";
   const frame = returning ? model.returningFrame : model.activeFrame;
-  if (!frame) return null;
-
   const x = returning ? 2.78 : -2.78;
-  const baseY = yForDepth(frame.depth);
+  const baseY = frame ? yForDepth(frame.depth) : 0;
   const color = returning ? p.verdant : p.emberBright;
-  const label = returning
-    ? `return ${frame.returnValue ?? ""}`.trim()
-    : frame.n > 1
-      ? `call fact(${frame.n - 1})`
-      : "base case";
+  const label = frame
+    ? returning
+      ? `return ${frame.returnValue ?? ""}`.trim()
+      : frame.n > 1
+        ? `call fact(${frame.n - 1})`
+        : "base case"
+    : "";
 
   useFrame(({ clock }) => {
-    if (!group.current) return;
+    if (!group.current || !frame) return;
     const travel = Math.sin(clock.elapsedTime * 2.6) * 0.16;
     group.current.position.y = baseY + (returning ? -travel : travel);
     group.current.rotation.z = Math.sin(clock.elapsedTime * 3) * 0.025;
   });
+
+  if (!frame) return null;
 
   return (
     <group ref={group} position={[x, baseY, 0]}>

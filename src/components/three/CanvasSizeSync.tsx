@@ -12,17 +12,26 @@ export function CanvasSizeSync() {
     const host = gl.domElement.parentElement;
     if (!host) return;
 
+    let frame = 0;
+    let lastWidth = 0;
+    let lastHeight = 0;
+    let lastDpr = 0;
+
     const resize = () => {
+      frame = 0;
       const rect = host.getBoundingClientRect();
       if (rect.width <= 0 || rect.height <= 0) return;
 
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       const width = Math.max(1, Math.floor(rect.width * dpr));
       const height = Math.max(1, Math.floor(rect.height * dpr));
+      if (width === lastWidth && height === lastHeight && dpr === lastDpr) return;
+
+      lastWidth = width;
+      lastHeight = height;
+      lastDpr = dpr;
       const canvas = gl.domElement;
 
-      canvas.width = width;
-      canvas.height = height;
       canvas.style.width = "100%";
       canvas.style.height = "100%";
       gl.setPixelRatio(dpr);
@@ -30,16 +39,20 @@ export function CanvasSizeSync() {
       gl.setViewport(0, 0, width, height);
     };
 
-    resize();
-    const observer = new ResizeObserver(resize);
+    const scheduleResize = () => {
+      if (frame) return;
+      frame = window.requestAnimationFrame(resize);
+    };
+
+    scheduleResize();
+    const observer = new ResizeObserver(scheduleResize);
     observer.observe(host);
-    const frame = window.requestAnimationFrame(resize);
-    window.addEventListener("resize", resize);
+    window.addEventListener("resize", scheduleResize);
 
     return () => {
       observer.disconnect();
-      window.cancelAnimationFrame(frame);
-      window.removeEventListener("resize", resize);
+      if (frame) window.cancelAnimationFrame(frame);
+      window.removeEventListener("resize", scheduleResize);
     };
   }, [gl]);
 

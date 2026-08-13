@@ -128,13 +128,11 @@ function RangeWindow({ model, p }: { model: BinarySearchSceneModel; p: Theme3DPa
 function BoundFlag({
   label,
   index,
-  p,
   count,
   color,
 }: {
   label: string;
   index: number | null;
-  p: Theme3DPalette;
   count: number;
   color: string;
 }) {
@@ -157,8 +155,9 @@ function BoundFlag({
 
 function MidProbe({ model, p }: { model: BinarySearchSceneModel; p: Theme3DPalette }) {
   const pulse = useRef<THREE.Group>(null);
-  const hasMid = model.mid !== null && model.mid >= 0 && model.mid < model.values.length;
-  const x = hasMid ? xForIndex(model.mid, model.values.length) : 0;
+  const mid = model.mid;
+  const hasMid = mid !== null && mid >= 0 && mid < model.values.length;
+  const x = hasMid ? xForIndex(mid, model.values.length) : 0;
 
   useFrame(({ clock }) => {
     if (!pulse.current || !hasMid) return;
@@ -175,7 +174,7 @@ function MidProbe({ model, p }: { model: BinarySearchSceneModel; p: Theme3DPalet
       </mesh>
       <Html position={[0, 0.34, 0.1]} center style={{ pointerEvents: "none" }}>
         <div className="whitespace-nowrap rounded-md border border-ember-400/55 bg-ink-950/94 px-2 py-1 font-mono text-[11px] font-black uppercase leading-none text-ember-100 shadow-xl">
-          mid = {model.mid}
+          mid = {mid}
         </div>
       </Html>
     </group>
@@ -238,8 +237,8 @@ function Scene({ model, p }: { model: BinarySearchSceneModel; p: Theme3DPalette 
         <TargetBeacon model={model} p={p} />
         <RangeWindow model={model} p={p} />
         <MidProbe model={model} p={p} />
-        <BoundFlag label="low" index={model.low} p={p} count={model.values.length} color={p.arcBright} />
-        <BoundFlag label="high" index={model.high} p={p} count={model.values.length} color={p.emberBright} />
+        <BoundFlag label="low" index={model.low} count={model.values.length} color={p.arcBright} />
+        <BoundFlag label="high" index={model.high} count={model.values.length} color={p.emberBright} />
         <mesh position={[0, -0.2, -0.35]}>
           <boxGeometry args={[stageWidth, 0.08, 1.34]} />
           <meshStandardMaterial color={p.emptyCell} transparent opacity={0.66} roughness={0.46} metalness={0.24} />

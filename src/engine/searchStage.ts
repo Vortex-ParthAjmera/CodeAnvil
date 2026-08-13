@@ -133,7 +133,7 @@ export function getBinarySearchSceneModel(step: TraceStep): BinarySearchSceneMod
     const inRange = rangeValid && index >= rangeLow && index <= rangeHigh;
     const isMid = mid === index || highlightByIndex.get(index) === "mid";
     const isTarget = target !== null && value === target;
-    const discardedSide =
+    const discardedSide: BinarySearchCell["discardedSide"] =
       index <= discardedLeftLimit ? "left" : index >= discardedRightStart ? "right" : null;
     return {
       index,

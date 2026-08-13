@@ -75,9 +75,20 @@ export function isBinarySearchTraceStep(step: TraceStep): boolean {
     numeric(step.variables.high) !== null ||
     numeric(step.variables.mid) !== null ||
     numeric(step.variables.probes) !== null;
+  const hasPointerPair =
+    numeric(step.variables.l) !== null ||
+    numeric(step.variables.r) !== null ||
+    numeric(step.variables.left) !== null ||
+    numeric(step.variables.right) !== null;
+  const valuesAreSorted = array.values.every((value, index, values) => index === 0 || values[index - 1] <= value);
   const description = textOf(step);
+  const hasBinarySearchText = description.includes("binary search") || description.includes("search range");
+  const hasSortedSetupText =
+    valuesAreSorted &&
+    description.includes("sorted") &&
+    (description.includes("list") || description.includes("array") || description.includes("search"));
 
-  return hasTarget && (hasBounds || description.includes("binary search") || description.includes("search range"));
+  return hasTarget && !hasPointerPair && (hasBounds || hasBinarySearchText || hasSortedSetupText);
 }
 
 export function getBinarySearchSceneModel(step: TraceStep): BinarySearchSceneModel | null {

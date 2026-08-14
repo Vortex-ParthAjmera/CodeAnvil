@@ -386,6 +386,7 @@ export function GridSearchStage3D({ step }: { step: TraceStep }) {
   return (
     <div className="codeanvil-canvas-fill relative h-full min-h-[23rem] w-full overflow-hidden rounded-md">
       <Canvas
+        data-testid="grid-search-stage-canvas"
         dpr={[1.25, 2]}
         camera={{ position: [0, 5.4, 7.1], fov: 42 }}
         gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}

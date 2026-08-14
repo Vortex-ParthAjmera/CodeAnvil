@@ -67,8 +67,9 @@ function textOf(step: TraceStep): string {
 }
 
 function getGridMemory(step: TraceStep): { item: MemoryItem; grid: number[][]; highlights: GridHighlight[] } | null {
-  if (step.visual?.type !== "grid") return null;
-  const item = step.memory?.find((memoryItem) => memoryItem.id === step.visual?.itemId);
+  const visual = step.visual;
+  if (!visual || visual.type !== "grid") return null;
+  const item = step.memory?.find((memoryItem) => memoryItem.id === visual.itemId);
   if (!item || item.type !== "grid" || item.value.length === 0) return null;
   if (!item.value.every((row) => Array.isArray(row))) return null;
 

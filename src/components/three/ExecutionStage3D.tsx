@@ -3,10 +3,12 @@ import { ThreeGrid } from "./ThreeGrid";
 import { BinarySearchStage3D } from "./BinarySearchStage3D";
 import { BubbleSortStage3D } from "./BubbleSortStage3D";
 import { FactorialRecursionStage3D } from "./FactorialRecursionStage3D";
+import { GridSearchStage3D } from "./GridSearchStage3D";
 import { ThreeStage } from "./ThreeStage";
 import type { BarDescriptor } from "./ThreeBars";
 import { selectRendererForStep } from "../../engine/traceActions";
 import { isFactorialRecursionStep } from "../../engine/recursionStage";
+import { isGridSearchTraceStep } from "../../engine/gridStage";
 import { isBinarySearchTraceStep } from "../../engine/searchStage";
 import { isBubbleSortTraceStep } from "../../engine/sortStage";
 
@@ -36,6 +38,10 @@ export function ExecutionStage3D({ step }: { step: TraceStep }) {
 
   if (dispatch.kind === "recursion_tree" && isFactorialRecursionStep(step)) {
     return <FactorialRecursionStage3D step={step} />;
+  }
+
+  if (dispatch.kind === "grid" && isGridSearchTraceStep(step)) {
+    return <GridSearchStage3D step={step} />;
   }
 
   if (dispatch.kind === "grid" && visual?.type === "grid") {

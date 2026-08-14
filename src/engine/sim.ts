@@ -413,17 +413,18 @@ export function gridSearchSteps(
   const { grid, start, goal } = spec;
   const steps: GridStep[] = [];
   const visitedSet = new Set<string>([key(start[0], start[1])]);
-  const frontierOrder: string[] = [key(start[0], start[1])];
+  const frontier: string[] = [key(start[0], start[1])];
   const cameFrom = new Map<string, string>();
   const goalKey = key(goal[0], goal[1]);
 
   const name = kind === "bfs" ? "BFS" : "DFS";
   const frontierName = kind === "bfs" ? "queue" : "stack";
+  const popLabel = kind === "bfs" ? "front" : "top";
 
   const snapshot = (current?: [number, number], path?: [number, number][]) => ({
     grid: grid.map((row) => [...row]),
     current,
-    frontier: frontierOrder.map(parseKey),
+    frontier: frontier.map(parseKey),
     visited: [...visitedSet].map(parseKey),
     path,
     description: "",
@@ -432,13 +433,14 @@ export function gridSearchSteps(
 
   steps.push({
     ...snapshot(start),
-    description: `${name} starts at (${start[0]}, ${start[1]}). ${name === "BFS" ? "A queue explores level by level (closest cells first)." : "A stack dives deep down one path before backtracking."}`,
+    description:
+      name === "BFS"
+        ? `BFS starts at (${start[0]}, ${start[1]}). The queue explores level by level, closest cells first.`
+        : `DFS starts at (${start[0]}, ${start[1]}). The stack dives down one route before backtracking.`,
   });
 
-  let head = 0;
-  while (head < frontierOrder.length) {
-    const curKey = frontierOrder[head];
-    head++;
+  while (frontier.length > 0) {
+    const curKey = kind === "bfs" ? frontier.shift()! : frontier.pop()!;
     const [r, c] = parseKey(curKey);
 
     if (curKey === goalKey) {
@@ -450,24 +452,31 @@ export function gridSearchSteps(
       return steps;
     }
 
-    const nbs = neighbors(grid, r, c);
+    const undiscovered = neighbors(grid, r, c).filter(([nr, nc]) => !visitedSet.has(key(nr, nc)));
     steps.push({
       ...snapshot([r, c]),
-      description: `Dequeue ${name === "BFS" ? "front" : "top"} of ${frontierName}: (${r}, ${c}). Discover ${nbs.filter(([nr, nc]) => !visitedSet.has(key(nr, nc))).length} new neighbor${nbs.length === 1 ? "" : "s"}.`,
+      description:
+        undiscovered.length === 0
+          ? `Pop the ${popLabel} of the ${frontierName}: (${r}, ${c}). No new neighbors are open.`
+          : `Pop the ${popLabel} of the ${frontierName}: (${r}, ${c}). Discover ${undiscovered.length} new neighbor${undiscovered.length === 1 ? "" : "s"}.`,
     });
 
-    for (const [nr, nc] of nbs) {
+    for (const [nr, nc] of undiscovered) {
       const nk = key(nr, nc);
-      if (visitedSet.has(nk)) continue;
       visitedSet.add(nk);
       cameFrom.set(nk, curKey);
-      frontierOrder.push(nk);
+      frontier.push(nk);
     }
 
-    if (head < frontierOrder.length) {
+    if (frontier.length > 0) {
+      const nextKey = kind === "bfs" ? frontier[0] : frontier[frontier.length - 1];
+      const [nr, nc] = parseKey(nextKey);
       steps.push({
         ...snapshot(),
-        description: `${frontierName} now holds ${frontierOrder.length - head} frontier cell${frontierOrder.length - head === 1 ? "" : "s"}.`,
+        description:
+          kind === "bfs"
+            ? `Queue now holds ${frontier.length} frontier cell${frontier.length === 1 ? "" : "s"}; next out is the front cell (${nr}, ${nc}).`
+            : `Stack now holds ${frontier.length} frontier cell${frontier.length === 1 ? "" : "s"}; next out is the top cell (${nr}, ${nc}).`,
       });
     }
   }

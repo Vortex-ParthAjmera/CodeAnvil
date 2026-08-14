@@ -20,7 +20,7 @@ describe("grid search stage helpers", () => {
     expect(model?.current).toEqual({ row: 0, col: 0 });
   });
 
-  it("extracts the active visited cell on a BFS visit step", () => {
+  it("extracts the active visited cell on a BFS visit step without stale frontier cells", () => {
     const trace = buildBfsGridTrace();
     const visit = trace.steps.find((step) => step.event === "grid_dequeue");
 
@@ -28,7 +28,21 @@ describe("grid search stage helpers", () => {
     const model = getGridSearchSceneModel(visit!);
     expect(model?.operation).toBe("visit");
     expect(model?.current).toEqual({ row: 0, col: 0 });
+    expect(model?.frontierSize).toBe(0);
+    expect(model?.frontierCells).not.toContainEqual({ row: 0, col: 0 });
     expect(model?.cells.find((cell) => cell.row === 0 && cell.col === 0)?.isCurrent).toBe(true);
+  });
+
+  it("marks the FIFO next cell for BFS after the first expansion", () => {
+    const trace = buildBfsGridTrace();
+    const frontier = trace.steps.find((step) => step.event === "grid_discover");
+
+    expect(frontier).toBeDefined();
+    const model = getGridSearchSceneModel(frontier!);
+    expect(model?.frontierRule).toBe("FIFO");
+    expect(model?.frontierDirection).toBe("front -> back");
+    expect(model?.frontierSize).toBe(2);
+    expect(model?.nextCell).toEqual({ row: 0, col: 1 });
   });
 
   it("extracts final path data when BFS reaches the goal", () => {
@@ -50,7 +64,19 @@ describe("grid search stage helpers", () => {
       kind: "dfs",
       frontierName: "Stack",
       frontierRule: "LIFO",
+      frontierDirection: "bottom -> top",
     });
+  });
+
+  it("marks the LIFO next cell for DFS after the first expansion", () => {
+    const trace = buildDfsGridTrace();
+    const frontier = trace.steps.find((step) => step.event === "grid_discover");
+
+    expect(frontier).toBeDefined();
+    const model = getGridSearchSceneModel(frontier!);
+    expect(model?.frontierRule).toBe("LIFO");
+    expect(model?.frontierSize).toBe(2);
+    expect(model?.nextCell).toEqual({ row: 1, col: 0 });
   });
 
   it("ignores unrelated grid payloads without grid-search actions or text", () => {

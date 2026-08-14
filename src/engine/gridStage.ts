@@ -35,8 +35,11 @@ export interface GridSearchSceneModel {
   visitedCount: number;
   frontierSize: number;
   pathLength: number | null;
+  nextCell: GridCoord | null;
   frontierName: "Queue" | "Stack";
   frontierRule: "FIFO" | "LIFO";
+  frontierDirection: "front -> back" | "bottom -> top";
+  behaviorLine: string;
   headline: string;
   detail: string;
 }
@@ -132,6 +135,11 @@ function inferOperation(step: TraceStep): GridSearchOperation {
   return "frontier";
 }
 
+function nextFrontierCell(kind: GridSearchKind, frontierCells: GridCoord[]): GridCoord | null {
+  if (frontierCells.length === 0) return null;
+  return kind === "bfs" ? frontierCells[0] : frontierCells[frontierCells.length - 1];
+}
+
 export function isGridSearchTraceStep(step: TraceStep): boolean {
   const memory = getGridMemory(step);
   if (!memory) return false;
@@ -180,9 +188,15 @@ export function getGridSearchSceneModel(step: TraceStep): GridSearchSceneModel |
   const operation = inferOperation(step);
   const frontierName = kind === "bfs" ? "Queue" : "Stack";
   const frontierRule = kind === "bfs" ? "FIFO" : "LIFO";
+  const frontierDirection = kind === "bfs" ? "front -> back" : "bottom -> top";
+  const behaviorLine =
+    kind === "bfs"
+      ? "Queue front leaves first; new neighbors wait at the back."
+      : "Stack top leaves first; new neighbors become the new top.";
   const visitedCount = numeric(step.variables.visited_count) ?? highlights.filter((highlight) => highlight.role === "visited").length;
   const frontierSize = numeric(step.variables.frontier_size) ?? frontierCells.length;
   const pathLength = actionPathLength(step) ?? (pathCells.length > 1 ? pathCells.length - 1 : null);
+  const nextCell = nextFrontierCell(kind, frontierCells);
 
   const cells: GridSearchCell[] = [];
   for (let row = 0; row < rows; row++) {
@@ -244,11 +258,12 @@ export function getGridSearchSceneModel(step: TraceStep): GridSearchSceneModel |
     headline = `${frontierName} visits (${current.row}, ${current.col})`;
     detail =
       kind === "bfs"
-        ? "Pop from the front: every cell at the current distance is handled before deeper cells."
-        : "Pop from the top: the newest discovered cell gets explored next.";
+        ? "The front cell becomes current. Newly discovered neighbors wait at the back of the queue."
+        : "The top cell becomes current. Newly discovered neighbors get pushed above older waiting cells.";
   } else if (operation === "frontier") {
+    const nextText = nextCell ? ` Next out: (${nextCell.row}, ${nextCell.col}).` : " No waiting cells remain.";
     headline = `${frontierName} updated`;
-    detail = `${frontierName} now has ${frontierSize} waiting cell${frontierSize === 1 ? "" : "s"}. Visited cells will not be added again.`;
+    detail = `${frontierName} now has ${frontierSize} waiting cell${frontierSize === 1 ? "" : "s"}.${nextText}`;
   } else if (operation === "found") {
     headline = "Goal reached";
     detail =
@@ -275,8 +290,11 @@ export function getGridSearchSceneModel(step: TraceStep): GridSearchSceneModel |
     visitedCount,
     frontierSize,
     pathLength,
+    nextCell,
     frontierName,
     frontierRule,
+    frontierDirection,
+    behaviorLine,
     headline,
     detail,
   };

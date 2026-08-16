@@ -5,9 +5,11 @@ import type { TraceStep } from "../types/trace";
 import {
   getBubbleSortSceneModel,
   getMergeSortSceneModel,
+  getQuickSortSceneModel,
   getSortedIndices,
   isBubbleSortTraceStep,
   isMergeSortTraceStep,
+  isQuickSortTraceStep,
 } from "./sortStage";
 
 describe("sort stage helpers", () => {
@@ -82,6 +84,41 @@ describe("sort stage helpers", () => {
     expect(getMergeSortSceneModel(completeStep)).toMatchObject({
       operation: "complete",
       range: [0, 5],
+    });
+  });
+
+  it("routes quick-sort compare, swap, and pivot phases to the quick renderer", () => {
+    const trace = generateTrace("quick-sort", { array: [9, 3, 7, 1, 8, 2] });
+    const compareStep = trace.steps.find((step) => step.actions?.some((action) => action.phase === "quick_compare"));
+    const swapStep = trace.steps.find((step) => step.actions?.some((action) => action.phase === "quick_swap"));
+    const pivotStep = trace.steps.find((step) => step.actions?.some((action) => action.phase === "quick_pivot"));
+
+    expect(compareStep).toBeDefined();
+    expect(swapStep).toBeDefined();
+    expect(pivotStep).toBeDefined();
+    expect(isQuickSortTraceStep(compareStep!)).toBe(true);
+    expect(isBubbleSortTraceStep(compareStep!)).toBe(false);
+
+    expect(getQuickSortSceneModel(compareStep!)).toMatchObject({
+      operation: "compare",
+      range: [0, 5],
+      pivotIndex: 5,
+      pivotValue: 2,
+      boundaryIndex: 0,
+      scanIndex: 0,
+    });
+
+    expect(getQuickSortSceneModel(swapStep!)).toMatchObject({
+      operation: "swap",
+      swapPair: [0, 3],
+      boundaryIndex: 1,
+    });
+
+    expect(getQuickSortSceneModel(pivotStep!)).toMatchObject({
+      operation: "pivot",
+      pivotIndex: 1,
+      pivotValue: 2,
+      finalIndex: 1,
     });
   });
 

@@ -16,6 +16,7 @@ import {
   selectionSortSteps,
   type MazeSpec,
   type SearchKind,
+  type SortStep,
 } from "./sim";
 import {
   arrayMemory,
@@ -88,6 +89,18 @@ export interface MergeStep {
   description: string;
   comparisons: number;
   writes: number;
+}
+
+export type QuickPhase = "start" | "partition" | "compare" | "keep" | "swap" | "pivot" | "single" | "complete";
+
+export interface QuickStep extends SortStep {
+  phase: QuickPhase;
+  range: [number, number] | null;
+  pivotIndex: number | null;
+  pivotValue: number | null;
+  boundary: number | null;
+  scanIndex: number | null;
+  finalIndex: number | null;
 }
 
 interface MergeRecordExtras {
@@ -271,76 +284,130 @@ export function mergeSortSteps(input: number[]): MergeStep[] {
   return steps;
 }
 
-/** Quick sort (Lomuto partition) — records compares, swaps, and the pivot. */
-export function quickSortSteps(input: number[]): ReturnType<typeof bubbleSortSteps> {
+// Quick sort (Lomuto partition) - records pivot, scanner, boundary, swaps, and locked pivots.
+export function quickSortSteps(input: number[]): QuickStep[] {
   const a = clone(input);
-  const steps: ReturnType<typeof bubbleSortSteps> = [];
+  const steps: QuickStep[] = [];
   let comparisons = 0;
   let swaps = 0;
+  const sorted = new Set<number>();
 
-  steps.push({
-    array: clone(a),
-    sortedUpTo: -1,
-    description: `Quick sort picks a pivot and partitions the array so smaller values sit left and larger values sit right, then recurses.`,
-    comparisons,
-    swaps,
-  });
+  const sortedSnapshot = () => [...sorted].sort((left, right) => left - right);
+
+  const record = (
+    phase: QuickPhase,
+    description: string,
+    extras: Partial<Omit<QuickStep, "array" | "description" | "comparisons" | "swaps" | "phase">> = {},
+  ) => {
+    steps.push({
+      array: clone(a),
+      sortedUpTo: extras.sortedUpTo ?? -1,
+      sortedIndices: sortedSnapshot(),
+      key: extras.key,
+      compare: extras.compare,
+      swap: extras.swap,
+      range: extras.range ?? null,
+      pivotIndex: extras.pivotIndex ?? null,
+      pivotValue: extras.pivotValue ?? null,
+      boundary: extras.boundary ?? null,
+      scanIndex: extras.scanIndex ?? null,
+      finalIndex: extras.finalIndex ?? null,
+      phase,
+      description,
+      comparisons,
+      swaps,
+    });
+  };
+
+  record(
+    "start",
+    `Quick sort picks a pivot and partitions the array so smaller values sit left and larger values sit right, then recurses.`,
+    { range: [0, Math.max(0, a.length - 1)] },
+  );
 
   function partition(lo: number, hi: number): number {
     const pivot = a[hi];
     let i = lo;
+
+    record("partition", `Partition [${lo}..${hi}] around pivot ${pivot}. Boundary i starts at ${i}.`, {
+      range: [lo, hi],
+      pivotIndex: hi,
+      pivotValue: pivot,
+      boundary: i,
+      scanIndex: lo,
+      key: hi,
+    });
+
     for (let j = lo; j < hi; j++) {
       comparisons++;
-      steps.push({
-        array: clone(a),
+      const isSmaller = a[j] < pivot;
+      record("compare", `Compare a[${j}] = ${a[j]} with pivot ${pivot}.`, {
         compare: [j, hi],
         key: hi,
-        sortedUpTo: -1,
-        description: `Compare a[${j}] = ${a[j]} with pivot ${pivot}.`,
-        comparisons,
-        swaps,
+        range: [lo, hi],
+        pivotIndex: hi,
+        pivotValue: pivot,
+        boundary: i,
+        scanIndex: j,
       });
-      if (a[j] < pivot) {
+
+      if (isSmaller) {
+        const moving = a[j];
         [a[i], a[j]] = [a[j], a[i]];
         if (i !== j) {
           swaps++;
-          steps.push({
-            array: clone(a),
+          record("swap", `${moving} < pivot, so move it into the smaller zone at index ${i}.`, {
             swap: [i, j],
             key: hi,
-            sortedUpTo: -1,
-            description: `${a[j]} < pivot — swap it into the "smaller" zone at index ${i}.`,
-            comparisons,
-            swaps,
+            range: [lo, hi],
+            pivotIndex: hi,
+            pivotValue: pivot,
+            boundary: i + 1,
+            scanIndex: j,
+          });
+        } else {
+          record("keep", `${moving} is already at boundary ${i}; grow the smaller zone.`, {
+            key: hi,
+            range: [lo, hi],
+            pivotIndex: hi,
+            pivotValue: pivot,
+            boundary: i + 1,
+            scanIndex: j,
           });
         }
         i++;
       }
     }
+
+    const finalIndex = i;
     [a[i], a[hi]] = [a[hi], a[i]];
-    swaps++;
-    steps.push({
-      array: clone(a),
-      swap: [i, hi],
-      key: i,
-      sortedUpTo: -1,
-      description: `Place the pivot ${pivot} at its final position ${i}.`,
-      comparisons,
-      swaps,
+    if (i !== hi) swaps++;
+    sorted.add(finalIndex);
+    record("pivot", `Place pivot ${pivot} at final index ${finalIndex}. Left side is smaller; right side is larger or equal.`, {
+      swap: finalIndex === hi ? undefined : [finalIndex, hi],
+      key: finalIndex,
+      range: [lo, hi],
+      pivotIndex: finalIndex,
+      pivotValue: pivot,
+      boundary: finalIndex,
+      scanIndex: null,
+      finalIndex,
     });
-    return i;
+    return finalIndex;
   }
 
   function sort(lo: number, hi: number) {
     if (lo > hi) return;
     if (lo === hi) {
-      steps.push({
-        array: clone(a),
-        sortedUpTo: -1,
+      sorted.add(lo);
+      record("single", `Single element at ${lo} is sorted by definition.`, {
         key: lo,
-        description: `Single element at ${lo} — it is sorted by definition.`,
-        comparisons,
-        swaps,
+        range: [lo, hi],
+        pivotIndex: lo,
+        pivotValue: a[lo],
+        boundary: lo,
+        scanIndex: lo,
+        finalIndex: lo,
       });
       return;
     }
@@ -350,12 +417,10 @@ export function quickSortSteps(input: number[]): ReturnType<typeof bubbleSortSte
   }
 
   sort(0, a.length - 1);
-  steps.push({
-    array: clone(a),
+  for (let index = 0; index < a.length; index++) sorted.add(index);
+  record("complete", `Sorted! ${comparisons} comparisons and ${swaps} swaps.`, {
     sortedUpTo: a.length - 1,
-    description: `Sorted! ${comparisons} comparisons and ${swaps} swaps.`,
-    comparisons,
-    swaps,
+    range: [0, Math.max(0, a.length - 1)],
   });
   return steps;
 }
@@ -832,6 +897,8 @@ function factorialLoopTrace(n: number, code: string): TraceDocument {
 }
 
 function binarySearchTraceGen(values: number[], target: number, code: string): TraceDocument {
+  if (kind === "quick") return quickTrace(values, code);
+
   const steps = binarySearchSteps(values, target);
   const b = new TraceBuilder({
     title: "Binary Search",
@@ -881,9 +948,7 @@ function sortTrace(
         ? selectionSortSteps(values)
         : kind === "insertion"
           ? insertionSortSteps(values)
-          : kind === "quick"
-            ? quickSortSteps(values)
-            : heapSortSteps(values);
+          : heapSortSteps(values);
   const titles: Record<string, string> = {
     bubble: "Bubble Sort",
     selection: "Selection Sort",
@@ -903,6 +968,124 @@ function sortTrace(
     },
     steps,
   );
+}
+
+function quickTrace(values: number[], code: string): TraceDocument {
+  const steps = quickSortSteps(values);
+  const b = new TraceBuilder({
+    title: "Quick Sort",
+    code,
+    topic: "sorting",
+    difficulty: "intermediate",
+    language: detectLanguage(code),
+    durationSeconds: 120,
+  });
+
+  const lineFor = (s: QuickStep, isFirst: boolean, isLast: boolean) => {
+    if (isFirst) return 1;
+    if (isLast) return 11;
+    if (s.phase === "partition") return 3;
+    if (s.phase === "compare") return 6;
+    if (s.phase === "swap" || s.phase === "keep") return 7;
+    if (s.phase === "pivot") return 9;
+    return 4;
+  };
+
+  const eventFor = (s: QuickStep, isFirst: boolean, isLast: boolean) => {
+    if (isFirst) return "program_start";
+    if (isLast) return "program_end";
+    if (s.phase === "compare") return "comparison";
+    if (s.phase === "swap" || (s.phase === "pivot" && s.swap)) return "swap";
+    return "line_enter";
+  };
+
+  const actionFor = (s: QuickStep) => {
+    const common = {
+      phase: `quick_${s.phase}`,
+      range: s.range,
+      pivotIndex: s.pivotIndex,
+      pivotValue: s.pivotValue,
+      boundary: s.boundary,
+      scanIndex: s.scanIndex,
+      finalIndex: s.finalIndex,
+      sortedIndices: s.sortedIndices ?? [],
+    };
+
+    if (s.phase === "compare" && s.compare) {
+      const scanValue = s.scanIndex !== null ? s.array[s.scanIndex] : null;
+      return {
+        type: "compare",
+        indices: s.compare,
+        values: scanValue !== null && s.pivotValue !== null ? [scanValue, s.pivotValue] : undefined,
+        result: scanValue !== null && s.pivotValue !== null ? scanValue < s.pivotValue : false,
+        ...common,
+      };
+    }
+
+    if ((s.phase === "swap" || s.phase === "pivot") && s.swap) {
+      return {
+        type: "swap",
+        indices: s.swap,
+        ...common,
+      };
+    }
+
+    return {
+      type: "array_read",
+      index: s.scanIndex ?? s.pivotIndex ?? s.finalIndex ?? s.range?.[0] ?? 0,
+      ...common,
+    };
+  };
+
+  steps.forEach((s, i) => {
+    const highlights: { index: number; role: string }[] = [];
+    if (s.range) {
+      for (let index = s.range[0]; index <= s.range[1]; index++) highlights.push({ index, role: "range" });
+    }
+    if (s.compare) {
+      highlights.push({ index: s.compare[0], role: "compare" });
+      highlights.push({ index: s.compare[1], role: "compare" });
+    }
+    if (s.swap) {
+      highlights.push({ index: s.swap[0], role: "swap" });
+      highlights.push({ index: s.swap[1], role: "swap" });
+    }
+    if (s.key !== undefined) highlights.push({ index: s.key, role: "key" });
+    if (s.scanIndex !== null) highlights.push({ index: s.scanIndex, role: "scan" });
+    if (s.boundary !== null && s.boundary >= 0 && s.boundary < s.array.length) highlights.push({ index: s.boundary, role: "boundary" });
+    for (const index of s.sortedIndices ?? []) highlights.push({ index, role: "sorted" });
+
+    const lo = s.range?.[0] ?? "-";
+    const hi = s.range?.[1] ?? "-";
+    b.step({
+      line: lineFor(s, i === 0, i === steps.length - 1),
+      event: eventFor(s, i === 0, i === steps.length - 1),
+      description: s.description,
+      variables: {
+        arr: s.array.map(String).join(", "),
+        lo,
+        hi,
+        pivot: s.pivotValue ?? "-",
+        i: s.boundary ?? "-",
+        j: s.scanIndex ?? "-",
+        comparisons: s.comparisons,
+        swaps: s.swaps,
+      },
+      memory: [arrayMemory("arr", "arr", s.array, highlights)],
+      visual: arrayVisual("arr"),
+      changed: {
+        variables:
+          s.phase === "swap" || s.phase === "pivot"
+            ? ["arr", "i", "swaps"]
+            : s.phase === "compare"
+              ? ["j", "comparisons"]
+              : ["lo", "hi", "pivot", "i"],
+      },
+      actions: [actionFor(s)],
+    });
+  });
+
+  return b.build();
 }
 
 function mergeTrace(values: number[], code: string): TraceDocument {

@@ -3,6 +3,7 @@ import { ThreeGrid } from "./ThreeGrid";
 import { BinarySearchStage3D } from "./BinarySearchStage3D";
 import { BubbleSortStage3D } from "./BubbleSortStage3D";
 import { MergeSortStage3D } from "./MergeSortStage3D";
+import { QuickSortStage3D } from "./QuickSortStage3D";
 import { FactorialRecursionStage3D } from "./FactorialRecursionStage3D";
 import { GridSearchStage3D } from "./GridSearchStage3D";
 import { ThreeStage } from "./ThreeStage";
@@ -11,7 +12,7 @@ import { selectRendererForStep } from "../../engine/traceActions";
 import { isFactorialRecursionStep } from "../../engine/recursionStage";
 import { isGridSearchTraceStep } from "../../engine/gridStage";
 import { isBinarySearchTraceStep } from "../../engine/searchStage";
-import { isBubbleSortTraceStep, isMergeSortTraceStep } from "../../engine/sortStage";
+import { isBubbleSortTraceStep, isMergeSortTraceStep, isQuickSortTraceStep } from "../../engine/sortStage";
 
 function isArrayHighlight(
   h: MemoryHighlight | GridHighlight,
@@ -31,6 +32,10 @@ export function ExecutionStage3D({ step }: { step: TraceStep }) {
 
   if (dispatch.kind === "array" && isBinarySearchTraceStep(step)) {
     return <BinarySearchStage3D step={step} />;
+  }
+
+  if (dispatch.kind === "array" && isQuickSortTraceStep(step)) {
+    return <QuickSortStage3D step={step} />;
   }
 
   if (dispatch.kind === "array" && isBubbleSortTraceStep(step)) {

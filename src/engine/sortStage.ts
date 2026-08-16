@@ -8,6 +8,7 @@ export interface ArrayTraceModel {
 
 export type SortOperation = "start" | "compare" | "swap" | "settle" | "complete" | "scan";
 export type MergeSortOperation = "start" | "split" | "compare" | "write" | "copy" | "complete";
+export type QuickSortOperation = "start" | "partition" | "compare" | "keep" | "swap" | "pivot" | "single" | "complete";
 
 export interface BubbleSortSceneModel extends ArrayTraceModel {
   comparePair: [number, number] | null;
@@ -38,6 +39,23 @@ export interface MergeSortSceneModel extends ArrayTraceModel {
   comparisons: number | null;
   writes: number | null;
   operation: MergeSortOperation;
+  headline: string;
+  detail: string;
+}
+
+export interface QuickSortSceneModel extends ArrayTraceModel {
+  range: [number, number];
+  pivotIndex: number | null;
+  pivotValue: number | null;
+  boundaryIndex: number | null;
+  scanIndex: number | null;
+  finalIndex: number | null;
+  comparePair: [number, number] | null;
+  swapPair: [number, number] | null;
+  sortedIndices: number[];
+  comparisons: number | null;
+  swaps: number | null;
+  operation: QuickSortOperation;
   headline: string;
   detail: string;
 }
@@ -182,7 +200,10 @@ export function isBubbleSortTraceStep(step: TraceStep): boolean {
   const hasCounters = model.comparisons !== null && model.swaps !== null;
   const hasAdjacentMotion = model.activePair ? Math.abs(model.activePair[0] - model.activePair[1]) === 1 : false;
   const actionTypes = new Set((step.actions ?? []).map((action) => action.type));
+  const actionPhases = new Set((step.actions ?? []).map((action) => textValue(action.phase)).filter(Boolean));
   const description = step.description.toLowerCase();
+
+  if ([...actionPhases].some((phase) => phase?.startsWith("quick_"))) return false;
 
   return (
     description.includes("bubble") ||
@@ -229,6 +250,111 @@ function highlightsRange(highlights: MemoryHighlight[], role: string): [number, 
     .sort((a, b) => a - b);
   if (indices.length === 0) return null;
   return [indices[0], indices[indices.length - 1]];
+}
+
+function firstHighlightIndex(highlights: MemoryHighlight[], role: string): number | null {
+  const hit = highlights.find((highlight) => highlight.role === role);
+  return hit && Number.isInteger(hit.index) ? hit.index : null;
+}
+
+function primaryQuickAction(step: TraceStep) {
+  return step.actions?.find((action) => textValue(action.phase)?.startsWith("quick_")) ?? null;
+}
+
+export function getQuickSortSceneModel(step: TraceStep): QuickSortSceneModel | null {
+  const array = getArrayTraceModel(step);
+  if (!array) return null;
+
+  const action = primaryQuickAction(step);
+  const actionPhase = textValue(action?.phase);
+  const range = boundedRange(rangeFrom(action?.range) ?? highlightsRange(array.highlights, "range") ?? [0, array.values.length - 1], array.values.length);
+  if (!range) return null;
+
+  const pivotCandidate = numeric(action?.pivotIndex) ?? firstHighlightIndex(array.highlights, "key");
+  const pivotIndex = pivotCandidate !== null && pivotCandidate >= 0 && pivotCandidate < array.values.length ? pivotCandidate : null;
+  const pivotValue = numeric(action?.pivotValue) ?? (pivotIndex !== null ? array.values[pivotIndex] : null);
+  const rawBoundary = numeric(action?.boundary) ?? firstHighlightIndex(array.highlights, "boundary");
+  const boundaryIndex = rawBoundary !== null ? Math.max(0, Math.min(array.values.length, rawBoundary)) : null;
+  const rawScan = numeric(action?.scanIndex) ?? firstHighlightIndex(array.highlights, "scan");
+  const scanIndex = rawScan !== null && rawScan >= 0 && rawScan < array.values.length ? rawScan : null;
+  const rawFinal = numeric(action?.finalIndex);
+  const finalIndex = rawFinal !== null && rawFinal >= 0 && rawFinal < array.values.length ? rawFinal : null;
+  const comparePair = getActionIndexPair(step, ["compare", "comparison"]);
+  const swapPair = getActionIndexPair(step, ["swap"]);
+  const sortedIndices = getSortedIndices(step);
+  const comparisons = numeric(step.variables.comparisons);
+  const swaps = numeric(step.variables.swaps);
+
+  let operation: QuickSortOperation = "partition";
+  if (step.event === "program_start" || actionPhase === "quick_start") operation = "start";
+  else if (step.event === "program_end" || actionPhase === "quick_complete") operation = "complete";
+  else if (actionPhase === "quick_compare" || step.event === "comparison") operation = "compare";
+  else if (actionPhase === "quick_keep") operation = "keep";
+  else if (actionPhase === "quick_swap") operation = "swap";
+  else if (actionPhase === "quick_pivot") operation = "pivot";
+  else if (actionPhase === "quick_single") operation = "single";
+
+  let headline = step.description;
+  let detail = "Quick Sort partitions one active range around a pivot, then recurses into the two remaining ranges.";
+
+  if (operation === "start") {
+    headline = "Quick Sort starts";
+    detail = "Pick a pivot, scan the range, move smaller values left, then lock the pivot into its final slot.";
+  } else if (operation === "partition") {
+    headline = pivotValue !== null ? `Partition [${range[0]}..${range[1]}] around pivot ${pivotValue}` : `Partition [${range[0]}..${range[1]}]`;
+    detail = boundaryIndex !== null ? `Boundary i = ${boundaryIndex}; values before it are smaller than the pivot.` : "The boundary marks where the next smaller value will land.";
+  } else if (operation === "compare") {
+    const scanValue = scanIndex !== null ? array.values[scanIndex] : null;
+    headline = scanValue !== null && pivotValue !== null ? `Compare ${scanValue} with pivot ${pivotValue}` : step.description;
+    detail =
+      scanValue !== null && pivotValue !== null && scanValue < pivotValue
+        ? `Smaller than pivot, so it moves to boundary slot ${boundaryIndex ?? "i"}.`
+        : "Not smaller than the pivot, so it stays in the larger-or-equal zone.";
+  } else if (operation === "keep") {
+    headline = scanIndex !== null ? `a[${scanIndex}] already belongs left` : "Grow the smaller zone";
+    detail = `Boundary advances to ${boundaryIndex ?? "the next slot"} without a visible swap.`;
+  } else if (operation === "swap" && swapPair) {
+    headline = `Move smaller value into slot ${swapPair[0]}`;
+    detail = `Swap a[${swapPair[0]}] and a[${swapPair[1]}], then advance boundary i to ${boundaryIndex ?? "the next slot"}.`;
+  } else if (operation === "pivot") {
+    headline = finalIndex !== null && pivotValue !== null ? `Pivot ${pivotValue} locks at index ${finalIndex}` : "Lock the pivot";
+    detail = "Everything left of the pivot is smaller; everything right is larger or equal. That pivot will not move again.";
+  } else if (operation === "single") {
+    headline = finalIndex !== null ? `Single index ${finalIndex} is sorted` : "Single value is sorted";
+    detail = "A one-element partition is already done, so recursion returns.";
+  } else if (operation === "complete") {
+    headline = "Array sorted";
+    detail = step.description;
+  }
+
+  return {
+    ...array,
+    range,
+    pivotIndex,
+    pivotValue,
+    boundaryIndex,
+    scanIndex,
+    finalIndex,
+    comparePair,
+    swapPair,
+    sortedIndices,
+    comparisons,
+    swaps,
+    operation,
+    headline,
+    detail,
+  };
+}
+
+export function isQuickSortTraceStep(step: TraceStep): boolean {
+  if (step.visual?.type !== "array") return false;
+  const model = getQuickSortSceneModel(step);
+  if (!model || model.item.id !== "arr" || model.values.length < 2) return false;
+
+  const phases = new Set((step.actions ?? []).map((action) => textValue(action.phase)).filter(Boolean));
+  const description = step.description.toLowerCase();
+
+  return [...phases].some((phase) => phase?.startsWith("quick_")) || description.includes("quick sort");
 }
 
 function primaryMergeAction(step: TraceStep) {

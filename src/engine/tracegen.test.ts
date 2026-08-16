@@ -40,6 +40,9 @@ describe("quick sort recorder", () => {
     const last = steps[steps.length - 1];
     expect(sorted(last.array)).toBe(true);
     expect(steps.some((s) => s.key !== undefined)).toBe(true);
+    expect(steps.some((s) => s.phase === "partition" && s.pivotValue !== null)).toBe(true);
+    expect(steps.some((s) => s.phase === "compare" && s.scanIndex !== null && s.boundary !== null)).toBe(true);
+    expect(steps.some((s) => s.phase === "pivot" && s.finalIndex !== null)).toBe(true);
   });
 });
 

@@ -897,8 +897,6 @@ function factorialLoopTrace(n: number, code: string): TraceDocument {
 }
 
 function binarySearchTraceGen(values: number[], target: number, code: string): TraceDocument {
-  if (kind === "quick") return quickTrace(values, code);
-
   const steps = binarySearchSteps(values, target);
   const b = new TraceBuilder({
     title: "Binary Search",
@@ -941,6 +939,8 @@ function sortTrace(
   values: number[],
   code: string,
 ): TraceDocument {
+  if (kind === "quick") return quickTrace(values, code);
+
   const steps =
     kind === "bubble"
       ? bubbleSortSteps(values)

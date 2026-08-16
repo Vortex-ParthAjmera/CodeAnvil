@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 import { buildBubbleSortTrace } from "../data/traces/bubble-sort";
+import { generateTrace } from "./tracegen";
 import type { TraceStep } from "../types/trace";
-import { getBubbleSortSceneModel, getSortedIndices, isBubbleSortTraceStep } from "./sortStage";
+import {
+  getBubbleSortSceneModel,
+  getMergeSortSceneModel,
+  getSortedIndices,
+  isBubbleSortTraceStep,
+  isMergeSortTraceStep,
+} from "./sortStage";
 
 describe("sort stage helpers", () => {
   it("detects bubble-sort array trace steps", () => {
@@ -27,6 +34,55 @@ describe("sort stage helpers", () => {
     });
 
     expect(getSortedIndices(completeStep)).toEqual([0, 1, 2, 3]);
+  });
+
+  it("detects merge-sort compare and write phases without collapsing them", () => {
+    const trace = generateTrace("merge-sort", { array: [8, 3, 5, 1, 9, 2] });
+    const compareStep = trace.steps.find((step) => step.actions?.some((action) => action.phase === "merge_compare"));
+    const writeStep = trace.steps.find((step) => step.actions?.some((action) => action.phase === "merge_write"));
+
+    expect(compareStep).toBeDefined();
+    expect(writeStep).toBeDefined();
+    expect(compareStep?.event).toBe("comparison");
+    expect(writeStep?.event).toBe("array_write");
+    expect(isMergeSortTraceStep(compareStep!)).toBe(true);
+    expect(isBubbleSortTraceStep(compareStep!)).toBe(false);
+
+    const compareModel = getMergeSortSceneModel(compareStep!);
+    expect(compareModel).toMatchObject({
+      operation: "compare",
+      range: [0, 1],
+      compareValues: [8, 3],
+      destinationIndex: 0,
+      takeSide: "right",
+    });
+
+    const writeModel = getMergeSortSceneModel(writeStep!);
+    expect(writeModel).toMatchObject({
+      operation: "write",
+      writingIndex: 0,
+      value: 3,
+      writes: 1,
+    });
+  });
+
+  it("detects merge-sort split and completion metadata", () => {
+    const trace = generateTrace("merge-sort", { array: [8, 3, 5, 1, 9, 2] });
+    const splitStep = trace.steps.find((step) => step.actions?.some((action) => action.phase === "merge_split"));
+    const completeStep = trace.steps[trace.steps.length - 1];
+
+    expect(splitStep).toBeDefined();
+    expect(getMergeSortSceneModel(splitStep!)).toMatchObject({
+      operation: "split",
+      range: [0, 5],
+      mid: 2,
+      leftRange: [0, 2],
+      rightRange: [3, 5],
+    });
+    expect(getMergeSortSceneModel(completeStep)).toMatchObject({
+      operation: "complete",
+      range: [0, 5],
+    });
   });
 
   it("does not claim unrelated array traces are bubble-sort scenes", () => {

@@ -62,29 +62,95 @@ const clone = <T,>(a: T[]): T[] => [...a];
 /* New step recorders                                                  */
 /* ------------------------------------------------------------------ */
 
+export type MergePhase = "start" | "split" | "compare" | "write" | "copy" | "complete";
+
 export interface MergeStep {
   array: number[];
   /** Active merge window (start..end inclusive). */
   range: [number, number];
+  /** Split midpoint for the active merge window. */
+  mid: number | null;
+  leftRange: [number, number] | null;
+  rightRange: [number, number] | null;
+  leftValues: number[];
+  rightValues: number[];
   /** Index currently being written. */
   writing: number;
+  /** Destination slot for a compare/write frame. */
+  destination: number | null;
+  /** Source indices compared from the left and right runs. */
+  compare: [number, number] | null;
+  compareValues: [number, number] | null;
+  sourceIndex: number | null;
+  value: number | null;
+  takeSide: "left" | "right" | null;
+  phase: MergePhase;
   description: string;
   comparisons: number;
   writes: number;
 }
 
-/** Recursive merge sort that records compare + write operations. */
+interface MergeRecordExtras {
+  mid?: number | null;
+  leftRange?: [number, number] | null;
+  rightRange?: [number, number] | null;
+  leftValues?: number[];
+  rightValues?: number[];
+  destination?: number | null;
+  compare?: [number, number] | null;
+  compareValues?: [number, number] | null;
+  sourceIndex?: number | null;
+  value?: number | null;
+  takeSide?: "left" | "right" | null;
+  phase: MergePhase;
+}
+
+/** Recursive merge sort that records compare and write operations separately. */
 export function mergeSortSteps(input: number[]): MergeStep[] {
   const a = clone(input);
   const steps: MergeStep[] = [];
   let comparisons = 0;
   let writes = 0;
 
-  const record = (range: [number, number], writing: number, description: string) => {
-    steps.push({ array: clone(a), range, writing, description, comparisons, writes });
+  const rangeValues = (range: [number, number] | null) =>
+    range ? a.slice(range[0], range[1] + 1) : [];
+
+  const record = (
+    range: [number, number],
+    writing: number,
+    description: string,
+    extras: MergeRecordExtras,
+  ) => {
+    const leftValues = extras.leftValues ?? rangeValues(extras.leftRange ?? null);
+    const rightValues = extras.rightValues ?? rangeValues(extras.rightRange ?? null);
+    steps.push({
+      array: clone(a),
+      range,
+      mid: extras.mid ?? null,
+      leftRange: extras.leftRange ?? null,
+      rightRange: extras.rightRange ?? null,
+      leftValues,
+      rightValues,
+      writing,
+      destination: extras.destination ?? (writing >= 0 ? writing : null),
+      compare: extras.compare ?? null,
+      compareValues: extras.compareValues ?? null,
+      sourceIndex: extras.sourceIndex ?? null,
+      value: extras.value ?? (writing >= 0 ? a[writing] : null),
+      takeSide: extras.takeSide ?? null,
+      phase: extras.phase,
+      description,
+      comparisons,
+      writes,
+    });
   };
 
-  record([0, a.length - 1], -1, `Merge sort splits ${a.length} elements down to single-element runs, then merges them back up in sorted order.`);
+  record(
+    [0, a.length - 1],
+    -1,
+    `Merge sort splits ${a.length} elements down to single-element runs, then merges them back up in sorted order.`,
+    { phase: "start" },
+  );
 
   function merge(lo: number, mid: number, hi: number) {
     const left = a.slice(lo, mid + 1);
@@ -92,27 +158,94 @@ export function mergeSortSteps(input: number[]): MergeStep[] {
     let i = 0;
     let j = 0;
     let k = lo;
+    const leftRange: [number, number] = [lo, mid];
+    const rightRange: [number, number] = [mid + 1, hi];
+
     while (i < left.length && j < right.length) {
       comparisons++;
-      const takeLeft = left[i] <= right[j];
-      record([lo, hi], k, takeLeft
-        ? `Compare ${left[i]} vs ${right[j]} — take ${left[i]} from the left run.`
-        : `Compare ${left[i]} vs ${right[j]} — take ${right[j]} from the right run.`);
-      a[k] = takeLeft ? left[i++] : right[j++];
+      const leftValue = left[i];
+      const rightValue = right[j];
+      const takeLeft = leftValue <= rightValue;
+      const sourceIndex = takeLeft ? lo + i : mid + 1 + j;
+      const value = takeLeft ? leftValue : rightValue;
+      record(
+        [lo, hi],
+        -1,
+        takeLeft
+          ? `Compare ${leftValue} vs ${rightValue} - take ${leftValue} from the left run.`
+          : `Compare ${leftValue} vs ${rightValue} - take ${rightValue} from the right run.`,
+        {
+          phase: "compare",
+          mid,
+          leftRange,
+          rightRange,
+          leftValues: left,
+          rightValues: right,
+          destination: k,
+          compare: [lo + i, mid + 1 + j],
+          compareValues: [leftValue, rightValue],
+          sourceIndex,
+          value,
+          takeSide: takeLeft ? "left" : "right",
+        },
+      );
+
+      a[k] = value;
+      if (takeLeft) i++;
+      else j++;
       writes++;
-      record([lo, hi], k, `Write ${a[k]} into merged position ${k}.`);
+      record([lo, hi], k, `Write ${value} into merged position ${k}.`, {
+        phase: "write",
+        mid,
+        leftRange,
+        rightRange,
+        leftValues: left,
+        rightValues: right,
+        destination: k,
+        sourceIndex,
+        value,
+        takeSide: takeLeft ? "left" : "right",
+      });
       k++;
     }
+
     while (i < left.length) {
-      a[k] = left[i++];
+      const sourceIndex = lo + i;
+      const value = left[i++];
+      a[k] = value;
       writes++;
-      record([lo, hi], k, `Left run has ${left[i - 1]} left — copy it to position ${k}.`);
+      record([lo, hi], k, `Left run has ${value} left - copy it to position ${k}.`, {
+        phase: "copy",
+        mid,
+        leftRange,
+        rightRange,
+        leftValues: left,
+        rightValues: right,
+        destination: k,
+        sourceIndex,
+        value,
+        takeSide: "left",
+      });
       k++;
     }
+
     while (j < right.length) {
-      a[k] = right[j++];
+      const sourceIndex = mid + 1 + j;
+      const value = right[j++];
+      a[k] = value;
       writes++;
-      record([lo, hi], k, `Right run has ${right[j - 1]} left — copy it to position ${k}.`);
+      record([lo, hi], k, `Right run has ${value} left - copy it to position ${k}.`, {
+        phase: "copy",
+        mid,
+        leftRange,
+        rightRange,
+        leftValues: left,
+        rightValues: right,
+        destination: k,
+        sourceIndex,
+        value,
+        takeSide: "right",
+      });
       k++;
     }
   }
@@ -120,14 +253,21 @@ export function mergeSortSteps(input: number[]): MergeStep[] {
   function sort(lo: number, hi: number) {
     if (lo >= hi) return;
     const mid = Math.floor((lo + hi) / 2);
-    record([lo, hi], -1, `Split [${lo}..${hi}] at mid ${mid}.`);
+    record([lo, hi], -1, `Split [${lo}..${hi}] at mid ${mid}.`, {
+      phase: "split",
+      mid,
+      leftRange: [lo, mid],
+      rightRange: [mid + 1, hi],
+    });
     sort(lo, mid);
     sort(mid + 1, hi);
     merge(lo, mid, hi);
   }
 
   sort(0, a.length - 1);
-  steps.push({ array: clone(a), range: [0, a.length - 1], writing: -1, description: `Sorted! ${comparisons} comparisons and ${writes} writes.`, comparisons, writes });
+  record([0, a.length - 1], -1, `Sorted! ${comparisons} comparisons and ${writes} writes.`, {
+    phase: "complete",
+  });
   return steps;
 }
 
@@ -775,23 +915,88 @@ function mergeTrace(values: number[], code: string): TraceDocument {
     language: detectLanguage(code),
     durationSeconds: 120,
   });
+
+  const lineFor = (s: MergeStep, isFirst: boolean, isLast: boolean) => {
+    if (isFirst) return 1;
+    if (isLast) return 11;
+    if (s.phase === "compare") return 5;
+    if (s.phase === "write" || s.phase === "copy") return 10;
+    return 5;
+  };
+
+  const eventFor = (s: MergeStep, isFirst: boolean, isLast: boolean) => {
+    if (isFirst) return "program_start";
+    if (isLast) return "program_end";
+    if (s.phase === "compare") return "comparison";
+    if (s.phase === "write" || s.phase === "copy") return "array_write";
+    return "line_enter";
+  };
+
+  const actionFor = (s: MergeStep) => {
+    const common = {
+      range: s.range,
+      mid: s.mid,
+      leftRange: s.leftRange,
+      rightRange: s.rightRange,
+      leftValues: s.leftValues,
+      rightValues: s.rightValues,
+      destination: s.destination,
+      take: s.takeSide,
+      sourceIndex: s.sourceIndex,
+      value: s.value,
+    };
+
+    if (s.phase === "compare" && s.compare && s.compareValues) {
+      return {
+        type: "compare",
+        phase: "merge_compare",
+        indices: s.compare,
+        values: s.compareValues,
+        result: s.takeSide === "left",
+        ...common,
+      };
+    }
+
+    if ((s.phase === "write" || s.phase === "copy") && s.writing >= 0) {
+      return {
+        type: "array_write",
+        phase: s.phase === "copy" ? "merge_copy" : "merge_write",
+        index: s.writing,
+        ...common,
+      };
+    }
+
+    return {
+      type: "merge_split",
+      phase: s.phase === "complete" ? "merge_complete" : s.phase === "start" ? "merge_start" : "merge_split",
+      ...common,
+    };
+  };
+
   steps.forEach((s, i) => {
     const highlights: { index: number; role: string }[] = [];
     if (s.range[0] >= 0 && s.range[0] < s.array.length) {
       for (let j = s.range[0]; j <= s.range[1]; j++) highlights.push({ index: j, role: "range" });
     }
+    if (s.leftRange) {
+      for (let j = s.leftRange[0]; j <= s.leftRange[1]; j++) highlights.push({ index: j, role: "left-run" });
+    }
+    if (s.rightRange) {
+      for (let j = s.rightRange[0]; j <= s.rightRange[1]; j++) highlights.push({ index: j, role: "right-run" });
+    }
+    s.compare?.forEach((index) => highlights.push({ index, role: "compare" }));
     if (s.writing >= 0) highlights.push({ index: s.writing, role: "writing" });
     const isFirst = i === 0;
     const isLast = i === steps.length - 1;
     b.step({
-      line: isFirst ? 1 : isLast ? 11 : s.writing >= 0 ? 10 : 5,
-      event: isFirst ? "program_start" : isLast ? "program_end" : s.writing >= 0 ? "array_write" : "line_enter",
+      line: lineFor(s, isFirst, isLast),
+      event: eventFor(s, isFirst, isLast),
       description: s.description,
       variables: { comparisons: s.comparisons, writes: s.writes, arr: `[${s.array.join(", ")}]` },
       memory: [arrayMemory("arr", "arr", s.array, highlights)],
       visual: arrayVisual("arr"),
-      changed: { variables: s.writing >= 0 ? ["arr", "writes"] : ["comparisons"] },
-      actions: [s.writing >= 0 ? { type: "array_write", index: s.writing } : { type: "merge_split", range: s.range }],
+      changed: { variables: s.phase === "write" || s.phase === "copy" ? ["arr", "writes"] : ["comparisons"] },
+      actions: [actionFor(s)],
     });
   });
   b.prompt({

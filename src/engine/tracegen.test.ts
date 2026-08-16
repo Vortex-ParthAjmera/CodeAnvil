@@ -19,6 +19,19 @@ describe("merge sort recorder", () => {
     expect(sorted(last.array)).toBe(true);
     expect(steps.some((s) => s.writing >= 0)).toBe(true);
   });
+
+  it("separates compare frames from write frames", () => {
+    const trace = generateTrace("merge-sort", { array: [8, 3] });
+    const compare = trace.steps.find((step) => step.actions?.some((action) => action.phase === "merge_compare"));
+    const write = trace.steps.find((step) => step.actions?.some((action) => action.phase === "merge_write"));
+
+    expect(compare).toBeDefined();
+    expect(write).toBeDefined();
+    expect(compare?.event).toBe("comparison");
+    expect(write?.event).toBe("array_write");
+    expect(compare?.memory?.[0].value).toEqual([8, 3]);
+    expect(write?.memory?.[0].value).toEqual([3, 3]);
+  });
 });
 
 describe("quick sort recorder", () => {

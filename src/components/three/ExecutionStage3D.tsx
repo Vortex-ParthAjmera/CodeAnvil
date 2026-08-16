@@ -2,6 +2,7 @@ import type { GridHighlight, MemoryHighlight, TraceStep } from "../../types/trac
 import { ThreeGrid } from "./ThreeGrid";
 import { BinarySearchStage3D } from "./BinarySearchStage3D";
 import { BubbleSortStage3D } from "./BubbleSortStage3D";
+import { MergeSortStage3D } from "./MergeSortStage3D";
 import { FactorialRecursionStage3D } from "./FactorialRecursionStage3D";
 import { GridSearchStage3D } from "./GridSearchStage3D";
 import { ThreeStage } from "./ThreeStage";
@@ -10,7 +11,7 @@ import { selectRendererForStep } from "../../engine/traceActions";
 import { isFactorialRecursionStep } from "../../engine/recursionStage";
 import { isGridSearchTraceStep } from "../../engine/gridStage";
 import { isBinarySearchTraceStep } from "../../engine/searchStage";
-import { isBubbleSortTraceStep } from "../../engine/sortStage";
+import { isBubbleSortTraceStep, isMergeSortTraceStep } from "../../engine/sortStage";
 
 function isArrayHighlight(
   h: MemoryHighlight | GridHighlight,
@@ -34,6 +35,10 @@ export function ExecutionStage3D({ step }: { step: TraceStep }) {
 
   if (dispatch.kind === "array" && isBubbleSortTraceStep(step)) {
     return <BubbleSortStage3D step={step} />;
+  }
+
+  if (dispatch.kind === "array" && isMergeSortTraceStep(step)) {
+    return <MergeSortStage3D step={step} />;
   }
 
   if (dispatch.kind === "recursion_tree" && isFactorialRecursionStep(step)) {

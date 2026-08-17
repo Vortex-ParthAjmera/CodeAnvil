@@ -26,7 +26,7 @@ import { useStepPlayback } from "../engine/useStepPlayback";
 import { isFactorialRecursionStep } from "../engine/recursionStage";
 import { isGridSearchTraceStep } from "../engine/gridStage";
 import { isBinarySearchTraceStep } from "../engine/searchStage";
-import { isBubbleSortTraceStep } from "../engine/sortStage";
+import { isBubbleSortTraceStep, isHeapSortTraceStep, isMergeSortTraceStep, isQuickSortTraceStep } from "../engine/sortStage";
 import { registerGeneratedExample } from "../data/examples";
 import { VISUALIZER_DRAFT_KEY } from "../data/dsaCatalog";
 import type { Route } from "../router";
@@ -194,6 +194,9 @@ export function VisualizerScreen({ onNavigate }: { onNavigate: (route: Route) =>
       (isGridSearchTraceStep(step) ||
         isBinarySearchTraceStep(step) ||
         isBubbleSortTraceStep(step) ||
+        isMergeSortTraceStep(step) ||
+        isQuickSortTraceStep(step) ||
+        isHeapSortTraceStep(step) ||
         isFactorialRecursionStep(step))
     : false;
 

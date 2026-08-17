@@ -4,10 +4,12 @@ import { generateTrace } from "./tracegen";
 import type { TraceStep } from "../types/trace";
 import {
   getBubbleSortSceneModel,
+  getHeapSortSceneModel,
   getMergeSortSceneModel,
   getQuickSortSceneModel,
   getSortedIndices,
   isBubbleSortTraceStep,
+  isHeapSortTraceStep,
   isMergeSortTraceStep,
   isQuickSortTraceStep,
 } from "./sortStage";
@@ -119,6 +121,42 @@ describe("sort stage helpers", () => {
       pivotIndex: 1,
       pivotValue: 2,
       finalIndex: 1,
+    });
+  });
+
+  it("routes heap-sort heapify, compare, extract, and completion phases to the heap renderer", () => {
+    const trace = generateTrace("heap-sort", { array: [4, 10, 3, 5, 1] });
+    const heapifyStep = trace.steps.find((step) => step.actions?.some((action) => action.phase === "heap_heapify"));
+    const compareStep = trace.steps.find((step) => step.actions?.some((action) => action.phase === "heap_compare-left"));
+    const extractStep = trace.steps.find((step) => step.actions?.some((action) => action.phase === "heap_extract"));
+    const completeStep = trace.steps[trace.steps.length - 1];
+
+    expect(heapifyStep).toBeDefined();
+    expect(compareStep).toBeDefined();
+    expect(extractStep).toBeDefined();
+    expect(isHeapSortTraceStep(compareStep!)).toBe(true);
+    expect(isBubbleSortTraceStep(compareStep!)).toBe(false);
+
+    expect(getHeapSortSceneModel(heapifyStep!)).toMatchObject({
+      operation: "heapify",
+      heapSize: 5,
+      parentIndex: 1,
+    });
+
+    expect(getHeapSortSceneModel(compareStep!)).toMatchObject({
+      operation: "compare-left",
+      heapSize: 5,
+    });
+
+    expect(getHeapSortSceneModel(extractStep!)).toMatchObject({
+      operation: "extract",
+      extractIndex: 4,
+      heapSize: 4,
+    });
+
+    expect(getHeapSortSceneModel(completeStep)).toMatchObject({
+      operation: "complete",
+      heapSize: 0,
     });
   });
 

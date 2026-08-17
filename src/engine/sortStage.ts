@@ -9,6 +9,7 @@ export interface ArrayTraceModel {
 export type SortOperation = "start" | "compare" | "swap" | "settle" | "complete" | "scan";
 export type MergeSortOperation = "start" | "split" | "compare" | "write" | "copy" | "complete";
 export type QuickSortOperation = "start" | "partition" | "compare" | "keep" | "swap" | "pivot" | "single" | "complete";
+export type HeapSortOperation = "start" | "heapify" | "compare-left" | "compare-right" | "swap-down" | "keep" | "heap-built" | "extract" | "complete";
 
 export interface BubbleSortSceneModel extends ArrayTraceModel {
   comparePair: [number, number] | null;
@@ -56,6 +57,23 @@ export interface QuickSortSceneModel extends ArrayTraceModel {
   comparisons: number | null;
   swaps: number | null;
   operation: QuickSortOperation;
+  headline: string;
+  detail: string;
+}
+
+export interface HeapSortSceneModel extends ArrayTraceModel {
+  heapSize: number;
+  parentIndex: number | null;
+  leftIndex: number | null;
+  rightIndex: number | null;
+  candidateIndex: number | null;
+  extractIndex: number | null;
+  comparePair: [number, number] | null;
+  swapPair: [number, number] | null;
+  sortedIndices: number[];
+  comparisons: number | null;
+  swaps: number | null;
+  operation: HeapSortOperation;
   headline: string;
   detail: string;
 }
@@ -203,7 +221,7 @@ export function isBubbleSortTraceStep(step: TraceStep): boolean {
   const actionPhases = new Set((step.actions ?? []).map((action) => textValue(action.phase)).filter(Boolean));
   const description = step.description.toLowerCase();
 
-  if ([...actionPhases].some((phase) => phase?.startsWith("quick_"))) return false;
+  if ([...actionPhases].some((phase) => phase?.startsWith("quick_") || phase?.startsWith("heap_"))) return false;
 
   return (
     description.includes("bubble") ||
@@ -355,6 +373,104 @@ export function isQuickSortTraceStep(step: TraceStep): boolean {
   const description = step.description.toLowerCase();
 
   return [...phases].some((phase) => phase?.startsWith("quick_")) || description.includes("quick sort");
+}
+
+function primaryHeapAction(step: TraceStep) {
+  return step.actions?.find((action) => textValue(action.phase)?.startsWith("heap_")) ?? null;
+}
+
+export function getHeapSortSceneModel(step: TraceStep): HeapSortSceneModel | null {
+  const array = getArrayTraceModel(step);
+  if (!array) return null;
+
+  const action = primaryHeapAction(step);
+  const actionPhase = textValue(action?.phase);
+  const rawHeapSize = numeric(action?.heapSize) ?? numeric(step.variables.heap_size) ?? array.values.length;
+  const heapSize = Math.max(0, Math.min(array.values.length, rawHeapSize));
+  const parentCandidate = numeric(action?.parentIndex) ?? firstHighlightIndex(array.highlights, "parent");
+  const parentIndex = parentCandidate !== null && parentCandidate >= 0 && parentCandidate < array.values.length ? parentCandidate : null;
+  const leftCandidate = numeric(action?.leftIndex) ?? firstHighlightIndex(array.highlights, "left");
+  const leftIndex = leftCandidate !== null && leftCandidate >= 0 && leftCandidate < array.values.length ? leftCandidate : null;
+  const rightCandidate = numeric(action?.rightIndex) ?? firstHighlightIndex(array.highlights, "right");
+  const rightIndex = rightCandidate !== null && rightCandidate >= 0 && rightCandidate < array.values.length ? rightCandidate : null;
+  const candidateRaw = numeric(action?.candidateIndex) ?? firstHighlightIndex(array.highlights, "candidate") ?? firstHighlightIndex(array.highlights, "key");
+  const candidateIndex = candidateRaw !== null && candidateRaw >= 0 && candidateRaw < array.values.length ? candidateRaw : null;
+  const extractRaw = numeric(action?.extractIndex) ?? firstHighlightIndex(array.highlights, "extract");
+  const extractIndex = extractRaw !== null && extractRaw >= 0 && extractRaw < array.values.length ? extractRaw : null;
+  const comparePair = getActionIndexPair(step, ["compare", "comparison"]);
+  const swapPair = getActionIndexPair(step, ["swap"]);
+  const sortedIndices = getSortedIndices(step);
+  const comparisons = numeric(step.variables.comparisons);
+  const swaps = numeric(step.variables.swaps);
+
+  let operation: HeapSortOperation = "heapify";
+  if (step.event === "program_start" || actionPhase === "heap_start") operation = "start";
+  else if (step.event === "program_end" || actionPhase === "heap_complete") operation = "complete";
+  else if (actionPhase === "heap_compare-left") operation = "compare-left";
+  else if (actionPhase === "heap_compare-right") operation = "compare-right";
+  else if (actionPhase === "heap_swap-down") operation = "swap-down";
+  else if (actionPhase === "heap_keep") operation = "keep";
+  else if (actionPhase === "heap_heap-built") operation = "heap-built";
+  else if (actionPhase === "heap_extract") operation = "extract";
+
+  let headline = step.description;
+  let detail = "Heap Sort maintains a max-heap in the unsorted prefix and grows a sorted tail on the right.";
+
+  if (operation === "start") {
+    headline = "Heap Sort starts";
+    detail = "First build a max-heap so the largest unsorted value rises to index 0.";
+  } else if (operation === "heapify") {
+    headline = parentIndex !== null ? `Heapify subtree at index ${parentIndex}` : "Heapify subtree";
+    detail = `Unsorted heap size is ${heapSize}; the sorted tail is outside that boundary.`;
+  } else if (operation === "compare-left" || operation === "compare-right") {
+    const child = operation === "compare-left" ? leftIndex : rightIndex;
+    headline = parentIndex !== null && child !== null ? `Compare parent ${parentIndex} with child ${child}` : step.description;
+    detail = candidateIndex !== null ? `Current largest candidate is index ${candidateIndex}.` : "Choose the larger child before deciding whether to swap down.";
+  } else if (operation === "swap-down" && swapPair) {
+    headline = `Swap parent ${swapPair[0]} with child ${swapPair[1]}`;
+    detail = "The larger child moves upward, restoring the max-heap rule along this path.";
+  } else if (operation === "keep") {
+    headline = parentIndex !== null ? `Index ${parentIndex} obeys the max-heap rule` : "Heap rule holds";
+    detail = "No child is larger, so sift-down can stop for this subtree.";
+  } else if (operation === "heap-built") {
+    headline = "Max-heap built";
+    detail = "The root now holds the largest value in the unsorted heap.";
+  } else if (operation === "extract") {
+    headline = extractIndex !== null ? `Extract max to index ${extractIndex}` : "Extract max to sorted tail";
+    detail = `Swap the root with the tail, shrink heap size to ${heapSize}, then repair the heap.`;
+  } else if (operation === "complete") {
+    headline = "Array sorted";
+    detail = step.description;
+  }
+
+  return {
+    ...array,
+    heapSize,
+    parentIndex,
+    leftIndex,
+    rightIndex,
+    candidateIndex,
+    extractIndex,
+    comparePair,
+    swapPair,
+    sortedIndices,
+    comparisons,
+    swaps,
+    operation,
+    headline,
+    detail,
+  };
+}
+
+export function isHeapSortTraceStep(step: TraceStep): boolean {
+  if (step.visual?.type !== "array") return false;
+  const model = getHeapSortSceneModel(step);
+  if (!model || model.item.id !== "arr" || model.values.length < 2) return false;
+
+  const phases = new Set((step.actions ?? []).map((action) => textValue(action.phase)).filter(Boolean));
+  const description = step.description.toLowerCase();
+
+  return [...phases].some((phase) => phase?.startsWith("heap_")) || description.includes("heap sort");
 }
 
 function primaryMergeAction(step: TraceStep) {

@@ -103,6 +103,18 @@ export interface QuickStep extends SortStep {
   finalIndex: number | null;
 }
 
+export type HeapPhase = "start" | "heapify" | "compare-left" | "compare-right" | "swap-down" | "keep" | "heap-built" | "extract" | "complete";
+
+export interface HeapStep extends SortStep {
+  phase: HeapPhase;
+  heapSize: number;
+  parentIndex: number | null;
+  leftIndex: number | null;
+  rightIndex: number | null;
+  candidateIndex: number | null;
+  extractIndex: number | null;
+}
+
 interface MergeRecordExtras {
   mid?: number | null;
   leftRange?: [number, number] | null;
@@ -425,75 +437,161 @@ export function quickSortSteps(input: number[]): QuickStep[] {
   return steps;
 }
 
-/** Heap sort — heapify with swaps, then extract the max into the sorted tail. */
-export function heapSortSteps(input: number[]): ReturnType<typeof bubbleSortSteps> {
+// Heap sort - records max-heap structure, sift-down comparisons, extraction, and sorted tail.
+export function heapSortSteps(input: number[]): HeapStep[] {
   const a = clone(input);
-  const steps: ReturnType<typeof bubbleSortSteps> = [];
+  const steps: HeapStep[] = [];
   let comparisons = 0;
   let swaps = 0;
+  const sorted = new Set<number>();
 
-  steps.push({
-    array: clone(a),
-    sortedUpTo: -1,
-    description: `Heap sort first builds a max-heap (largest value at index 0), then repeatedly swaps the root to the end and re-heapifies.`,
-    comparisons,
-    swaps,
-  });
+  const sortedSnapshot = () => [...sorted].sort((left, right) => left - right);
 
-  const rec = (arr: number[], description: string, key?: number, sortedUpTo = -1, swap?: [number, number], compare?: [number, number]) => {
-    steps.push({ array: clone(arr), description, comparisons, swaps, key, sortedUpTo, swap, compare });
+  const record = (
+    phase: HeapPhase,
+    description: string,
+    extras: Partial<Omit<HeapStep, "array" | "description" | "comparisons" | "swaps" | "phase">> = {},
+  ) => {
+    steps.push({
+      array: clone(a),
+      sortedUpTo: extras.sortedUpTo ?? -1,
+      sortedIndices: extras.sortedIndices ?? sortedSnapshot(),
+      compare: extras.compare,
+      swap: extras.swap,
+      key: extras.key,
+      heapSize: extras.heapSize ?? a.length,
+      parentIndex: extras.parentIndex ?? null,
+      leftIndex: extras.leftIndex ?? null,
+      rightIndex: extras.rightIndex ?? null,
+      candidateIndex: extras.candidateIndex ?? null,
+      extractIndex: extras.extractIndex ?? null,
+      phase,
+      description,
+      comparisons,
+      swaps,
+    });
   };
 
-  function siftDown(n: number, i: number, sortedUpTo: number) {
+  record(
+    "start",
+    `Heap sort first builds a max-heap, then repeatedly moves the root maximum into the sorted tail.`,
+    { heapSize: a.length },
+  );
+
+  function siftDown(heapSize: number, start: number, extractIndex: number | null) {
+    let parent = start;
     while (true) {
-      let largest = i;
-      const l = 2 * i + 1;
-      const r = 2 * i + 2;
-      if (l < n) {
+      let largest = parent;
+      const left = 2 * parent + 1;
+      const right = 2 * parent + 2;
+
+      if (left < heapSize) {
         comparisons++;
-        rec(a, `Compare child a[${l}] = ${a[l]} with parent a[${i}] = ${a[i]}.`, i, sortedUpTo, undefined, [i, l]);
-        if (a[l] > a[largest]) largest = l;
+        record("compare-left", `Compare left child a[${left}] = ${a[left]} with parent a[${parent}] = ${a[parent]}.`, {
+          compare: [parent, left],
+          key: parent,
+          heapSize,
+          parentIndex: parent,
+          leftIndex: left,
+          candidateIndex: largest,
+          extractIndex,
+        });
+        if (a[left] > a[largest]) largest = left;
       }
-      if (r < n) {
+
+      if (right < heapSize) {
         comparisons++;
-        rec(a, `Compare child a[${r}] = ${a[r]} with the current largest a[${largest}] = ${a[largest]}.`, largest, sortedUpTo, undefined, [largest, r]);
-        if (a[r] > a[largest]) largest = r;
+        record("compare-right", `Compare right child a[${right}] = ${a[right]} with current largest a[${largest}] = ${a[largest]}.`, {
+          compare: [largest, right],
+          key: largest,
+          heapSize,
+          parentIndex: parent,
+          rightIndex: right,
+          candidateIndex: largest,
+          extractIndex,
+        });
+        if (a[right] > a[largest]) largest = right;
       }
-      if (largest === i) break;
-      [a[i], a[largest]] = [a[largest], a[i]];
+
+      if (largest === parent) {
+        record("keep", `Index ${parent} satisfies the max-heap rule inside heap size ${heapSize}.`, {
+          key: parent,
+          heapSize,
+          parentIndex: parent,
+          candidateIndex: parent,
+          extractIndex,
+        });
+        break;
+      }
+
+      const parentValue = a[parent];
+      const childValue = a[largest];
+      [a[parent], a[largest]] = [a[largest], a[parent]];
       swaps++;
-      rec(a, `${a[i]} is the larger — swap parent and child.`, largest, sortedUpTo, [i, largest]);
-      i = largest;
+      record("swap-down", `${childValue} is larger than ${parentValue}, so swap parent ${parent} with child ${largest}.`, {
+        swap: [parent, largest],
+        key: largest,
+        heapSize,
+        parentIndex: parent,
+        candidateIndex: largest,
+        extractIndex,
+      });
+      parent = largest;
     }
   }
 
-  // Build max-heap (bottom-up).
   for (let i = Math.floor(a.length / 2) - 1; i >= 0; i--) {
-    rec(a, `Heapify from index ${i}.`, i);
-    siftDown(a.length, i, -1);
+    record("heapify", `Heapify subtree rooted at index ${i}.`, {
+      key: i,
+      heapSize: a.length,
+      parentIndex: i,
+      candidateIndex: i,
+    });
+    siftDown(a.length, i, null);
   }
-  rec(a, `Max-heap built — the largest value ${a[0]} sits at the root.`, 0);
 
-  // Extract.
+  record("heap-built", `Max-heap built: root ${a[0]} is the largest unsorted value.`, {
+    key: 0,
+    heapSize: a.length,
+    parentIndex: 0,
+    candidateIndex: 0,
+  });
+
   for (let end = a.length - 1; end > 0; end--) {
+    const rootValue = a[0];
     [a[0], a[end]] = [a[end], a[0]];
     swaps++;
-    rec(a, `Swap the root ${a[end]} into its final sorted position ${end}.`, 0, end, [0, end]);
+    sorted.add(end);
+    record("extract", `Move max ${rootValue} from the root into final sorted position ${end}.`, {
+      swap: [0, end],
+      key: 0,
+      heapSize: end,
+      parentIndex: 0,
+      candidateIndex: 0,
+      extractIndex: end,
+    });
     siftDown(end, 0, end);
-    rec(a, `The tail [${end}..${a.length - 1}] is now sorted.`, 0, end);
+    record("heapify", end > 1 ? `Heap restored for unsorted prefix [0..${end - 1}].` : `Only one unsorted value remains at the root.`, {
+      key: 0,
+      heapSize: end,
+      parentIndex: 0,
+      candidateIndex: 0,
+      extractIndex: end,
+    });
   }
 
-  steps.push({
-    array: clone(a),
+  if (a.length > 0) sorted.add(0);
+  for (let index = 0; index < a.length; index++) sorted.add(index);
+  record("complete", `Sorted! ${comparisons} comparisons and ${swaps} swaps.`, {
     sortedUpTo: a.length - 1,
-    description: `Sorted! ${comparisons} comparisons and ${swaps} swaps.`,
-    comparisons,
-    swaps,
+    sortedIndices: sortedSnapshot(),
+    heapSize: 0,
   });
   return steps;
 }
 
 /* ------------------------------------------------------------------ */
+/* Two-pointer + tree recorders/* ------------------------------------------------------------------ */
 /* Two-pointer + tree recorders                                        */
 /* ------------------------------------------------------------------ */
 
@@ -940,6 +1038,7 @@ function sortTrace(
   code: string,
 ): TraceDocument {
   if (kind === "quick") return quickTrace(values, code);
+  if (kind === "heap") return heapTrace(values, code);
 
   const steps =
     kind === "bubble"
@@ -1080,6 +1179,121 @@ function quickTrace(values: number[], code: string): TraceDocument {
             : s.phase === "compare"
               ? ["j", "comparisons"]
               : ["lo", "hi", "pivot", "i"],
+      },
+      actions: [actionFor(s)],
+    });
+  });
+
+  return b.build();
+}
+
+function heapTrace(values: number[], code: string): TraceDocument {
+  const steps = heapSortSteps(values);
+  const b = new TraceBuilder({
+    title: "Heap Sort",
+    code,
+    topic: "sorting",
+    difficulty: "intermediate",
+    language: detectLanguage(code),
+    durationSeconds: 120,
+  });
+
+  const lineFor = (s: HeapStep, isFirst: boolean, isLast: boolean) => {
+    if (isFirst) return 1;
+    if (isLast) return 12;
+    if (s.phase === "heapify" || s.phase === "heap-built") return 2;
+    if (s.phase === "compare-left" || s.phase === "compare-right") return 5;
+    if (s.phase === "swap-down" || s.phase === "extract") return 10;
+    return 4;
+  };
+
+  const eventFor = (s: HeapStep, isFirst: boolean, isLast: boolean) => {
+    if (isFirst) return "program_start";
+    if (isLast) return "program_end";
+    if (s.phase === "compare-left" || s.phase === "compare-right") return "comparison";
+    if (s.phase === "swap-down" || s.phase === "extract") return "swap";
+    return "line_enter";
+  };
+
+  const actionFor = (s: HeapStep) => {
+    const common = {
+      phase: `heap_${s.phase}`,
+      heapSize: s.heapSize,
+      parentIndex: s.parentIndex,
+      leftIndex: s.leftIndex,
+      rightIndex: s.rightIndex,
+      candidateIndex: s.candidateIndex,
+      extractIndex: s.extractIndex,
+      sortedIndices: s.sortedIndices ?? [],
+    };
+
+    if ((s.phase === "compare-left" || s.phase === "compare-right") && s.compare) {
+      const [left, right] = s.compare;
+      return {
+        type: "compare",
+        indices: s.compare,
+        values: [s.array[left], s.array[right]],
+        result: s.array[right] > s.array[left],
+        ...common,
+      };
+    }
+
+    if ((s.phase === "swap-down" || s.phase === "extract") && s.swap) {
+      return {
+        type: "swap",
+        indices: s.swap,
+        ...common,
+      };
+    }
+
+    return {
+      type: "array_read",
+      index: s.parentIndex ?? s.candidateIndex ?? s.extractIndex ?? 0,
+      ...common,
+    };
+  };
+
+  steps.forEach((s, i) => {
+    const highlights: { index: number; role: string }[] = [];
+    for (let index = 0; index < s.heapSize; index++) highlights.push({ index, role: "range" });
+    for (const index of s.sortedIndices ?? []) highlights.push({ index, role: "sorted" });
+    if (s.compare) {
+      highlights.push({ index: s.compare[0], role: "compare" });
+      highlights.push({ index: s.compare[1], role: "compare" });
+    }
+    if (s.swap) {
+      highlights.push({ index: s.swap[0], role: "swap" });
+      highlights.push({ index: s.swap[1], role: "swap" });
+    }
+    if (s.parentIndex !== null) highlights.push({ index: s.parentIndex, role: "parent" });
+    if (s.leftIndex !== null) highlights.push({ index: s.leftIndex, role: "left" });
+    if (s.rightIndex !== null) highlights.push({ index: s.rightIndex, role: "right" });
+    if (s.candidateIndex !== null) highlights.push({ index: s.candidateIndex, role: "candidate" });
+    if (s.extractIndex !== null) highlights.push({ index: s.extractIndex, role: "extract" });
+    if (s.key !== undefined) highlights.push({ index: s.key, role: "key" });
+
+    b.step({
+      line: lineFor(s, i === 0, i === steps.length - 1),
+      event: eventFor(s, i === 0, i === steps.length - 1),
+      description: s.description,
+      variables: {
+        arr: s.array.map(String).join(", "),
+        heap_size: s.heapSize,
+        parent: s.parentIndex ?? "-",
+        candidate: s.candidateIndex ?? "-",
+        extract_to: s.extractIndex ?? "-",
+        comparisons: s.comparisons,
+        swaps: s.swaps,
+      },
+      memory: [arrayMemory("arr", "arr", s.array, highlights)],
+      visual: arrayVisual("arr"),
+      changed: {
+        variables:
+          s.phase === "swap-down" || s.phase === "extract"
+            ? ["arr", "heap_size", "swaps"]
+            : s.phase === "compare-left" || s.phase === "compare-right"
+              ? ["parent", "candidate", "comparisons"]
+              : ["heap_size", "parent", "candidate"],
       },
       actions: [actionFor(s)],
     });

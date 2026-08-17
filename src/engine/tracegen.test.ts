@@ -47,9 +47,13 @@ describe("quick sort recorder", () => {
 });
 
 describe("heap sort recorder", () => {
-  it("ends fully sorted", () => {
+  it("ends fully sorted and records heap operations", () => {
     const steps = heapSortSteps([4, 10, 3, 5, 1]);
     expect(sorted(steps[steps.length - 1].array)).toBe(true);
+    expect(steps.some((s) => s.phase === "heapify" && s.parentIndex !== null)).toBe(true);
+    expect(steps.some((s) => s.phase === "compare-left" && s.leftIndex !== null)).toBe(true);
+    expect(steps.some((s) => s.phase === "extract" && s.extractIndex !== null && s.heapSize < s.array.length)).toBe(true);
+    expect(steps[steps.length - 1].heapSize).toBe(0);
   });
 });
 

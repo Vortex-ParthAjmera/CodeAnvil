@@ -22,7 +22,7 @@ interface SortBar {
 const GAP = 1.22;
 const BAR_WIDTH = 0.72;
 const BAR_DEPTH = 0.68;
-const MAX_BAR_HEIGHT = 3.05;
+const MAX_BAR_HEIGHT = 2.76;
 
 function colorForBar(bar: SortBar, p: Theme3DPalette): string {
   if (bar.isSwap) return p.emberBright;
@@ -190,7 +190,7 @@ function PairArc({
       <Html position={[mid, high + 0.62, 0]} center style={{ pointerEvents: "none" }}>
         <div
           style={{ borderColor: color }}
-          className="whitespace-nowrap rounded-md border bg-ink-950/94 px-2.5 py-1 font-mono text-xs font-black uppercase leading-none text-ink-50 shadow-xl"
+          className="whitespace-nowrap rounded border bg-ink-950/82 px-2 py-0.5 font-mono text-[10px] font-black uppercase leading-none text-ink-50 shadow-lg backdrop-blur-sm"
         >
           {model.operation === "swap" ? "swap path" : "compare pair"}
         </div>
@@ -345,47 +345,46 @@ function Scene({ model, p }: { model: BubbleSortSceneModel; p: Theme3DPalette })
 function Overlay({ model }: { model: BubbleSortSceneModel }) {
   const pair = model.activePair;
   const pairText = pair ? `a[${pair[0]}] <-> a[${pair[1]}]` : "waiting";
+  const stats = [
+    ["pair", pairText],
+    ["cmp", model.comparisons ?? 0],
+    ["swap", model.swaps ?? 0],
+  ];
 
   return (
     <>
-      <div className="pointer-events-none absolute inset-x-3 top-3 z-10 grid gap-2 md:grid-cols-[minmax(0,1fr)_auto]">
-        <div className="rounded-md border border-arc-400/35 bg-ink-950/88 px-3 py-2 shadow-2xl backdrop-blur-md">
-          <div className="mb-1 flex items-center gap-2">
-            <span className="rounded border border-verdant-400/35 bg-verdant-500/10 px-1.5 py-0.5 font-mono text-[10px] font-black uppercase tracking-widest text-verdant-200">
-              {model.operation}
+      <div className="pointer-events-none absolute inset-x-2 top-2 z-10 flex items-start justify-between gap-2 sm:inset-x-3 sm:top-3">
+        <div className="min-w-0 max-w-[13rem] rounded-md border border-arc-400/30 bg-ink-950/72 px-2.5 py-1.5 shadow-lg backdrop-blur-sm sm:max-w-[18rem]">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <span className="shrink-0 rounded border border-verdant-400/35 bg-verdant-500/10 px-1.5 py-0.5 font-mono text-[9px] font-black uppercase tracking-widest text-verdant-200">
+              bubble / {model.operation}
             </span>
-            <span className="font-mono text-[11px] font-semibold text-ink-400">line {model.item.id === "arr" ? "array" : model.item.id}</span>
+            <span className="truncate font-mono text-[9px] font-semibold uppercase tracking-wider text-ink-400">
+              {model.item.id}
+            </span>
           </div>
-          <p className="text-base font-black leading-tight text-ink-50 md:text-lg">{model.headline}</p>
-          <p className="mt-1 max-w-3xl text-xs leading-relaxed text-ink-300 md:text-sm">{model.detail}</p>
+          <p className="mt-1 truncate text-[11px] font-black leading-tight text-ink-50 sm:text-xs">{model.headline}</p>
         </div>
 
-        <div className="grid grid-cols-3 gap-2 md:w-[21rem]">
-          <div className="rounded-md border border-ink-700/70 bg-ink-950/88 px-2 py-2 text-center shadow-xl backdrop-blur-md">
-            <p className="font-mono text-[9px] font-black uppercase tracking-widest text-ink-500">pair</p>
-            <p className="mt-1 font-mono text-xs font-black text-arc-100">{pairText}</p>
-          </div>
-          <div className="rounded-md border border-ink-700/70 bg-ink-950/88 px-2 py-2 text-center shadow-xl backdrop-blur-md">
-            <p className="font-mono text-[9px] font-black uppercase tracking-widest text-ink-500">compares</p>
-            <p className="mt-1 font-mono text-lg font-black text-ink-50">{model.comparisons ?? 0}</p>
-          </div>
-          <div className="rounded-md border border-ink-700/70 bg-ink-950/88 px-2 py-2 text-center shadow-xl backdrop-blur-md">
-            <p className="font-mono text-[9px] font-black uppercase tracking-widest text-ink-500">swaps</p>
-            <p className="mt-1 font-mono text-lg font-black text-ink-50">{model.swaps ?? 0}</p>
-          </div>
+        <div className="flex max-w-[16rem] flex-wrap justify-end gap-1 sm:max-w-[21rem]">
+          {stats.map(([label, value]) => (
+            <div key={label} className="rounded border border-ink-700/65 bg-ink-950/72 px-1.5 py-1 text-center shadow-lg backdrop-blur-sm">
+              <span className="block font-mono text-[8px] font-black uppercase tracking-widest text-ink-500">{label}</span>
+              <span className="block max-w-[5.5rem] truncate font-mono text-[11px] font-black leading-tight text-ink-50">{value}</span>
+            </div>
+          ))}
         </div>
       </div>
 
-      <div className="pointer-events-none absolute inset-x-3 bottom-3 z-10 flex flex-wrap gap-2">
-        <span className="rounded-md border border-arc-400/35 bg-ink-950/82 px-2 py-1 font-mono text-[10px] font-bold uppercase text-arc-200 backdrop-blur">
-          blue = compare
-        </span>
-        <span className="rounded-md border border-ember-400/35 bg-ink-950/82 px-2 py-1 font-mono text-[10px] font-bold uppercase text-ember-200 backdrop-blur">
-          violet = swap
-        </span>
-        <span className="rounded-md border border-verdant-400/35 bg-ink-950/82 px-2 py-1 font-mono text-[10px] font-bold uppercase text-verdant-200 backdrop-blur">
-          green = sorted
-        </span>
+      <div className="pointer-events-none absolute inset-x-2 bottom-2 z-10 flex items-end justify-between gap-2 sm:inset-x-3 sm:bottom-3">
+        <p className="hidden max-w-[24rem] rounded-md border border-arc-400/25 bg-ink-950/68 px-2 py-1.5 text-[10px] leading-snug text-ink-300 shadow-lg backdrop-blur-sm sm:block">
+          {model.detail}
+        </p>
+        <div className="ml-auto flex flex-wrap justify-end gap-1">
+          <span className="rounded border border-arc-400/35 bg-ink-950/72 px-1.5 py-1 font-mono text-[9px] font-bold uppercase text-arc-200 backdrop-blur">blue compare</span>
+          <span className="rounded border border-ember-400/35 bg-ink-950/72 px-1.5 py-1 font-mono text-[9px] font-bold uppercase text-ember-200 backdrop-blur">violet swap</span>
+          <span className="rounded border border-verdant-400/35 bg-ink-950/72 px-1.5 py-1 font-mono text-[9px] font-bold uppercase text-verdant-200 backdrop-blur">green sorted</span>
+        </div>
       </div>
     </>
   );
@@ -401,7 +400,8 @@ export function BubbleSortStage3D({ step }: { step: TraceStep }) {
     <div className="codeanvil-canvas-fill relative h-full min-h-[22rem] w-full overflow-hidden rounded-md">
       <Canvas
         dpr={[1.25, 2]}
-        camera={{ position: [0, 3.35, 7.6], fov: 38 }}
+        data-testid="bubble-sort-stage-canvas"
+        camera={{ position: [0, 3.45, 8.1], fov: 40 }}
         gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
         style={{ width: "100%", height: "100%", background: "transparent" }}
       >

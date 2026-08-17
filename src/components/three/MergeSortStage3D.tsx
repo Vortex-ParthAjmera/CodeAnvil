@@ -337,43 +337,47 @@ function rangeText(range: [number, number] | null): string {
 
 function Overlay({ model }: { model: MergeSortSceneModel }) {
   const destination = model.destinationIndex !== null ? `a[${model.destinationIndex}]` : "-";
+  const stats = [
+    ["left", rangeText(model.leftRange)],
+    ["right", rangeText(model.rightRange)],
+    ["out", destination],
+    ["cmp/write", `${model.comparisons ?? 0}/${model.writes ?? 0}`],
+  ];
 
   return (
     <>
-      <div className="pointer-events-none absolute inset-x-2 top-2 z-10 grid gap-2 md:inset-x-3 md:top-3 md:grid-cols-[minmax(0,1fr)_20rem]">
-        <div className="rounded-md border border-arc-400/35 bg-ink-950/90 px-3 py-2 shadow-2xl backdrop-blur-md">
-          <div className="mb-1 flex flex-wrap items-center gap-2">
-            <span className="rounded border border-verdant-400/35 bg-verdant-500/10 px-1.5 py-0.5 font-mono text-[10px] font-black uppercase tracking-widest text-verdant-200">
+      <div className="pointer-events-none absolute inset-x-2 top-2 z-10 flex items-start justify-between gap-2 sm:inset-x-3 sm:top-3">
+        <div className="min-w-0 max-w-[13rem] rounded-md border border-arc-400/30 bg-ink-950/72 px-2.5 py-1.5 shadow-lg backdrop-blur-sm sm:max-w-[18rem]">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <span className="shrink-0 rounded border border-verdant-400/35 bg-verdant-500/10 px-1.5 py-0.5 font-mono text-[9px] font-black uppercase tracking-widest text-verdant-200">
               merge / {model.operation}
             </span>
-            <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-ink-400">
-              range {rangeText(model.range)}
+            <span className="truncate font-mono text-[9px] font-semibold uppercase tracking-wider text-ink-400">
+              {rangeText(model.range)}
             </span>
           </div>
-          <p className="max-w-4xl text-sm font-black leading-tight text-ink-50 sm:text-base md:text-lg">{model.headline}</p>
-          <p className="mt-1 max-w-4xl text-[11px] leading-relaxed text-ink-300 sm:text-xs md:text-sm">{model.detail}</p>
+          <p className="mt-1 truncate text-[11px] font-black leading-tight text-ink-50 sm:text-xs">{model.headline}</p>
         </div>
 
-        <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
-          <div className="rounded-md border border-ink-700/70 bg-ink-950/90 px-2 py-2 text-center shadow-xl backdrop-blur-md">
-            <p className="font-mono text-[8px] font-black uppercase tracking-widest text-ink-500 sm:text-[9px]">left/right</p>
-            <p className="mt-1 font-mono text-[10px] font-black text-arc-100 sm:text-xs">{rangeText(model.leftRange)} / {rangeText(model.rightRange)}</p>
-          </div>
-          <div className="rounded-md border border-ink-700/70 bg-ink-950/90 px-2 py-2 text-center shadow-xl backdrop-blur-md">
-            <p className="font-mono text-[8px] font-black uppercase tracking-widest text-ink-500 sm:text-[9px]">output</p>
-            <p className="mt-1 font-mono text-xs font-black text-verdant-100 sm:text-sm">{destination}</p>
-          </div>
-          <div className="rounded-md border border-ink-700/70 bg-ink-950/90 px-2 py-2 text-center shadow-xl backdrop-blur-md">
-            <p className="font-mono text-[8px] font-black uppercase tracking-widest text-ink-500 sm:text-[9px]">cmp/write</p>
-            <p className="mt-1 font-mono text-xs font-black text-ink-50 sm:text-sm">{model.comparisons ?? 0}/{model.writes ?? 0}</p>
-          </div>
+        <div className="flex max-w-[16rem] flex-wrap justify-end gap-1 sm:max-w-[21rem]">
+          {stats.map(([label, value]) => (
+            <div key={label} className="rounded border border-ink-700/65 bg-ink-950/72 px-1.5 py-1 text-center shadow-lg backdrop-blur-sm">
+              <span className="block font-mono text-[8px] font-black uppercase tracking-widest text-ink-500">{label}</span>
+              <span className="block max-w-[4.75rem] truncate font-mono text-[11px] font-black leading-tight text-ink-50">{value}</span>
+            </div>
+          ))}
         </div>
       </div>
 
-      <div className="pointer-events-none absolute inset-x-2 bottom-2 z-10 flex flex-wrap gap-1.5 sm:inset-x-3 sm:bottom-3">
-        <span className="rounded-md border border-arc-400/35 bg-ink-950/86 px-2 py-1 font-mono text-[10px] font-bold uppercase text-arc-200 backdrop-blur">blue = left run</span>
-        <span className="rounded-md border border-ember-400/35 bg-ink-950/86 px-2 py-1 font-mono text-[10px] font-bold uppercase text-ember-200 backdrop-blur">violet = right run</span>
-        <span className="rounded-md border border-verdant-400/35 bg-ink-950/86 px-2 py-1 font-mono text-[10px] font-bold uppercase text-verdant-200 backdrop-blur">green = selected/write</span>
+      <div className="pointer-events-none absolute inset-x-2 bottom-2 z-10 flex items-end justify-between gap-2 sm:inset-x-3 sm:bottom-3">
+        <p className="hidden max-w-[24rem] rounded-md border border-arc-400/25 bg-ink-950/68 px-2 py-1.5 text-[10px] leading-snug text-ink-300 shadow-lg backdrop-blur-sm sm:block">
+          {model.detail}
+        </p>
+        <div className="ml-auto flex flex-wrap justify-end gap-1">
+          <span className="rounded border border-arc-400/35 bg-ink-950/72 px-1.5 py-1 font-mono text-[9px] font-bold uppercase text-arc-200 backdrop-blur">blue left</span>
+          <span className="rounded border border-ember-400/35 bg-ink-950/72 px-1.5 py-1 font-mono text-[9px] font-bold uppercase text-ember-200 backdrop-blur">violet right</span>
+          <span className="rounded border border-verdant-400/35 bg-ink-950/72 px-1.5 py-1 font-mono text-[9px] font-bold uppercase text-verdant-200 backdrop-blur">green write</span>
+        </div>
       </div>
     </>
   );

@@ -277,7 +277,7 @@ function Scene({ model, p }: { model: BinarySearchSceneModel; p: Theme3DPalette 
 function Overlay({ model }: { model: BinarySearchSceneModel }) {
   return (
     <>
-      <div className="pointer-events-none absolute inset-x-3 top-3 z-10 grid gap-2 md:grid-cols-[minmax(0,1fr)_20rem]">
+      <div className="pointer-events-none absolute inset-x-2 top-2 z-10 grid gap-2 md:inset-x-3 md:top-3 @md:grid-cols-[minmax(0,1fr)_auto]">
         <div className="rounded-md border border-arc-400/35 bg-ink-950/88 px-3 py-2 shadow-2xl backdrop-blur-md">
           <div className="mb-1 flex flex-wrap items-center gap-2">
             <span className="rounded border border-arc-400/35 bg-arc-500/10 px-1.5 py-0.5 font-mono text-[10px] font-black uppercase tracking-widest text-arc-200">
@@ -289,7 +289,7 @@ function Overlay({ model }: { model: BinarySearchSceneModel }) {
           <p className="mt-1 max-w-3xl text-xs leading-relaxed text-ink-300 md:text-sm">{model.detail}</p>
         </div>
 
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
           <div className="rounded-md border border-ink-700/70 bg-ink-950/88 px-2 py-2 text-center shadow-xl backdrop-blur-md">
             <p className="font-mono text-[9px] font-black uppercase tracking-widest text-ink-500">target</p>
             <p className="mt-1 font-mono text-lg font-black text-verdant-100">{model.target ?? "-"}</p>
@@ -327,7 +327,7 @@ export function BinarySearchStage3D({ step }: { step: TraceStep }) {
   if (!model) return null;
 
   return (
-    <div className="codeanvil-canvas-fill relative h-full min-h-[23rem] w-full overflow-hidden rounded-md">
+    <div className="codeanvil-canvas-fill relative h-full min-h-[23rem] w-full overflow-hidden rounded-md @container">
       <Canvas
         dpr={[1.25, 2]}
         camera={{ position: [0, 2.1, 7.15], fov: 38 }}

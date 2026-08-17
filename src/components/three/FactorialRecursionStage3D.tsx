@@ -88,20 +88,16 @@ function FrameBlock({
       </mesh>
       <Html position={[0, 0.03, 0.32]} center style={{ pointerEvents: clickable ? "auto" : "none" }}>
         <div
-          className="grid min-w-[18rem] grid-cols-[1fr_auto] items-center gap-4 rounded-md border bg-ink-950/90 px-3 py-2 font-mono shadow-xl backdrop-blur"
+          className="grid min-w-[12rem] grid-cols-[1fr_auto] items-center gap-3 rounded-md border bg-ink-950/90 px-2.5 py-1 font-mono shadow-xl backdrop-blur"
           style={{ borderColor: color, cursor: clickable ? "pointer" : "default" }}
         >
           <div>
-            <p className="text-sm font-black leading-none text-ink-50">{frame.label}</p>
-            <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-ink-500">
+            <p className="text-xs font-black leading-none text-ink-50">{frame.label}</p>
+            <p className="mt-0.5 text-[9px] font-bold uppercase tracking-widest text-ink-500">
               {frame.status === "returned" ? "resolved" : frame.active ? "running" : "waiting"}
             </p>
           </div>
-          <div className="text-right">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-ink-500">n</p>
-            <p className="text-base font-black leading-none text-arc-100">{frame.n}</p>
-          </div>
-          <p className="col-span-2 rounded border border-ink-700/70 bg-ink-900/70 px-2 py-1 text-center text-xs font-black text-ink-100">
+          <p className="max-w-[9rem] truncate rounded border border-ink-700/70 bg-ink-900/70 px-2 py-1 text-center text-[11px] font-black text-ink-100">
             {frame.returnValue !== undefined ? `returns ${frame.returnValue}` : expressionForFrame(frame)}
           </p>
         </div>
@@ -275,44 +271,49 @@ function Scene({
 function Overlay({ model }: { model: FactorialRecursionSceneModel }) {
   return (
     <>
-      <div className="pointer-events-none absolute inset-x-3 top-3 z-10 grid gap-2 md:grid-cols-[minmax(0,1fr)_18rem]">
-        <div className="rounded-md border border-arc-400/35 bg-ink-950/88 px-3 py-2 shadow-2xl backdrop-blur-md">
-          <div className="mb-1 flex flex-wrap items-center gap-2">
-            <span className="rounded border border-ember-400/35 bg-ember-500/10 px-1.5 py-0.5 font-mono text-[10px] font-black uppercase tracking-widest text-ember-200">
+      {/* Compact strip HUD (same pattern as the sort stages): headline card
+          left, stat chips right — thin enough that the frame stack below is
+          never covered on short or narrow stages. */}
+      <div className="pointer-events-none absolute inset-x-2 top-2 z-10 flex items-start justify-between gap-2 sm:inset-x-3 sm:top-3">
+        <div className="min-w-0 max-w-[13rem] rounded-md border border-arc-400/30 bg-ink-950/72 px-2.5 py-1.5 shadow-lg backdrop-blur-sm sm:max-w-[19rem]">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <span className="shrink-0 rounded border border-ember-400/35 bg-ember-500/10 px-1.5 py-0.5 font-mono text-[9px] font-black uppercase tracking-widest text-ember-200">
               {model.operation}
             </span>
-            <span className="font-mono text-[11px] font-semibold text-ink-400">line {model.line}</span>
+            <span className="truncate font-mono text-[9px] font-semibold uppercase tracking-wider text-ink-400">
+              line {model.line}
+            </span>
           </div>
-          <p className="text-base font-black leading-tight text-ink-50 md:text-lg">{model.headline}</p>
-          <p className="mt-1 max-w-3xl text-xs leading-relaxed text-ink-300 md:text-sm">{model.detail}</p>
+          <p className="mt-1 truncate text-[11px] font-black leading-tight text-ink-50 sm:text-xs">
+            {model.headline}
+          </p>
         </div>
 
-        <div className="grid grid-cols-3 gap-2">
-          <div className="rounded-md border border-ink-700/70 bg-ink-950/88 px-2 py-2 text-center shadow-xl backdrop-blur-md">
-            <p className="font-mono text-[9px] font-black uppercase tracking-widest text-ink-500">depth</p>
-            <p className="mt-1 font-mono text-lg font-black text-ink-50">{Math.max(0, model.depth + 1)}</p>
+        <div className="flex max-w-[16rem] flex-wrap justify-end gap-1 sm:max-w-[21rem]">
+          <div className="rounded border border-ink-700/65 bg-ink-950/72 px-1.5 py-1 text-center shadow-lg backdrop-blur-sm">
+            <span className="block font-mono text-[8px] font-black uppercase tracking-widest text-ink-500">depth</span>
+            <span className="block font-mono text-[11px] font-black leading-tight text-ink-50">{Math.max(0, model.depth + 1)}</span>
           </div>
-          <div className="rounded-md border border-ink-700/70 bg-ink-950/88 px-2 py-2 text-center shadow-xl backdrop-blur-md">
-            <p className="font-mono text-[9px] font-black uppercase tracking-widest text-ink-500">returns</p>
-            <p className="mt-1 font-mono text-lg font-black text-verdant-100">{model.returnedCount}</p>
+          <div className="rounded border border-ink-700/65 bg-ink-950/72 px-1.5 py-1 text-center shadow-lg backdrop-blur-sm">
+            <span className="block font-mono text-[8px] font-black uppercase tracking-widest text-ink-500">returns</span>
+            <span className="block font-mono text-[11px] font-black leading-tight text-verdant-200">{model.returnedCount}</span>
           </div>
-          <div className="rounded-md border border-ink-700/70 bg-ink-950/88 px-2 py-2 text-center shadow-xl backdrop-blur-md">
-            <p className="font-mono text-[9px] font-black uppercase tracking-widest text-ink-500">out</p>
-            <p className="mt-1 font-mono text-lg font-black text-arc-100">{model.output || "-"}</p>
+          <div className="rounded border border-ink-700/65 bg-ink-950/72 px-1.5 py-1 text-center shadow-lg backdrop-blur-sm">
+            <span className="block font-mono text-[8px] font-black uppercase tracking-widest text-ink-500">out</span>
+            <span className="block max-w-[5.5rem] truncate font-mono text-[11px] font-black leading-tight text-arc-100">{model.output || "-"}</span>
           </div>
         </div>
       </div>
 
-      <div className="pointer-events-none absolute inset-x-3 bottom-3 z-10 flex flex-wrap gap-2">
-        <span className="rounded-md border border-ember-400/35 bg-ink-950/82 px-2 py-1 font-mono text-[10px] font-bold uppercase text-ember-200 backdrop-blur">
-          push frame
-        </span>
-        <span className="rounded-md border border-arc-400/35 bg-ink-950/82 px-2 py-1 font-mono text-[10px] font-bold uppercase text-arc-200 backdrop-blur">
-          wait for child
-        </span>
-        <span className="rounded-md border border-verdant-400/35 bg-ink-950/82 px-2 py-1 font-mono text-[10px] font-bold uppercase text-verdant-200 backdrop-blur">
-          return value
-        </span>
+      <div className="pointer-events-none absolute inset-x-2 bottom-2 z-10 flex items-end justify-between gap-2 sm:inset-x-3 sm:bottom-3">
+        <p className="hidden max-w-[24rem] rounded-md border border-arc-400/25 bg-ink-950/68 px-2 py-1.5 text-[10px] leading-snug text-ink-300 shadow-lg backdrop-blur-sm sm:block">
+          {model.detail}
+        </p>
+        <div className="ml-auto flex flex-wrap justify-end gap-1">
+          <span className="rounded border border-ember-400/35 bg-ink-950/72 px-1.5 py-1 font-mono text-[9px] font-bold uppercase text-ember-200 backdrop-blur">push frame</span>
+          <span className="rounded border border-arc-400/35 bg-ink-950/72 px-1.5 py-1 font-mono text-[9px] font-bold uppercase text-arc-200 backdrop-blur">wait for child</span>
+          <span className="rounded border border-verdant-400/35 bg-ink-950/72 px-1.5 py-1 font-mono text-[9px] font-bold uppercase text-verdant-200 backdrop-blur">return value</span>
+        </div>
       </div>
     </>
   );

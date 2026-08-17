@@ -341,8 +341,11 @@ function FrontierRail({ model, p }: { model: GridSearchSceneModel; p: Theme3DPal
 function Overlay({ model, p }: { model: GridSearchSceneModel; p: Theme3DPalette }) {
   return (
     <>
-      <div className="pointer-events-none absolute inset-x-2 top-2 z-10 grid gap-2 md:inset-x-3 md:top-3 md:grid-cols-[minmax(0,1fr)_19rem]">
-        <div className="rounded-md border border-arc-400/35 bg-ink-950/90 px-3 py-2 shadow-2xl backdrop-blur-md">
+      {/* The two-column split only kicks in when the STAGE is wide (@md container
+          query) — in the lab's normal 3-panel layout the stage is narrow, so the
+          cards stack in compact rows instead of colliding with the frontier rail. */}
+      <div className="pointer-events-none absolute inset-x-2 top-2 z-10 grid gap-2 md:inset-x-3 md:top-3 @md:grid-cols-[minmax(0,1fr)_auto]">
+        <div className="rounded-md border border-arc-400/35 bg-ink-950/90 px-2.5 py-1.5 shadow-2xl backdrop-blur-md sm:px-3 sm:py-2">
           <div className="mb-1 flex flex-wrap items-center gap-2">
             <span className="rounded border border-arc-400/35 bg-arc-500/10 px-1.5 py-0.5 font-mono text-[10px] font-black uppercase tracking-widest text-arc-200">
               {model.kind.toUpperCase()} / {model.operation}
@@ -351,8 +354,8 @@ function Overlay({ model, p }: { model: GridSearchSceneModel; p: Theme3DPalette 
               {model.frontierName} {model.frontierRule}
             </span>
           </div>
-          <p className="max-w-4xl text-sm font-black leading-tight text-ink-50 sm:text-base md:text-lg">{model.headline}</p>
-          <p className="mt-1 max-w-4xl text-[11px] leading-relaxed text-ink-300 sm:text-xs md:text-sm">{model.detail}</p>
+          <p className="max-w-4xl text-sm font-black leading-tight text-ink-50 sm:text-base">{model.headline}</p>
+          <p className="mt-1 max-w-4xl text-[11px] leading-relaxed text-ink-300 sm:text-xs">{model.detail}</p>
           <p className="mt-1 hidden font-mono text-[10px] font-bold uppercase tracking-wider text-arc-200 sm:block">{model.behaviorLine}</p>
         </div>
 
@@ -384,7 +387,7 @@ export function GridSearchStage3D({ step }: { step: TraceStep }) {
   if (!model) return null;
 
   return (
-    <div className="codeanvil-canvas-fill relative h-full min-h-[23rem] w-full overflow-hidden rounded-md">
+    <div className="codeanvil-canvas-fill relative h-full min-h-[23rem] w-full overflow-hidden rounded-md @container">
       <Canvas
         data-testid="grid-search-stage-canvas"
         dpr={[1.25, 2]}

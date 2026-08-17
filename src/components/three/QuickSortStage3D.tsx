@@ -10,7 +10,7 @@ import { CanvasSizeSync } from "./CanvasSizeSync";
 const GAP = 1.1;
 const BAR_WIDTH = 0.68;
 const BAR_DEPTH = 0.64;
-const MAX_BAR_HEIGHT = 2.85;
+const MAX_BAR_HEIGHT = 2.52;
 
 interface QuickBar {
   id: string;
@@ -242,14 +242,14 @@ function DecisionBoard({ model, p }: { model: QuickSortSceneModel; p: Theme3DPal
         ? `pivot -> index ${model.finalIndex}`
         : model.operation;
   return (
-    <group position={[0, 3.82, 0.1]}>
+    <group position={[0, 3.68, 0.1]}>
       <mesh>
-        <boxGeometry args={[3.7, 0.34, 0.32]} />
-        <meshStandardMaterial color={p.emptyCell} emissive={model.operation === "pivot" ? p.verdant : p.arc} emissiveIntensity={0.25} transparent opacity={0.88} />
+        <boxGeometry args={[2.78, 0.24, 0.24]} />
+        <meshStandardMaterial color={p.emptyCell} emissive={model.operation === "pivot" ? p.verdant : p.arc} emissiveIntensity={0.18} transparent opacity={0.72} />
         <Edges color={model.operation === "pivot" ? p.verdant : p.arcBright} threshold={18} />
       </mesh>
-      <Html position={[0, 0, 0.24]} center style={{ pointerEvents: "none" }}>
-        <div className="whitespace-nowrap rounded-md border border-arc-400/45 bg-ink-950/94 px-3 py-1.5 font-mono text-sm font-black leading-none text-ink-50 shadow-xl">
+      <Html position={[0, 0, 0.18]} center style={{ pointerEvents: "none" }}>
+        <div className="whitespace-nowrap rounded border border-arc-400/45 bg-ink-950/82 px-2 py-1 font-mono text-[11px] font-black leading-none text-ink-50 shadow-lg backdrop-blur-sm">
           {label}
         </div>
       </Html>
@@ -343,46 +343,47 @@ function rangeText(range: [number, number]): string {
 }
 
 function Overlay({ model }: { model: QuickSortSceneModel }) {
+  const stats = [
+    ["pivot", model.pivotValue ?? "-"],
+    ["i", model.boundaryIndex ?? "-"],
+    ["j", model.scanIndex ?? "-"],
+    ["cmp/swap", `${model.comparisons ?? 0}/${model.swaps ?? 0}`],
+  ];
+
   return (
     <>
-      <div className="pointer-events-none absolute inset-x-2 top-2 z-10 grid gap-2 md:inset-x-3 md:top-3 md:grid-cols-[minmax(0,1fr)_20rem]">
-        <div className="rounded-md border border-arc-400/35 bg-ink-950/90 px-3 py-2 shadow-2xl backdrop-blur-md">
-          <div className="mb-1 flex flex-wrap items-center gap-2">
-            <span className="rounded border border-verdant-400/35 bg-verdant-500/10 px-1.5 py-0.5 font-mono text-[10px] font-black uppercase tracking-widest text-verdant-200">
+      <div className="pointer-events-none absolute inset-x-2 top-2 z-10 flex items-start justify-between gap-2 sm:inset-x-3 sm:top-3">
+        <div className="min-w-0 max-w-[13rem] rounded-md border border-arc-400/30 bg-ink-950/72 px-2.5 py-1.5 shadow-lg backdrop-blur-sm sm:max-w-[18rem]">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <span className="shrink-0 rounded border border-verdant-400/35 bg-verdant-500/10 px-1.5 py-0.5 font-mono text-[9px] font-black uppercase tracking-widest text-verdant-200">
               quick / {model.operation}
             </span>
-            <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-ink-400">
-              range {rangeText(model.range)}
+            <span className="truncate font-mono text-[9px] font-semibold uppercase tracking-wider text-ink-400">
+              {rangeText(model.range)}
             </span>
           </div>
-          <p className="max-w-4xl text-sm font-black leading-tight text-ink-50 sm:text-base md:text-lg">{model.headline}</p>
-          <p className="mt-1 max-w-4xl text-[11px] leading-relaxed text-ink-300 sm:text-xs md:text-sm">{model.detail}</p>
+          <p className="mt-1 truncate text-[11px] font-black leading-tight text-ink-50 sm:text-xs">{model.headline}</p>
         </div>
 
-        <div className="grid grid-cols-4 gap-1.5 sm:gap-2">
-          <div className="rounded-md border border-ink-700/70 bg-ink-950/90 px-2 py-2 text-center shadow-xl backdrop-blur-md">
-            <p className="font-mono text-[8px] font-black uppercase tracking-widest text-ink-500 sm:text-[9px]">pivot</p>
-            <p className="mt-1 font-mono text-xs font-black text-ember-100 sm:text-sm">{model.pivotValue ?? "-"}</p>
-          </div>
-          <div className="rounded-md border border-ink-700/70 bg-ink-950/90 px-2 py-2 text-center shadow-xl backdrop-blur-md">
-            <p className="font-mono text-[8px] font-black uppercase tracking-widest text-ink-500 sm:text-[9px]">i</p>
-            <p className="mt-1 font-mono text-xs font-black text-verdant-100 sm:text-sm">{model.boundaryIndex ?? "-"}</p>
-          </div>
-          <div className="rounded-md border border-ink-700/70 bg-ink-950/90 px-2 py-2 text-center shadow-xl backdrop-blur-md">
-            <p className="font-mono text-[8px] font-black uppercase tracking-widest text-ink-500 sm:text-[9px]">j</p>
-            <p className="mt-1 font-mono text-xs font-black text-arc-100 sm:text-sm">{model.scanIndex ?? "-"}</p>
-          </div>
-          <div className="rounded-md border border-ink-700/70 bg-ink-950/90 px-2 py-2 text-center shadow-xl backdrop-blur-md">
-            <p className="font-mono text-[8px] font-black uppercase tracking-widest text-ink-500 sm:text-[9px]">cmp/swap</p>
-            <p className="mt-1 font-mono text-xs font-black text-ink-50 sm:text-sm">{model.comparisons ?? 0}/{model.swaps ?? 0}</p>
-          </div>
+        <div className="flex max-w-[16rem] flex-wrap justify-end gap-1 sm:max-w-[21rem]">
+          {stats.map(([label, value]) => (
+            <div key={label} className="rounded border border-ink-700/65 bg-ink-950/72 px-1.5 py-1 text-center shadow-lg backdrop-blur-sm">
+              <span className="block font-mono text-[8px] font-black uppercase tracking-widest text-ink-500">{label}</span>
+              <span className="block font-mono text-[11px] font-black leading-tight text-ink-50">{value}</span>
+            </div>
+          ))}
         </div>
       </div>
 
-      <div className="pointer-events-none absolute inset-x-2 bottom-2 z-10 flex flex-wrap gap-1.5 sm:inset-x-3 sm:bottom-3">
-        <span className="rounded-md border border-ember-400/35 bg-ink-950/86 px-2 py-1 font-mono text-[10px] font-bold uppercase text-ember-200 backdrop-blur">orange = pivot</span>
-        <span className="rounded-md border border-arc-400/35 bg-ink-950/86 px-2 py-1 font-mono text-[10px] font-bold uppercase text-arc-200 backdrop-blur">blue = scanner</span>
-        <span className="rounded-md border border-verdant-400/35 bg-ink-950/86 px-2 py-1 font-mono text-[10px] font-bold uppercase text-verdant-200 backdrop-blur">green = smaller/final</span>
+      <div className="pointer-events-none absolute inset-x-2 bottom-2 z-10 flex items-end justify-between gap-2 sm:inset-x-3 sm:bottom-3">
+        <p className="hidden max-w-[24rem] rounded-md border border-arc-400/25 bg-ink-950/68 px-2 py-1.5 text-[10px] leading-snug text-ink-300 shadow-lg backdrop-blur-sm sm:block">
+          {model.detail}
+        </p>
+        <div className="ml-auto flex flex-wrap justify-end gap-1">
+          <span className="rounded border border-ember-400/35 bg-ink-950/72 px-1.5 py-1 font-mono text-[9px] font-bold uppercase text-ember-200 backdrop-blur">orange pivot</span>
+          <span className="rounded border border-arc-400/35 bg-ink-950/72 px-1.5 py-1 font-mono text-[9px] font-bold uppercase text-arc-200 backdrop-blur">blue scan</span>
+          <span className="rounded border border-verdant-400/35 bg-ink-950/72 px-1.5 py-1 font-mono text-[9px] font-bold uppercase text-verdant-200 backdrop-blur">green done</span>
+        </div>
       </div>
     </>
   );
@@ -399,7 +400,7 @@ export function QuickSortStage3D({ step }: { step: TraceStep }) {
       <Canvas
         data-testid="quick-sort-stage-canvas"
         dpr={[1.25, 2]}
-        camera={{ position: [0, 3.35, 7.8], fov: 39 }}
+        camera={{ position: [0, 3.45, 8.25], fov: 40 }}
         gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
         style={{ width: "100%", height: "100%", background: "transparent" }}
       >

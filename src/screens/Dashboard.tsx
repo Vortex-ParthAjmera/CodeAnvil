@@ -11,6 +11,7 @@ import {
   Trophy,
 } from "lucide-react";
 import { EXAMPLES } from "../data/examples";
+import { BrandLogo } from "../components/BrandLogo";
 import {
   getSnapshot,
   progressStats,
@@ -121,11 +122,9 @@ export function Dashboard({
           <div className="orb pointer-events-none absolute -bottom-16 right-24 h-32 w-32 animate-float opacity-60" style={{ "--orb-color": "#a78bfa" } as React.CSSProperties} />
           <div className="relative">
             <div className="mb-3 flex items-center gap-2">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-ember-400/15 ring-1 ring-ember-500/40">
-                <Hammer size={18} className="text-ember-300" />
-              </div>
+              <BrandLogo className="h-8 w-auto" />
               <p className="text-[11px] font-semibold uppercase tracking-widest text-ember-400">
-                CodeAnvil · Forge your logic
+                Forge your logic
               </p>
             </div>
             <AnimatedHeading

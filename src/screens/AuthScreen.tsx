@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { AtSign, Eye, EyeOff, Hammer, KeyRound, Lock, ShieldCheck, User as UserIcon } from "lucide-react";
+import { AtSign, Eye, EyeOff, KeyRound, Lock, ShieldCheck, User as UserIcon } from "lucide-react";
 import { signIn, signInWithGoogle, signUp } from "../lib/auth";
+import { BrandLogo } from "../components/BrandLogo";
 import { AnimatedHeading } from "../components/motionfx";
 import { Badge, Button, Card } from "../components/ui";
 import type { Route } from "../router";
@@ -62,16 +63,8 @@ export function AuthScreen({ onNavigate }: { onNavigate: (route: Route) => void 
       <div className="mx-auto grid max-w-4xl gap-8 px-6 py-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
         {/* Left: pitch + provider plan */}
         <div>
-          <div className="mb-6 flex items-center gap-2.5">
-            <span className="flex h-9 w-9 items-center justify-center rounded-md bg-ember-400/15 ring-1 ring-ember-500/40">
-              <Hammer size={18} className="text-ember-300" />
-            </span>
-            <div className="leading-none">
-              <p className="text-sm font-bold tracking-tight">CodeAnvil</p>
-              <p className="mt-1 text-[9px] uppercase tracking-[0.2em] text-ember-400/80">
-                Forge your logic
-              </p>
-            </div>
+          <div className="mb-6 flex items-center">
+            <BrandLogo className="h-10 w-auto" />
           </div>
 
           <AnimatedHeading

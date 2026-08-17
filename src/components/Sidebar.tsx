@@ -2,7 +2,6 @@ import { useEffect, useState, useSyncExternalStore } from "react";
 import {
   BookMarked,
   Flame,
-  Hammer,
   LibraryBig,
   LayoutDashboard,
   Map as MapIcon,
@@ -17,6 +16,7 @@ import {
   UserRound,
 } from "lucide-react";
 import type { Route } from "../router";
+import { BrandLogo } from "./BrandLogo";
 import { cn } from "../lib/cn";
 import { sound } from "../engine/sound";
 import { heatLabel, useHeat } from "../engine/session";
@@ -115,25 +115,16 @@ export function Sidebar({
     >
       <div
         className={cn(
-          "flex items-center border-b border-ink-700 py-4",
-          collapsed
-            ? "justify-center px-0"
-            : "justify-center gap-2.5 px-2 sm:justify-start sm:px-4",
+          "flex items-center justify-center border-b border-ink-700 py-4",
+          collapsed ? "px-0" : "px-2 sm:justify-start sm:px-4",
         )}
       >
-        <div className="group/logo animate-float relative flex h-8 w-8 items-center justify-center rounded-md bg-ember-400/15 ring-1 ring-ember-500/40 transition-transform duration-300 hover:scale-110 hover:rotate-6">
-          <div
-            className="orb pointer-events-none absolute -inset-1 -z-10 opacity-40 blur-[1px] transition-opacity group-hover/logo:opacity-80"
-            style={{ "--orb-color": "#a78bfa" } as React.CSSProperties}
-          />
-          <Hammer size={16} className="text-ember-300 transition-transform duration-300 group-hover/logo:-rotate-6" />
-        </div>
-        <div className={labelCls}>
-          <p className="text-sm font-bold tracking-tight text-ink-100">CodeAnvil</p>
-          <p className="text-[10px] uppercase tracking-widest text-ember-400/80">
-            Forge your logic
-          </p>
-        </div>
+        <BrandLogo
+          className={cn(
+            "h-7 w-auto transition-transform duration-300 hover:scale-105",
+            !collapsed && "sm:h-9",
+          )}
+        />
       </div>
 
       <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">

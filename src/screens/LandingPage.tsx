@@ -7,7 +7,6 @@ import {
   Eye,
   FileCode2,
   Gamepad2,
-  Hammer,
   Lock,
   Moon,
   Play,
@@ -27,6 +26,7 @@ import { cn } from "../lib/cn";
 import { TiltCard } from "../components/TiltCard";
 import { CosmosBackdrop } from "../components/forge/CosmosBackdrop";
 import { Badge } from "../components/ui";
+import { BrandLogo } from "../components/BrandLogo";
 import { CountUp } from "../components/motionfx";
 import { getMode, subscribeMode, toggleMode } from "../lib/mode";
 import { initialsOf, useSession } from "../lib/auth";
@@ -171,15 +171,7 @@ export default function LandingPage({
             onClick={() => onNavigate({ name: "landing" })}
             className="flex items-center gap-2.5"
           >
-            <span className="flex h-8 w-8 items-center justify-center rounded-md bg-ember-400/15 ring-1 ring-ember-500/40">
-              <Hammer size={16} className="text-ember-300" />
-            </span>
-            <span className="flex flex-col items-start leading-none">
-              <span className="text-sm font-bold tracking-tight">CodeAnvil</span>
-              <span className="text-[9px] uppercase tracking-[0.2em] text-ember-400/80">
-                Forge your logic
-              </span>
-            </span>
+            <BrandLogo className="h-8 w-auto" />
           </button>
 
           <nav className="ml-auto hidden items-center gap-1 md:flex">
@@ -679,17 +671,7 @@ export default function LandingPage({
       <footer className="border-t border-ink-800/70 bg-ink-950/35 backdrop-blur-[2px]">
         <div className="mx-auto flex max-w-7xl flex-col gap-8 px-5 py-12 md:flex-row md:items-start md:justify-between">
           <div className="max-w-sm">
-            <div className="flex items-center gap-2.5">
-              <span className="flex h-8 w-8 items-center justify-center rounded-md bg-ember-400/15 ring-1 ring-ember-500/40">
-                <Hammer size={16} className="text-ember-300" />
-              </span>
-              <div className="leading-none">
-                <p className="text-sm font-bold tracking-tight">CodeAnvil</p>
-                <p className="mt-1 text-[9px] uppercase tracking-[0.2em] text-ember-400/80">
-                  Forge your logic
-                </p>
-              </div>
-            </div>
+            <BrandLogo className="h-9 w-auto" />
             <p className="mt-4 text-xs leading-relaxed text-ink-400">
               A visual, playable coding and DSA platform for students. Local
               first — your sessions stay in your browser.

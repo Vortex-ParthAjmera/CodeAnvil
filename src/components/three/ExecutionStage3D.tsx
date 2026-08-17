@@ -27,7 +27,7 @@ function isArrayHighlight(
  * - array visuals → ThreeStage with bars (sorting / searching)
  * - everything else → ThreeStage with variable chips + call stack only
  */
-export function ExecutionStage3D({ step }: { step: TraceStep }) {
+export function ExecutionStage3D({ step, steps }: { step: TraceStep; steps?: TraceStep[] }) {
   const visual = step.visual;
   const dispatch = selectRendererForStep(step);
 
@@ -93,6 +93,7 @@ export function ExecutionStage3D({ step }: { step: TraceStep }) {
       stack={step.stack}
       stepKey={step.id}
       storyboard={{ line: step.line, event: step.event, description: step.description }}
+      steps={steps}
     />
   );
 }

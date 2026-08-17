@@ -634,7 +634,7 @@ export function PlaybackLab({
                   </div>
                 }
               >
-                <ExecutionStage3D step={step} />
+                <ExecutionStage3D step={step} steps={example.trace.steps} />
               </Suspense>
             )}
           </div>

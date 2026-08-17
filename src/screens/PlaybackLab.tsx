@@ -45,6 +45,7 @@ import { InspectorPanels } from "../components/InspectorPanels";
 import { PlaybackControls } from "../components/PlaybackControls";
 import { PracticeDock } from "../components/PracticeDock";
 import { Timeline } from "../components/Timeline";
+import { PanelSplitter } from "../components/PanelSplitter";
 import { VisualStage } from "../components/VisualStage";
 import { Badge } from "../components/ui";
 import { AnimatedHeading } from "../components/motionfx";
@@ -178,6 +179,34 @@ export function PlaybackLab({
   const [focusedPanel, setFocusedPanel] = useState<FocusPanel>("all");
   const [panelSizes, setPanelSizes] = useState(readPanelSizes);
   const appliedResume = useRef<string | null>(null);
+  const workspaceRef = useRef<HTMLDivElement>(null);
+
+  /** Converts measured on-screen pixel sizes back into panel weights (2–9). */
+  function commitPanelPixels(pixels: Record<string, number>) {
+    setPanelSizes((s) => {
+      const total = PANEL_SIZE_IDS.reduce((sum, id) => sum + (pixels[id] ?? 0), 0);
+      if (total <= 0) return s;
+      const out = { ...s };
+      for (const id of PANEL_SIZE_IDS) {
+        out[id] = Math.min(9, Math.max(2, Math.round(((pixels[id] ?? 0) / total) * 14)));
+      }
+      return out;
+    });
+  }
+
+  /** Keyboard resize: grow panel `a` (or the top/left one) by delta, shrink `b`. */
+  function stepPanelWeights(pair: [PanelSizeKey, PanelSizeKey], delta: number) {
+    setPanelSizes((s) => {
+      const [idA, idB] = pair;
+      const a = s[idA];
+      const b = s[idB];
+      const lo = Math.max(2 - a, b - 9);
+      const hi = Math.min(9 - a, b - 2);
+      const applied = Math.min(Math.max(delta, lo), hi);
+      if (applied === 0) return s;
+      return { ...s, [idA]: a + applied, [idB]: b - applied };
+    });
+  }
 
   // Persist the user's panel proportions.
   useEffect(() => {
@@ -405,8 +434,13 @@ export function PlaybackLab({
       </div>
 
       {/* Workspace — scrolls instead of clipping on short screens; panels
-          share space by the per-panel size weights (width on lg+, height below). */}
-      <div className="flex min-h-0 flex-1 flex-col gap-px overflow-y-auto bg-ink-700 lg:flex-row">
+          share space by the per-panel size weights (width on lg+, height below),
+          and the draggable PanelSplitters between them resize live. */}
+      <div
+        ref={workspaceRef}
+        data-workspace
+        className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-ink-700 lg:flex-row"
+      >
         <div
           className={cn(
             "flex min-h-40 min-w-0 flex-col bg-ink-900 lg:min-h-0 lg:min-w-[17rem]",
@@ -503,6 +537,15 @@ export function PlaybackLab({
             </div>
           )}
         </div>
+        {focusedPanel === "all" && (
+          <PanelSplitter
+            a="code"
+            b="stage"
+            value={panelSizes.code}
+            onCommit={commitPanelPixels}
+            onStep={(d) => stepPanelWeights(["code", "stage"], d)}
+          />
+        )}
         <div
           className={cn(
             "relative isolate flex min-h-[17rem] min-w-0 flex-col overflow-hidden bg-ink-900 lg:min-h-0 lg:min-w-[19rem]",
@@ -620,6 +663,15 @@ export function PlaybackLab({
             <InspectorPanels step={step} />
           </div>
         </div>
+        {focusedPanel === "all" && (
+          <PanelSplitter
+            a="stage"
+            b="inspector"
+            value={panelSizes.stage}
+            onCommit={commitPanelPixels}
+            onStep={(d) => stepPanelWeights(["stage", "inspector"], d)}
+          />
+        )}
       </div>
 
       {/* Live written context for the current step */}

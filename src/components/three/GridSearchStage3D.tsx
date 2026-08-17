@@ -198,7 +198,17 @@ function CurrentBeacon({ model, p, reducedMotion }: { model: GridSearchSceneMode
   );
 }
 
-function Scene({ model, p, reducedMotion }: { model: GridSearchSceneModel; p: Theme3DPalette; reducedMotion: boolean }) {
+function Scene({
+  model,
+  p,
+  reducedMotion,
+  cameraDistance,
+}: {
+  model: GridSearchSceneModel;
+  p: Theme3DPalette;
+  reducedMotion: boolean;
+  cameraDistance: number;
+}) {
   const scene = useRef<THREE.Group>(null);
   const stageWidth = Math.max(5.4, model.cols * 0.95 + 1.4);
   const stageDepth = Math.max(5.4, model.rows * 0.95 + 1.2);
@@ -252,8 +262,8 @@ function Scene({ model, p, reducedMotion }: { model: GridSearchSceneModel; p: Th
         enablePan={false}
         enableDamping={!reducedMotion}
         dampingFactor={0.08}
-        minDistance={5.2}
-        maxDistance={13}
+        minDistance={cameraDistance * 0.45}
+        maxDistance={cameraDistance * 1.8}
         minPolarAngle={0.32}
         maxPolarAngle={Math.PI / 2.05}
       />
@@ -385,19 +395,40 @@ export function GridSearchStage3D({ step }: { step: TraceStep }) {
   const reducedMotion = useReducedMotionPreference();
   const hud = useStageHud();
 
-  if (!model) return null;
+  // Auto-frame: keep the camera on the same view ray and scale its distance
+  // by the grid's footprint, so any rows x cols fills the stage nicely.
+  // The 5x5 maze (span 6.15) was tuned at distance 8.92 — scale from there.
+  const framing = useMemo(() => {
+    if (!model) return null;
+    const span = Math.max(
+      Math.max(5.4, model.cols * 0.95 + 1.4),
+      Math.max(5.4, model.rows * 0.95 + 1.2),
+    );
+    const scale = span / 6.15;
+    return {
+      distance: 8.92 * scale,
+      position: [0, 5.4 * scale, 7.1 * scale] as [number, number, number],
+    };
+  }, [model]);
+
+  if (!model || !framing) return null;
 
   return (
     <div className="codeanvil-canvas-fill relative h-full w-full overflow-hidden rounded-md @container">
       <Canvas
         data-testid="grid-search-stage-canvas"
         dpr={[1.25, 2]}
-        camera={{ position: [0, 5.4, 7.1], fov: 42 }}
+        camera={{ position: framing.position, fov: 42 }}
         gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
         style={{ width: "100%", height: "100%", background: "transparent" }}
       >
         <CanvasSizeSync />
-        <Scene model={model} p={p} reducedMotion={reducedMotion} />
+        <Scene
+          model={model}
+          p={p}
+          reducedMotion={reducedMotion}
+          cameraDistance={framing.distance}
+        />
       </Canvas>
       <HudToggle open={hud.hudOpen} onToggle={hud.toggleHud} />
       {hud.hudOpen && <Overlay model={model} p={p} />}

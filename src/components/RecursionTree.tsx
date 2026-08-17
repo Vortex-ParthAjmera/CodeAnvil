@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { motion, useReducedMotion } from "motion/react";
 import { cn } from "../lib/cn";
 import type {
   RecursionTreeEdge,
@@ -10,6 +11,8 @@ const NODE_SPACING_X = 52;
 const LEVEL_HEIGHT = 66;
 const NODE_R = 17;
 const PAD = 28;
+
+const EASE_OUT = [0.23, 1, 0.32, 1] as const;
 
 interface Pos {
   x: number;
@@ -52,6 +55,116 @@ function layout(
   return pos;
 }
 
+/**
+ * One node + its label + return value, choreographed:
+ * - the node circle grows out of nothing (r, not scale — SVG-safe pop-in),
+ * - the label fades in a beat after the circle lands,
+ * - the return value rises up when the node resolves.
+ */
+function TreeNode({
+  node,
+  x,
+  y,
+  active,
+  returned,
+  firstStep,
+  onScrub,
+  reduce,
+}: {
+  node: RecursionTreeNode;
+  x: number;
+  y: number;
+  active: boolean;
+  returned: boolean;
+  firstStep: number | undefined;
+  onScrub: (index: number) => void;
+  reduce: boolean | null;
+}) {
+  return (
+    <motion.g
+      className={cn("cursor-pointer", active && "animate-pulse-glow")}
+      onClick={() => firstStep !== undefined && onScrub(firstStep)}
+      initial={reduce ? false : { opacity: 0 }}
+      animate={{ opacity: node.status === "waiting" ? 0.55 : 1 }}
+      transition={{ duration: 0.25, ease: EASE_OUT }}
+    >
+      <motion.circle
+        cx={x}
+        cy={y}
+        initial={reduce ? undefined : { r: 3 }}
+        animate={{ r: NODE_R }}
+        transition={{ type: "spring", stiffness: 420, damping: 26 }}
+        fill={
+          returned
+            ? "var(--color-verdant-500)"
+            : active
+              ? "var(--color-ember-500)"
+              : "var(--color-ink-700)"
+        }
+        fillOpacity={returned || active ? 0.25 : 1}
+        stroke={
+          returned
+            ? "var(--color-verdant-400)"
+            : active
+              ? "var(--color-ember-400)"
+              : "var(--color-ink-500)"
+        }
+        strokeWidth={active ? 2 : 1.2}
+      />
+      <motion.text
+        x={x}
+        y={y + 3.5}
+        textAnchor="middle"
+        fontSize="9.5"
+        fontFamily="var(--font-mono)"
+        fontWeight={active ? 700 : 400}
+        fill={
+          returned
+            ? "var(--color-verdant-300)"
+            : active
+              ? "var(--color-ember-300)"
+              : "var(--color-ink-200)"
+        }
+        initial={reduce ? undefined : { opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.2, delay: 0.09, ease: EASE_OUT }}
+      >
+        {node.label}
+      </motion.text>
+      {returned && node.returnValue !== undefined && (
+        <motion.text
+          key={`ret-${node.returnValue}`}
+          x={x}
+          y={y + NODE_R + 12}
+          textAnchor="middle"
+          fontSize="9"
+          fontFamily="var(--font-mono)"
+          fontWeight={600}
+          fill="var(--color-verdant-300)"
+          initial={reduce ? undefined : { opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.28, ease: EASE_OUT }}
+        >
+          ={node.returnValue}
+        </motion.text>
+      )}
+      {active && (
+        <text
+          x={x}
+          y={y - NODE_R - 6}
+          textAnchor="middle"
+          fontSize="8"
+          fontFamily="var(--font-mono)"
+          fontWeight={600}
+          fill="var(--color-ember-300)"
+        >
+          ▶ running
+        </text>
+      )}
+    </motion.g>
+  );
+}
+
 export function RecursionTree({
   nodes,
   edges,
@@ -65,6 +178,7 @@ export function RecursionTree({
   steps: TraceStep[];
   onScrub: (index: number) => void;
 }) {
+  const reduce = useReducedMotion();
   const pos = useMemo(() => layout(nodes, edges), [nodes, edges]);
 
   const stepByNode = useMemo(() => {
@@ -104,7 +218,7 @@ export function RecursionTree({
         const active = e.to === activeNodeId;
         const returned = nodes.find((n) => n.id === e.to)?.status === "returned";
         return (
-          <path
+          <motion.path
             key={`${e.from}-${e.to}`}
             d={`M ${from.x + PAD} ${from.y + PAD + NODE_R} C ${from.x + PAD} ${from.y + PAD + (to.y - from.y) / 2}, ${to.x + PAD} ${to.y + PAD - (to.y - from.y) / 2}, ${to.x + PAD} ${to.y + PAD - NODE_R}`}
             fill="none"
@@ -117,6 +231,13 @@ export function RecursionTree({
             }
             strokeWidth={active ? 2 : 1.2}
             strokeOpacity={active ? 1 : returned ? 0.7 : 1}
+            initial={reduce ? undefined : { pathLength: 0 }}
+            animate={{ pathLength: 1 }}
+            transition={{
+              duration: 0.34,
+              delay: 0.1 + (to.y - from.y) / LEVEL_HEIGHT * 0.08,
+              ease: EASE_OUT,
+            }}
           />
         );
       })}
@@ -130,71 +251,17 @@ export function RecursionTree({
         const returned = node.status === "returned";
         const firstStep = stepByNode.get(node.id);
         return (
-          <g
+          <TreeNode
             key={node.id}
-            className={cn("cursor-pointer", active && "animate-pulse-glow")}
-            onClick={() => firstStep !== undefined && onScrub(firstStep)}
-            opacity={node.status === "waiting" ? 0.55 : 1}
-          >
-            <circle
-              cx={x}
-              cy={y}
-              r={NODE_R}
-              fill={
-                returned
-                  ? "var(--color-verdant-500)"
-                  : active
-                    ? "var(--color-ember-500)"
-                    : "var(--color-ink-700)"
-              }
-              fillOpacity={returned || active ? 0.25 : 1}
-              stroke={
-                returned
-                  ? "var(--color-verdant-400)"
-                  : active
-                    ? "var(--color-ember-400)"
-                    : "var(--color-ink-500)"
-              }
-              strokeWidth={active ? 2 : 1.2}
-            />
-            <text
-              x={x}
-              y={y + 3.5}
-              textAnchor="middle"
-              fontSize="9.5"
-              fontFamily="var(--font-mono)"
-              fontWeight={active ? 700 : 400}
-              fill={returned ? "var(--color-verdant-300)" : active ? "var(--color-ember-300)" : "var(--color-ink-200)"}
-            >
-              {node.label}
-            </text>
-            {returned && node.returnValue !== undefined && (
-              <text
-                x={x}
-                y={y + NODE_R + 12}
-                textAnchor="middle"
-                fontSize="9"
-                fontFamily="var(--font-mono)"
-                fontWeight={600}
-                fill="var(--color-verdant-300)"
-              >
-                ={node.returnValue}
-              </text>
-            )}
-            {active && (
-              <text
-                x={x}
-                y={y - NODE_R - 6}
-                textAnchor="middle"
-                fontSize="8"
-                fontFamily="var(--font-mono)"
-                fontWeight={600}
-                fill="var(--color-ember-300)"
-              >
-                ▶ running
-              </text>
-            )}
-          </g>
+            node={node}
+            x={x}
+            y={y}
+            active={active}
+            returned={returned}
+            firstStep={firstStep}
+            onScrub={onScrub}
+            reduce={reduce}
+          />
         );
       })}
     </svg>

@@ -381,9 +381,10 @@ export function PlaybackLab({
           )}
         </div>
         <div
-          className={cn("flex h-72 min-h-0 flex-col bg-ink-900 lg:h-auto", panelFocusClass("stage", focusedPanel))}
+          className={cn("relative isolate flex h-72 min-h-0 flex-col overflow-hidden bg-ink-900 lg:h-auto", panelFocusClass("stage", focusedPanel))}
           data-panel="stage"
         >
+          <div aria-hidden className="stage-ambient -z-10" />
           <div className="flex shrink-0 items-center justify-between border-b border-ink-800 px-3 py-1.5">
             <span className="text-[10px] font-semibold uppercase tracking-widest text-ink-500">
               {step.visual?.type === "recursion_tree" ? "Recursion tree" : "Execution stage"}

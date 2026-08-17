@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { motion, useReducedMotion } from "motion/react";
 import { TerminalSquare } from "lucide-react";
 import { cn } from "../lib/cn";
 
@@ -43,6 +44,7 @@ function useTypewriter(text: string, cps = 150) {
 }
 
 export function CommentaryBar({ event, text }: { event: string; text: string }) {
+  const reduce = useReducedMotion();
   const typed = useTypewriter(text);
   const meta = EVENT_META[event] ?? {
     label: event.replaceAll("_", " "),
@@ -52,14 +54,18 @@ export function CommentaryBar({ event, text }: { event: string; text: string }) 
   return (
     <div className="flex min-h-[42px] items-center gap-3 border-t border-ink-700 bg-ink-900/70 px-4 py-2 backdrop-blur-sm">
       <TerminalSquare size={14} className="shrink-0 text-ember-400" />
-      <span
+      <motion.span
+        key={event}
+        initial={reduce ? false : { scale: 0.82, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 540, damping: 30 }}
         className={cn(
           "shrink-0 rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.16em] ring-1",
           meta.tone,
         )}
       >
         {meta.label}
-      </span>
+      </motion.span>
       <p className="min-w-0 flex-1 truncate font-mono text-xs leading-relaxed text-ink-200">
         {typed}
         <span className="caret" aria-hidden />

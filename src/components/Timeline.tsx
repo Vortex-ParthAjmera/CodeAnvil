@@ -43,11 +43,11 @@ export function Timeline({
             title={`${i + 1}. ${step.description}`}
             onClick={() => onScrub(i)}
             className={cn(
-              "h-2.5 shrink-0 rounded-full transition-all",
+              "h-2.5 w-2.5 shrink-0 rounded-full transition-transform duration-150",
               eventTone(step.event),
               active
-                ? "w-6 ring-2 ring-ember-300/70"
-                : "w-2.5 hover:w-4 opacity-60 hover:opacity-100",
+                ? "timeline-dot-active scale-[1.7] ring-2 ring-ember-300/70"
+                : "opacity-60 hover:scale-125 hover:opacity-100",
               done && !active && "opacity-90",
             )}
           />

@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
+import { motion, useReducedMotion } from "motion/react";
 import { Check, Target, X } from "lucide-react";
 import type { PracticePrompt } from "../types/trace";
 import type { LastAnswer, PracticeStats } from "../engine/usePlayback";
 import { cn } from "../lib/cn";
 import { Button } from "./ui";
+
+const EASE_OUT = [0.23, 1, 0.32, 1] as const;
 
 export function PracticeDock({
   mode,
@@ -20,6 +23,7 @@ export function PracticeDock({
   onAnswer: (prompt: PracticePrompt, picked: string) => void;
   onContinue: () => void;
 }) {
+  const reduce = useReducedMotion();
   const [picked, setPicked] = useState<string | null>(null);
   const [typed, setTyped] = useState("");
 
@@ -77,8 +81,27 @@ export function PracticeDock({
       <p className="mb-3 text-sm text-ink-100">{prompt.question}</p>
 
       {showingFeedback && lastAnswer ? (
-        <div className="mb-3">
-          <div
+        <motion.div
+          key={lastAnswer.promptId}
+          initial={reduce ? false : { opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.18, ease: EASE_OUT }}
+          className="mb-3"
+        >
+          <motion.div
+            initial={reduce ? false : lastAnswer.correct ? { scale: 0.94 } : undefined}
+            animate={
+              reduce
+                ? undefined
+                : lastAnswer.correct
+                  ? { scale: 1 }
+                  : { x: [0, -8, 8, -5, 5, 0] }
+            }
+            transition={
+              lastAnswer.correct
+                ? { type: "spring", stiffness: 480, damping: 26 }
+                : { duration: 0.34, ease: "easeOut" }
+            }
             className={cn(
               "mb-2 flex items-center gap-1.5 text-sm font-semibold",
               lastAnswer.correct ? "text-verdant-300" : "text-rose-300",
@@ -88,11 +111,11 @@ export function PracticeDock({
             {lastAnswer.correct
               ? "Correct!"
               : `Not quite — the answer was ${prompt.answer}.`}
-          </div>
+          </motion.div>
           <p className="text-xs leading-relaxed text-ink-300">
             {prompt.explanation}
           </p>
-        </div>
+        </motion.div>
       ) : prompt.choices ? (
         <div className="mb-3 flex flex-wrap gap-2">
           {prompt.choices.map((choice) => (

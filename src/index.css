@@ -255,10 +255,16 @@ body {
   outline: none;
 }
 
-/* Active (currently executing) line */
+/* Active (currently executing) line — glides between lines instead of
+   snapping, with a soft plasma halo (strong ease-out, ~300ms). */
 .cm-ca-active {
   background: color-mix(in srgb, var(--color-ember-400) 12%, transparent) !important;
-  box-shadow: inset 3px 0 0 var(--color-ember-400);
+  box-shadow:
+    inset 3px 0 0 var(--color-ember-400),
+    0 0 22px -8px color-mix(in srgb, var(--color-ember-400) 55%, transparent);
+  transition:
+    background-color 0.3s cubic-bezier(0.23, 1, 0.32, 1),
+    box-shadow 0.3s cubic-bezier(0.23, 1, 0.32, 1);
 }
 .cm-ca-active .cm-gutterElement {
   color: var(--color-ember-400) !important;
@@ -668,12 +674,75 @@ body {
   .cursor-glow,
   .btn-shine::after,
   .viewport-sweep,
-  .viewport-frame {
+  .viewport-frame,
+  .stage-ambient,
+  .timeline-dot-active {
     animation: none;
   }
   .cursor-glow {
     display: none;
   }
+}
+
+/* Timeline: the active step dot breathes a soft ring so the current
+   position stays legible during fast playback. */
+@keyframes timeline-dot-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-ember-400) 50%, transparent);
+  }
+  55% {
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--color-ember-400) 0%, transparent);
+  }
+}
+.timeline-dot-active {
+  animation: timeline-dot-pulse 1.5s ease-in-out infinite;
+}
+
+/* Stage ambient: faint drifting plasma glows + a floor-plan grid behind the
+   execution stage so the panel reads as an alive workbench, not a flat card. */
+.stage-ambient {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      620px 320px at 18% -10%,
+      color-mix(in srgb, var(--color-ember-500) 13%, transparent),
+      transparent 60%
+    ),
+    radial-gradient(
+      520px 300px at 88% 112%,
+      color-mix(in srgb, var(--color-arc-500) 9%, transparent),
+      transparent 62%
+    );
+  animation: stage-drift 16s ease-in-out infinite alternate;
+}
+.stage-ambient::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(
+      color-mix(in srgb, var(--color-ink-400) 5%, transparent) 1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--color-ink-400) 5%, transparent) 1px,
+      transparent 1px
+    );
+  background-size: 34px 34px;
+  mask-image: radial-gradient(ellipse 92% 82% at 50% 28%, black, transparent 82%);
+  opacity: 0.55;
+}
+@keyframes stage-drift {
+  to {
+    transform: translate3d(16px, -12px, 0) scale(1.06);
+  }
+}
+:root[data-mode="light"] .stage-ambient {
+  opacity: 0.7;
 }
 
 /* Fade-slide for changed values */

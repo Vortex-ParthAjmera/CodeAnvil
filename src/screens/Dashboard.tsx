@@ -121,8 +121,8 @@ export function Dashboard({
           <div className="orb pointer-events-none absolute -right-10 -top-14 h-44 w-44 animate-float-slow opacity-70" style={{ "--orb-color": "#0ea5e9" } as React.CSSProperties} />
           <div className="orb pointer-events-none absolute -bottom-16 right-24 h-32 w-32 animate-float opacity-60" style={{ "--orb-color": "#a78bfa" } as React.CSSProperties} />
           <div className="relative">
-            <div className="mb-3 flex items-center gap-2">
-              <BrandLogo className="h-8 w-auto" />
+            <div className="mb-3 flex items-center gap-3">
+              <BrandLogo className="h-12 w-auto" />
               <p className="text-[11px] font-semibold uppercase tracking-widest text-ember-400">
                 Forge your logic
               </p>

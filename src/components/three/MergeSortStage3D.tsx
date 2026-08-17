@@ -25,6 +25,7 @@ interface MergeTileModel {
   edge: string;
   role: "array" | "left" | "right" | "output";
   active: boolean;
+  dimmed: boolean;
 }
 
 function useReducedMotionPreference(): boolean {
@@ -91,7 +92,12 @@ function MergeTile({
     group.current.position.z = THREE.MathUtils.lerp(group.current.position.z, tile.z, t);
     mesh.current.scale.y = THREE.MathUtils.lerp(mesh.current.scale.y, tile.height, t);
     mesh.current.position.y = mesh.current.scale.y / 2;
-    material.current.emissiveIntensity = THREE.MathUtils.lerp(material.current.emissiveIntensity, tile.active ? 0.84 + pulse * 0.3 : 0.2, t);
+    material.current.emissiveIntensity = THREE.MathUtils.lerp(
+      material.current.emissiveIntensity,
+      tile.dimmed ? 0.05 : tile.active ? 0.84 + pulse * 0.3 : 0.2,
+      t,
+    );
+    material.current.opacity = THREE.MathUtils.lerp(material.current.opacity, tile.dimmed ? 0.32 : 0.88, t);
   });
 
   return (
@@ -102,25 +108,29 @@ function MergeTile({
           ref={material}
           color={tile.color}
           emissive={tile.color}
-          emissiveIntensity={tile.active ? 0.84 : 0.2}
+          emissiveIntensity={tile.dimmed ? 0.05 : tile.active ? 0.84 : 0.2}
           metalness={0.42}
           roughness={0.34}
           transparent
-          opacity={tile.role === "array" ? 0.94 : 0.88}
+          opacity={tile.dimmed ? 0.32 : tile.role === "array" ? 0.94 : 0.88}
         />
-        <Edges color={tile.edge} threshold={16} />
+        <Edges color={tile.dimmed ? "#3a3f4b" : tile.edge} threshold={16} />
       </mesh>
       <Html position={[0, tile.height + 0.28, 0]} center style={{ pointerEvents: "none" }}>
         <div
-          className="min-w-8 rounded-md border bg-ink-950/94 px-2 py-1 text-center font-mono text-xs font-black leading-none text-ink-50 shadow-xl backdrop-blur"
-          style={{ borderColor: tile.edge, textShadow: "0 1px 2px rgb(0 0 0 / 0.8)" }}
+          className="min-w-8 rounded-md border bg-ink-950/94 px-2 py-1 text-center font-mono text-xs font-black leading-none shadow-xl backdrop-blur"
+          style={{
+            borderColor: tile.dimmed ? "rgba(255,255,255,0.14)" : tile.edge,
+            color: tile.dimmed ? "rgba(255,255,255,0.35)" : undefined,
+            textShadow: "0 1px 2px rgb(0 0 0 / 0.8)",
+          }}
         >
           {tile.value}
         </div>
       </Html>
       {tile.label && (
         <Html position={[0, -0.26, 0]} center style={{ pointerEvents: "none" }}>
-          <div className="rounded border border-ink-700/80 bg-ink-950/90 px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase leading-none text-ink-400">
+          <div className="rounded border bg-ink-950/90 px-1.5 py-0.5 font-mono text-[9px] font-black uppercase leading-none" style={{ borderColor: tile.edge, color: tile.edge }}>
             {tile.label}
           </div>
         </Html>
@@ -157,14 +167,12 @@ function RangeSlab({ model, p }: { model: MergeSortSceneModel; p: Theme3DPalette
 }
 
 function RunTray({
-  label,
   range,
   color,
   z,
   p,
   count: totalCount,
 }: {
-  label: string;
   range: [number, number] | null;
   color: string;
   z: number;
@@ -180,11 +188,6 @@ function RunTray({
         <boxGeometry args={[Math.max(1, count * 0.74), 0.08, 0.64]} />
         <meshStandardMaterial color={p.emptyCell} emissive={color} emissiveIntensity={0.18} transparent opacity={0.66} />
       </mesh>
-      <Html position={[0, 0.2, 0]} center style={{ pointerEvents: "none" }}>
-        <div className="rounded-md border bg-ink-950/92 px-2 py-1 font-mono text-[10px] font-black uppercase leading-none text-ink-100 shadow-lg" style={{ borderColor: color }}>
-          {label} [{range[0]}..{range[1]}]
-        </div>
-      </Html>
     </group>
   );
 }
@@ -218,6 +221,17 @@ function Scene({ model, p, reducedMotion }: { model: MergeSortSceneModel; p: The
     scene.current.rotation.y = Math.sin(clock.elapsedTime * 0.22) * 0.014;
   });
 
+  // How many values of each run have already been merged away. `sourceIndex`
+  // points at the tile being taken this step, so everything before it is done.
+  const consumedLeft =
+    model.takeSide === "left" && model.sourceIndex !== null && model.leftRange
+      ? Math.max(0, model.sourceIndex - model.leftRange[0])
+      : null;
+  const consumedRight =
+    model.takeSide === "right" && model.sourceIndex !== null && model.rightRange
+      ? Math.max(0, model.sourceIndex - model.rightRange[0])
+      : null;
+
   const tiles = useMemo<MergeTileModel[]>(() => {
     const base = model.values.map((value, index) => {
       const active = sameIndex(model.writingIndex, index) || !!model.comparePair?.includes(index) || (isComplete && rangeIncludes(model.range, index));
@@ -234,15 +248,17 @@ function Scene({ model, p, reducedMotion }: { model: MergeSortSceneModel; p: The
         edge: active ? "#f8fbff" : color,
         role: "array" as const,
         active,
+        dimmed: false,
       };
     });
 
     const left = model.leftValues.map((value, offset) => {
       const index = (model.leftRange?.[0] ?? model.range[0]) + offset;
       const active = model.takeSide === "left" && model.sourceIndex === index;
+      const dimmed = consumedLeft !== null && offset < consumedLeft;
       return {
         id: `left-${offset}-${value}`,
-        label: offset === 0 ? "front" : "",
+        label: active ? "take" : "",
         value,
         x: xForRangeIndex(index, model.values.length),
         y: 2.02,
@@ -252,15 +268,17 @@ function Scene({ model, p, reducedMotion }: { model: MergeSortSceneModel; p: The
         edge: active ? p.verdant : p.arcBright,
         role: "left" as const,
         active,
+        dimmed,
       };
     });
 
     const right = model.rightValues.map((value, offset) => {
       const index = (model.rightRange?.[0] ?? model.range[0]) + offset;
       const active = model.takeSide === "right" && model.sourceIndex === index;
+      const dimmed = consumedRight !== null && offset < consumedRight;
       return {
         id: `right-${offset}-${value}`,
-        label: offset === 0 ? "front" : "",
+        label: active ? "take" : "",
         value,
         x: xForRangeIndex(index, model.values.length),
         y: 2.02,
@@ -270,11 +288,12 @@ function Scene({ model, p, reducedMotion }: { model: MergeSortSceneModel; p: The
         edge: active ? p.verdant : p.emberBright,
         role: "right" as const,
         active,
+        dimmed,
       };
     });
 
     return [...base, ...left, ...right];
-  }, [isComplete, maxValue, model, p]);
+  }, [consumedLeft, consumedRight, isComplete, maxValue, model, p]);
 
   const stageWidth = Math.max(6.2, (model.values.length - 1) * SLOT_GAP + 2);
 
@@ -291,11 +310,15 @@ function Scene({ model, p, reducedMotion }: { model: MergeSortSceneModel; p: The
           <meshStandardMaterial color={p.emptyCell} emissive={p.arcDeep} emissiveIntensity={0.08} transparent opacity={0.66} metalness={0.18} roughness={0.5} />
         </mesh>
         <RangeSlab model={model} p={p} />
-        <RunTray label="left run" range={model.leftRange} color={p.arcBright} z={-1.28} p={p} count={model.values.length} />
-        <RunTray label="right run" range={model.rightRange} color={p.emberBright} z={1.28} p={p} count={model.values.length} />
+        <RunTray range={model.leftRange} color={p.arcBright} z={-1.28} p={p} count={model.values.length} />
+        <RunTray range={model.rightRange} color={p.emberBright} z={1.28} p={p} count={model.values.length} />
         <MergeLines model={model} p={p} />
-        {model.destinationIndex !== null && (
-          <Html position={[xForIndex(model.destinationIndex, model.values.length), 2.36, 0]} center style={{ pointerEvents: "none" }}>
+        {(model.operation === "write" || model.operation === "copy") && model.destinationIndex !== null && (
+          <Html
+            position={[xForIndex(model.destinationIndex, model.values.length), 2.36, 0.55]}
+            center
+            style={{ pointerEvents: "none" }}
+          >
             <div className="rounded-md border border-verdant-400/55 bg-ink-950/94 px-2 py-1 font-mono text-[10px] font-black uppercase leading-none text-verdant-100 shadow-xl">
               output slot {model.destinationIndex}
             </div>

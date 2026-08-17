@@ -121,8 +121,8 @@ export function Sidebar({
       >
         <BrandLogo
           className={cn(
-            "h-7 w-auto transition-transform duration-300 hover:scale-105",
-            !collapsed && "sm:h-9",
+            "h-10 w-auto transition-transform duration-300 hover:scale-105",
+            !collapsed && "sm:h-14",
           )}
         />
       </div>

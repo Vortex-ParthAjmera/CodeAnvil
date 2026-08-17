@@ -235,29 +235,6 @@ function SwapPaths({ model, p }: { model: QuickSortSceneModel; p: Theme3DPalette
   );
 }
 
-function DecisionBoard({ model, p }: { model: QuickSortSceneModel; p: Theme3DPalette }) {
-  const label =
-    model.operation === "compare" && model.scanIndex !== null && model.pivotValue !== null
-      ? `a[${model.scanIndex}] ${model.values[model.scanIndex] < model.pivotValue ? "<" : ">="} pivot`
-      : model.operation === "pivot" && model.finalIndex !== null
-        ? `pivot -> index ${model.finalIndex}`
-        : model.operation;
-  return (
-    <group position={[0, 3.68, 0.1]}>
-      <mesh>
-        <boxGeometry args={[2.78, 0.24, 0.24]} />
-        <meshStandardMaterial color={p.emptyCell} emissive={model.operation === "pivot" ? p.verdant : p.arc} emissiveIntensity={0.18} transparent opacity={0.72} />
-        <Edges color={model.operation === "pivot" ? p.verdant : p.arcBright} threshold={18} />
-      </mesh>
-      <Html position={[0, 0, 0.18]} center style={{ pointerEvents: "none" }}>
-        <div className="whitespace-nowrap rounded border border-arc-400/45 bg-ink-950/82 px-2 py-1 font-mono text-[11px] font-black leading-none text-ink-50 shadow-lg backdrop-blur-sm">
-          {label}
-        </div>
-      </Html>
-    </group>
-  );
-}
-
 function Scene({ model, p }: { model: QuickSortSceneModel; p: Theme3DPalette }) {
   const scene = useRef<THREE.Group>(null);
   const maxValue = Math.max(...model.values, 1);
@@ -305,7 +282,6 @@ function Scene({ model, p }: { model: QuickSortSceneModel; p: Theme3DPalette }) 
         <BoundaryMarker model={model} p={p} />
         <ProbeMarker model={model} p={p} />
         <PivotMarker model={model} p={p} />
-        <DecisionBoard model={model} p={p} />
         <CompareBeam model={model} p={p} />
         <SwapPaths model={model} p={p} />
         {bars.map((bar) => (

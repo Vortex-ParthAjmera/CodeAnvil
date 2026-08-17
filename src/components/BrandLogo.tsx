@@ -17,7 +17,7 @@ export function BrandLogo({ className }: { className?: string }) {
       alt="CodeAnvil"
       draggable={false}
       className={cn(
-        "select-none rounded-md object-contain shadow-sm",
+        "select-none rounded-lg object-contain shadow-lg ring-1 ring-ink-700/70",
         className,
       )}
     />

@@ -215,7 +215,11 @@ function MotionLines({ model, p }: { model: HeapSortSceneModel; p: Theme3DPalett
 
   if (model.comparePair) {
     const [a, b] = model.comparePair;
-    return <Line points={[heapPosition(a), heapPosition(b)]} color={p.arcBright} lineWidth={2.6} />;
+    // Only draw the link while both ends are still inside the heap tree;
+    // an extracted node has no phantom tree position to compare against.
+    if (a < model.heapSize && b < model.heapSize) {
+      return <Line points={[heapPosition(a), heapPosition(b)]} color={p.arcBright} lineWidth={2.6} />;
+    }
   }
 
   return null;

@@ -64,7 +64,7 @@ export function AuthScreen({ onNavigate }: { onNavigate: (route: Route) => void 
         {/* Left: pitch + provider plan */}
         <div>
           <div className="mb-6 flex items-center">
-            <BrandLogo className="h-10 w-auto" />
+            <BrandLogo className="h-16 w-auto" />
           </div>
 
           <AnimatedHeading

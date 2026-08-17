@@ -171,7 +171,7 @@ export default function LandingPage({
             onClick={() => onNavigate({ name: "landing" })}
             className="flex items-center gap-2.5"
           >
-            <BrandLogo className="h-8 w-auto" />
+            <BrandLogo className="h-11 w-auto" />
           </button>
 
           <nav className="ml-auto hidden items-center gap-1 md:flex">
@@ -671,7 +671,7 @@ export default function LandingPage({
       <footer className="border-t border-ink-800/70 bg-ink-950/35 backdrop-blur-[2px]">
         <div className="mx-auto flex max-w-7xl flex-col gap-8 px-5 py-12 md:flex-row md:items-start md:justify-between">
           <div className="max-w-sm">
-            <BrandLogo className="h-9 w-auto" />
+            <BrandLogo className="h-12 w-auto" />
             <p className="mt-4 text-xs leading-relaxed text-ink-400">
               A visual, playable coding and DSA platform for students. Local
               first — your sessions stay in your browser.

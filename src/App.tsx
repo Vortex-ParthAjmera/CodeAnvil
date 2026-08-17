@@ -182,7 +182,7 @@ export default function App() {
               collapsed={sidebarCollapsed}
               onToggleCollapsed={toggleSidebar}
             />
-            <main className="min-w-0 flex-1">
+            <main className="min-h-0 min-w-0 flex-1">
             <ErrorBoundary label="screen">
               <Suspense
                 fallback={

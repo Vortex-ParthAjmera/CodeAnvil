@@ -57,6 +57,32 @@ function panelFocusClass(panel: Exclude<FocusPanel, "all">, focused: FocusPanel)
   return focused === panel ? "" : "hidden";
 }
 
+/* Per-example stage view (2D vs 3D), persisted so reopening an example
+   restores the view the user last chose for it. */
+const VIEW3D_KEY = "codeanvil.view3d-by-example.v1";
+
+function readView3dPref(id: string): boolean | undefined {
+  try {
+    const raw = localStorage.getItem(VIEW3D_KEY);
+    if (!raw) return undefined;
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    return typeof parsed[id] === "boolean" ? parsed[id] : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function writeView3dPref(id: string, is3d: boolean): void {
+  try {
+    const raw = localStorage.getItem(VIEW3D_KEY);
+    const parsed = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
+    parsed[id] = is3d;
+    localStorage.setItem(VIEW3D_KEY, JSON.stringify(parsed));
+  } catch {
+    /* ignore */
+  }
+}
+
 /* Per-panel size weights (2–9) for the workspace layout, persisted locally. */
 const PANEL_SIZES_KEY = "codeanvil.panel-sizes.v1";
 const PANEL_SIZE_IDS = ["code", "stage", "inspector"] as const;
@@ -93,11 +119,10 @@ function PanelSizeSlider({
   onChange: (v: number) => void;
 }) {
   return (
-    <label
-      title={`Resize ${id} panel`}
-      className="hidden items-center gap-1.5 lg:flex"
-    >
-      <MoveHorizontal size={11} className="shrink-0 text-ink-500" />
+    <label title={`Resize ${id} panel`} className="flex items-center gap-1.5">
+      <span className="w-12 font-mono text-[10px] uppercase tracking-wider text-ink-400 sm:w-14">
+        {id}
+      </span>
       <input
         type="range"
         min={2}
@@ -106,7 +131,7 @@ function PanelSizeSlider({
         value={value}
         onChange={(e) => onChange(Number(e.target.value))}
         aria-label={`${id} panel size`}
-        className="h-1 w-14 cursor-pointer appearance-none rounded-full bg-ink-700 accent-ember-400"
+        className="h-1 w-20 cursor-pointer appearance-none rounded-full bg-ink-700 accent-ember-400 sm:w-24"
       />
     </label>
   );
@@ -144,7 +169,9 @@ export function PlaybackLab({
 }) {
   const [exampleId, setExampleId] = useState<string | null>(null);
   const [savedFlash, setSavedFlash] = useState(false);
-  const [view3d, setView3d] = useState(true);
+  const [view3d, setView3d] = useState<boolean>(
+    () => readView3dPref(route.exampleId ?? EXAMPLES[0].id) ?? true,
+  );
   const [customExample, setCustomExample] = useState<ReturnType<typeof forgeExample> | null>(null);
   const [config, setConfig] = useState<PlayableConfig>({});
   const [lang, setLang] = useState<VariantLanguage>("python");
@@ -164,6 +191,16 @@ export function PlaybackLab({
   const effectiveId = exampleId ?? route.exampleId ?? EXAMPLES[0].id;
   const baseExample = getExample(effectiveId) ?? EXAMPLES[0];
   const example = customExample ?? baseExample;
+
+  // Restore the example's saved stage view when it (re)opens.
+  useEffect(() => {
+    setView3d(readView3dPref(effectiveId) ?? true);
+  }, [effectiveId]);
+
+  function setViewFor(is3d: boolean) {
+    setView3d(is3d);
+    writeView3dPref(example.id, is3d);
+  }
   const kind = PLAYABLE_KIND_BY_EXAMPLE[baseExample.id];
   const inputFields = kind ? (PLAYABLE_INPUTS[kind] ?? []) : undefined;
   const variants = LANGUAGE_VARIANTS[baseExample.id];
@@ -345,12 +382,34 @@ export function PlaybackLab({
         </div>
       </header>
 
+      {/* Panel size sliders — resize source / stage / inspector to fit any screen */}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-b border-ink-800 bg-ink-900/70 px-3 py-1.5">
+        <span className="flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-widest text-ink-500">
+          <MoveHorizontal size={11} /> Panel size
+        </span>
+        {PANEL_SIZE_IDS.map((id) => (
+          <PanelSizeSlider
+            key={id}
+            id={id}
+            value={panelSizes[id]}
+            onChange={(v) => setPanelSizes((s) => ({ ...s, [id]: v }))}
+          />
+        ))}
+        <button
+          type="button"
+          onClick={() => setPanelSizes(DEFAULT_PANEL_SIZES)}
+          className="rounded border border-ink-700 px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wider text-ink-400 transition-colors hover:border-ink-600 hover:text-ink-200"
+        >
+          Reset
+        </button>
+      </div>
+
       {/* Workspace — scrolls instead of clipping on short screens; panels
-          share width by the user's per-panel size weights on lg+. */}
+          share space by the per-panel size weights (width on lg+, height below). */}
       <div className="flex min-h-0 flex-1 flex-col gap-px overflow-y-auto bg-ink-700 lg:flex-row">
         <div
           className={cn(
-            "flex h-56 min-h-0 flex-col bg-ink-900 lg:h-auto lg:min-h-0 lg:min-w-[17rem]",
+            "flex min-h-40 min-w-0 flex-col bg-ink-900 lg:min-h-0 lg:min-w-[17rem]",
             panelFocusClass("code", focusedPanel),
           )}
           data-panel="code"
@@ -377,12 +436,7 @@ export function PlaybackLab({
                 ))}
               </div>
             )}
-            <div className="ml-auto flex items-center gap-2">
-              <PanelSizeSlider
-                id="code"
-                value={panelSizes.code}
-                onChange={(v) => setPanelSizes((s) => ({ ...s, code: v }))}
-              />
+            <div className="ml-auto">
               <FocusButton
                 active={focusedPanel === "code"}
                 label="source"
@@ -451,7 +505,7 @@ export function PlaybackLab({
         </div>
         <div
           className={cn(
-            "relative isolate flex min-h-[24rem] flex-col overflow-hidden bg-ink-900 lg:h-auto lg:min-h-0 lg:min-w-[19rem]",
+            "relative isolate flex min-h-[17rem] min-w-0 flex-col overflow-hidden bg-ink-900 lg:min-h-0 lg:min-w-[19rem]",
             panelFocusClass("stage", focusedPanel),
           )}
           data-panel="stage"
@@ -463,11 +517,6 @@ export function PlaybackLab({
               {step.visual?.type === "recursion_tree" ? "Recursion tree" : "Execution stage"}
             </span>
             <div className="flex items-center gap-2">
-              <PanelSizeSlider
-                id="stage"
-                value={panelSizes.stage}
-                onChange={(v) => setPanelSizes((s) => ({ ...s, stage: v }))}
-              />
               <FocusButton
                 active={focusedPanel === "stage"}
                 label="stage"
@@ -476,7 +525,7 @@ export function PlaybackLab({
               <div className="flex overflow-hidden rounded-md border border-ink-700">
                 <button
                   type="button"
-                  onClick={() => setView3d(false)}
+                  onClick={() => setViewFor(false)}
                   className={cn(
                     "flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium transition-colors",
                     !view3d
@@ -488,7 +537,7 @@ export function PlaybackLab({
                 </button>
                 <button
                   type="button"
-                  onClick={() => setView3d(true)}
+                  onClick={() => setViewFor(true)}
                   className={cn(
                     "flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium transition-colors",
                     view3d
@@ -549,7 +598,7 @@ export function PlaybackLab({
         </div>
         <div
           className={cn(
-            "flex h-80 min-h-0 flex-col bg-ink-900 lg:h-auto lg:min-h-0 lg:min-w-[15rem]",
+            "flex min-h-48 min-w-0 flex-col bg-ink-900 lg:min-h-0 lg:min-w-[15rem]",
             panelFocusClass("inspector", focusedPanel),
           )}
           data-panel="inspector"
@@ -559,12 +608,7 @@ export function PlaybackLab({
             <span className="text-[10px] font-semibold uppercase tracking-widest text-ink-500">
               Inspector
             </span>
-            <div className="flex items-center gap-2">
-              <PanelSizeSlider
-                id="inspector"
-                value={panelSizes.inspector}
-                onChange={(v) => setPanelSizes((s) => ({ ...s, inspector: v }))}
-              />
+            <div>
               <FocusButton
                 active={focusedPanel === "inspector"}
                 label="inspector"

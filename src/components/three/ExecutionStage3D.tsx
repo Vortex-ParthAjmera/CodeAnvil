@@ -92,7 +92,7 @@ export function ExecutionStage3D({ step }: { step: TraceStep }) {
       changed={step.changed?.variables}
       stack={step.stack}
       stepKey={step.id}
-      storyboard={{ line: step.line, event: step.event }}
+      storyboard={{ line: step.line, event: step.event, description: step.description }}
     />
   );
 }

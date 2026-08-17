@@ -1,42 +1,94 @@
-import { useMemo, useRef } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
-import { Edges, Grid as InfiniteGrid, Html, OrbitControls, Text } from "@react-three/drei";
-import * as THREE from "three";
+import { useMemo } from "react";
+import { motion } from "motion/react";
+import { Canvas } from "@react-three/fiber";
+import { Grid as InfiniteGrid, Html, OrbitControls, Text } from "@react-three/drei";
 import type { StackFrame } from "../../types/trace";
 import { BarsGroup, type BarDescriptor } from "./ThreeBars";
 import { cn } from "../../lib/cn";
 import { useTheme3D, type Theme3DPalette } from "../../lib/theme3d";
 
-function CodeFlow({ line, event, p }: { line: number; event: string; p: Theme3DPalette }) {
-  const core = useRef<THREE.Mesh>(null);
-  useFrame((_, delta) => {
-    if (!core.current) return;
-    core.current.rotation.x += delta * 0.22;
-    core.current.rotation.y += delta * 0.38;
-  });
+const EASE_OUT = [0.23, 1, 0.32, 1] as const;
+
+/** Pulls `result = 1 x 3 = 3`-style formulas out of a step description. */
+const FORMULA_RE = /([a-z_][a-z0-9_]*)\s*=\s*(-?\d+)\s*([×+*\-])\s*(-?\d+)\s*=\s*(-?\d+)/i;
+
+function FormulaChip({ description }: { description?: string }) {
+  if (!description) return null;
+  const m = FORMULA_RE.exec(description);
+  if (!m) return null;
+  const op = m[3] === "*" ? "×" : m[3];
+  return (
+    <Html position={[0, -0.55, 0]} center style={{ pointerEvents: "none" }}>
+      <div className="whitespace-nowrap rounded-md border border-arc-400/35 bg-ink-950/90 px-3 py-1.5 font-mono text-sm font-black text-ink-50 shadow-xl backdrop-blur">
+        <span className="text-ink-400">{m[1]}</span> = {m[2]} {op} {m[4]} ={" "}
+        <span className="text-ember-300">{m[5]}</span>
+      </div>
+    </Html>
+  );
+}
+
+/**
+ * The semantic fallback for variable-only steps (loops, accumulators): a big
+ * hero value that pops on every change, the live formula below it, and the
+ * line/event readout — the computation itself, not decoration.
+ */
+function VariableForge({
+  description,
+  variables,
+  changed,
+  line,
+  event,
+  p,
+}: {
+  description?: string;
+  variables: Record<string, unknown>;
+  changed?: string[];
+  line: number;
+  event: string;
+  p: Theme3DPalette;
+}) {
+  const changedVar = changed?.find((name) => name in variables);
+  const heroName = changedVar ?? Object.keys(variables)[0];
+  const heroValue = heroName !== undefined ? variables[heroName] : undefined;
+  const isNum = typeof heroValue === "number";
+  const display = heroValue === undefined ? "" : String(heroValue);
 
   return (
-    <group position={[0, -0.2, 0]}>
-      <mesh ref={core} position={[0, 0.25, 0]}>
-        <octahedronGeometry args={[0.82, 1]} />
-        <meshStandardMaterial color={p.gridCell} emissive={p.ember} emissiveIntensity={0.65} metalness={0.65} roughness={0.22} wireframe />
-      </mesh>
-      {Array.from({ length: 9 }, (_, i) => {
-        const offset = i - 4;
-        const active = i === 4;
-        const color = active ? p.ember : p.barRange;
-        return (
-          <group key={i} position={[offset * 0.72, offset * -0.16, -1.2 - Math.abs(offset) * 0.15]} rotation={[0, 0, -0.13]}>
-            <mesh>
-              <boxGeometry args={[0.58, 0.12, 0.42]} />
-              <meshStandardMaterial color={color} emissive={active ? p.ember : p.arc} emissiveIntensity={active ? 0.9 : 0.12} metalness={0.45} roughness={0.35} />
-              {active && <Edges color={p.emberBright} />}
-            </mesh>
-          </group>
-        );
-      })}
-      <Text position={[0, -1.35, 0.25]} fontSize={0.28} color={p.emberBright} anchorX="center">LINE {line}</Text>
-      <Text position={[0, -1.75, 0.2]} fontSize={0.16} color={p.arcBright} anchorX="center">{event.replaceAll("_", " ").toUpperCase()}</Text>
+    <group position={[0, 0.15, 0]}>
+      <Html position={[0, 0.75, 0]} center style={{ pointerEvents: "none" }}>
+        <div className="flex flex-col items-center">
+          <span className="font-mono text-[10px] font-black uppercase tracking-[0.3em] text-ink-500">
+            {heroName ?? "step"}
+          </span>
+          <motion.span
+            key={`${heroName}-${display}`}
+            initial={{ scale: 0.55, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 380, damping: 24 }}
+            className="font-mono text-5xl font-black tabular-nums text-ember-300 [text-shadow:0_0_32px_rgba(167,139,250,0.65)]"
+          >
+            {display}
+          </motion.span>
+          {isNum && heroValue !== undefined && (
+            <motion.span
+              key={`meter-${display}`}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.25, delay: 0.08, ease: EASE_OUT }}
+              className="mt-1 font-mono text-[9px] font-bold uppercase tracking-[0.25em] text-ink-500"
+            >
+              {heroValue >= 0 ? "growing" : ""}
+            </motion.span>
+          )}
+        </div>
+      </Html>
+      <FormulaChip description={description} />
+      <Text position={[0, -1.5, 0.25]} fontSize={0.26} color={p.emberBright} anchorX="center">
+        LINE {line}
+      </Text>
+      <Text position={[0, -1.9, 0.2]} fontSize={0.15} color={p.arcBright} anchorX="center">
+        {event.replaceAll("_", " ").toUpperCase()}
+      </Text>
     </group>
   );
 }
@@ -64,7 +116,7 @@ export function ThreeStage({
   changed?: string[];
   stack: StackFrame[];
   stepKey?: string | number;
-  storyboard?: { line: number; event: string };
+  storyboard?: { line: number; event: string; description?: string };
 }) {
   const p = useTheme3D();
   const varEntries = useMemo(() => {
@@ -107,7 +159,16 @@ export function ThreeStage({
         <BarsGroup values={values} states={states ?? []} maxH={2.8} baseY={-1.1} colors={colors} />
       )}
 
-      {!values && <CodeFlow line={storyboard?.line ?? 1} event={storyboard?.event ?? "line_enter"} p={p} />}
+      {!values && (
+        <VariableForge
+          description={storyboard?.description}
+          variables={variables}
+          changed={changed}
+          line={storyboard?.line ?? 1}
+          event={storyboard?.event ?? "line_enter"}
+          p={p}
+        />
+      )}
 
       {/* Floating variable chips */}
       {varEntries.map(([name, value], i) => {

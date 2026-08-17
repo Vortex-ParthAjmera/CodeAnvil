@@ -11,6 +11,7 @@ import {
 } from "../../engine/gridStage";
 import { useTheme3D, type Theme3DPalette } from "../../lib/theme3d";
 import { CanvasSizeSync } from "./CanvasSizeSync";
+import { HudToggle, useStageHud } from "./StageHud";
 
 function useReducedMotionPreference(): boolean {
   const [reduced, setReduced] = useState(false);
@@ -115,7 +116,7 @@ function CellBlock({
   return (
     <group position={[x, 0, z]}>
       <mesh ref={mesh} scale={[1, targetHeight, 1]} position={[0, targetHeight / 2, 0]}>
-        <boxGeometry args={[0.78, 1, 0.78]} />
+        <boxGeometry args={[0.5, 1, 0.5]} />
         <meshStandardMaterial
           ref={material}
           color={cell.isWall ? p.gridSection : p.emptyCell}
@@ -292,20 +293,21 @@ function FrontierRail({ model, p }: { model: GridSearchSceneModel; p: Theme3DPal
 
   return (
     <div className="pointer-events-none absolute inset-x-2 bottom-2 z-10 rounded-md border border-arc-400/25 bg-ink-950/88 p-2 shadow-2xl backdrop-blur-md sm:inset-x-3 sm:bottom-3">
-      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <div>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           <p className="font-mono text-[10px] font-black uppercase tracking-widest text-arc-200">
             {model.frontierName} frontier
           </p>
-          <p className="mt-0.5 font-mono text-[10px] font-semibold text-ink-500">
-            next is shown first · {model.frontierDirection}
-          </p>
+          <span className="rounded border border-ink-700/75 bg-ink-900/80 px-1.5 py-0.5 font-mono text-[9px] font-bold text-ink-300">
+            {model.frontierRule}
+          </span>
         </div>
-        <span className="rounded border border-ink-700/75 bg-ink-900/80 px-2 py-0.5 font-mono text-[10px] font-bold text-ink-300">
-          {model.frontierRule}
-        </span>
+        <p className="hidden font-mono text-[9px] font-semibold text-ink-500 sm:block">
+          next first · {model.frontierDirection}
+        </p>
       </div>
-      <div className="flex min-h-8 gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none]">
+      <p className="mt-1 line-clamp-2 max-w-4xl text-[10px] leading-snug text-ink-300 sm:text-[11px]">{model.detail}</p>
+      <div className="mt-1.5 flex min-h-8 gap-1.5 overflow-x-auto pb-0.5 [scrollbar-width:none]">
         {waiting.length ? (
           waiting.map((coord, index) => (
             <span
@@ -339,41 +341,39 @@ function FrontierRail({ model, p }: { model: GridSearchSceneModel; p: Theme3DPal
 }
 
 function Overlay({ model, p }: { model: GridSearchSceneModel; p: Theme3DPalette }) {
+  const stats = [
+    ["current", coordText(model.current)],
+    ["next", coordText(model.nextCell)],
+    ["seen/front", `${model.visitedCount}/${model.frontierSize}`],
+  ] as const;
+
   return (
     <>
-      {/* The two-column split only kicks in when the STAGE is wide (@md container
-          query) — in the lab's normal 3-panel layout the stage is narrow, so the
-          cards stack in compact rows instead of colliding with the frontier rail. */}
-      <div className="pointer-events-none absolute inset-x-2 top-2 z-10 grid gap-2 md:inset-x-3 md:top-3 @md:grid-cols-[minmax(0,1fr)_auto]">
-        <div className="rounded-md border border-arc-400/35 bg-ink-950/90 px-2.5 py-1.5 shadow-2xl backdrop-blur-md sm:px-3 sm:py-2">
-          <div className="mb-1 flex flex-wrap items-center gap-2">
-            <span className="rounded border border-arc-400/35 bg-arc-500/10 px-1.5 py-0.5 font-mono text-[10px] font-black uppercase tracking-widest text-arc-200">
+      {/* Compact strip, same recipe as the sort stages — the full detail lives
+          in the frontier rail so the top HUD stays slim and never collides. */}
+      <div className="pointer-events-none absolute left-2 right-11 top-2 z-10 flex items-start justify-between gap-2 sm:left-3 sm:right-12 sm:top-3">
+        <div className="min-w-0 max-w-[13rem] rounded-md border border-arc-400/30 bg-ink-950/72 px-2.5 py-1.5 shadow-lg backdrop-blur-sm sm:max-w-[16rem]">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <span className="shrink-0 rounded border border-arc-400/35 bg-arc-500/10 px-1.5 py-0.5 font-mono text-[9px] font-black uppercase tracking-widest text-arc-200">
               {model.kind.toUpperCase()} / {model.operation}
             </span>
-            <span className="font-mono text-[10px] font-semibold uppercase tracking-wider text-ink-400">
+            <span className="truncate font-mono text-[9px] font-semibold uppercase tracking-wider text-ink-400">
               {model.frontierName} {model.frontierRule}
             </span>
           </div>
-          <p className="max-w-4xl text-sm font-black leading-tight text-ink-50 sm:text-base">{model.headline}</p>
-          <p className="mt-1 max-w-4xl text-[11px] leading-relaxed text-ink-300 sm:text-xs">{model.detail}</p>
-          <p className="mt-1 hidden font-mono text-[10px] font-bold uppercase tracking-wider text-arc-200 sm:block">{model.behaviorLine}</p>
+          <p className="mt-1 truncate text-[11px] font-black leading-tight text-ink-50 sm:text-xs">{model.headline}</p>
         </div>
 
-        <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
-          <div className="rounded-md border border-ink-700/70 bg-ink-950/90 px-2 py-2 text-center shadow-xl backdrop-blur-md">
-            <p className="font-mono text-[8px] font-black uppercase tracking-widest text-ink-500 sm:text-[9px]">current</p>
-            <p className="mt-1 font-mono text-xs font-black text-ember-100 sm:text-sm">{coordText(model.current)}</p>
-          </div>
-          <div className="rounded-md border border-ink-700/70 bg-ink-950/90 px-2 py-2 text-center shadow-xl backdrop-blur-md">
-            <p className="font-mono text-[8px] font-black uppercase tracking-widest text-ink-500 sm:text-[9px]">next</p>
-            <p className="mt-1 font-mono text-xs font-black text-amber-100 sm:text-sm">{coordText(model.nextCell)}</p>
-          </div>
-          <div className="rounded-md border border-ink-700/70 bg-ink-950/90 px-2 py-2 text-center shadow-xl backdrop-blur-md">
-            <p className="font-mono text-[8px] font-black uppercase tracking-widest text-ink-500 sm:text-[9px]">seen/front</p>
-            <p className="mt-1 font-mono text-xs font-black text-arc-100 sm:text-sm">{model.visitedCount}/{model.frontierSize}</p>
-          </div>
+        <div className="flex max-w-[16rem] flex-wrap justify-end gap-1 sm:max-w-[21rem]">
+          {stats.map(([label, value]) => (
+            <div key={label} className="rounded border border-ink-700/65 bg-ink-950/72 px-1.5 py-1 text-center shadow-lg backdrop-blur-sm">
+              <span className="block font-mono text-[8px] font-black uppercase tracking-widest text-ink-500">{label}</span>
+              <span className="block max-w-[4.5rem] truncate font-mono text-[11px] font-black leading-tight text-ink-50">{value}</span>
+            </div>
+          ))}
         </div>
       </div>
+
       <FrontierRail model={model} p={p} />
     </>
   );
@@ -383,11 +383,12 @@ export function GridSearchStage3D({ step }: { step: TraceStep }) {
   const p = useTheme3D();
   const model = useMemo(() => getGridSearchSceneModel(step), [step]);
   const reducedMotion = useReducedMotionPreference();
+  const hud = useStageHud();
 
   if (!model) return null;
 
   return (
-    <div className="codeanvil-canvas-fill relative h-full min-h-[23rem] w-full overflow-hidden rounded-md @container">
+    <div className="codeanvil-canvas-fill relative h-full w-full overflow-hidden rounded-md @container">
       <Canvas
         data-testid="grid-search-stage-canvas"
         dpr={[1.25, 2]}
@@ -398,7 +399,8 @@ export function GridSearchStage3D({ step }: { step: TraceStep }) {
         <CanvasSizeSync />
         <Scene model={model} p={p} reducedMotion={reducedMotion} />
       </Canvas>
-      <Overlay model={model} p={p} />
+      <HudToggle open={hud.hudOpen} onToggle={hud.toggleHud} />
+      {hud.hudOpen && <Overlay model={model} p={p} />}
     </div>
   );
 }

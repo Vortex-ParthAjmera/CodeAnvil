@@ -10,6 +10,7 @@ import {
 } from "../../engine/searchStage";
 import { useTheme3D, type Theme3DPalette } from "../../lib/theme3d";
 import { CanvasSizeSync } from "./CanvasSizeSync";
+import { HudToggle, useStageHud } from "./StageHud";
 
 function gapForCount(count: number): number {
   if (count <= 6) return 1.04;
@@ -275,46 +276,48 @@ function Scene({ model, p }: { model: BinarySearchSceneModel; p: Theme3DPalette 
 }
 
 function Overlay({ model }: { model: BinarySearchSceneModel }) {
+  const stats = [
+    ["target", model.target ?? "-"],
+    ["mid", model.mid ?? "-"],
+    ["probes", model.probes ?? 0],
+  ] as const;
+
   return (
     <>
-      <div className="pointer-events-none absolute inset-x-2 top-2 z-10 grid gap-2 md:inset-x-3 md:top-3 @md:grid-cols-[minmax(0,1fr)_auto]">
-        <div className="rounded-md border border-arc-400/35 bg-ink-950/88 px-3 py-2 shadow-2xl backdrop-blur-md">
-          <div className="mb-1 flex flex-wrap items-center gap-2">
-            <span className="rounded border border-arc-400/35 bg-arc-500/10 px-1.5 py-0.5 font-mono text-[10px] font-black uppercase tracking-widest text-arc-200">
+      {/* Compact strip, same recipe as the sort stages; the detail paragraph
+          lives in the bottom rail so the top HUD stays slim. */}
+      <div className="pointer-events-none absolute left-2 right-11 top-2 z-10 flex items-start justify-between gap-2 sm:left-3 sm:right-12 sm:top-3">
+        <div className="min-w-0 max-w-[13rem] rounded-md border border-arc-400/30 bg-ink-950/72 px-2.5 py-1.5 shadow-lg backdrop-blur-sm sm:max-w-[16rem]">
+          <div className="flex min-w-0 items-center gap-1.5">
+            <span className="shrink-0 rounded border border-arc-400/35 bg-arc-500/10 px-1.5 py-0.5 font-mono text-[9px] font-black uppercase tracking-widest text-arc-200">
               {model.operation}
             </span>
-            <span className="font-mono text-[11px] font-semibold text-ink-400">range {model.rangeLabel}</span>
+            <span className="truncate font-mono text-[9px] font-semibold uppercase tracking-wider text-ink-400">
+              range {model.rangeLabel}
+            </span>
           </div>
-          <p className="text-base font-black leading-tight text-ink-50 md:text-lg">{model.headline}</p>
-          <p className="mt-1 max-w-3xl text-xs leading-relaxed text-ink-300 md:text-sm">{model.detail}</p>
+          <p className="mt-1 truncate text-[11px] font-black leading-tight text-ink-50 sm:text-xs">{model.headline}</p>
         </div>
 
-        <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
-          <div className="rounded-md border border-ink-700/70 bg-ink-950/88 px-2 py-2 text-center shadow-xl backdrop-blur-md">
-            <p className="font-mono text-[9px] font-black uppercase tracking-widest text-ink-500">target</p>
-            <p className="mt-1 font-mono text-lg font-black text-verdant-100">{model.target ?? "-"}</p>
-          </div>
-          <div className="rounded-md border border-ink-700/70 bg-ink-950/88 px-2 py-2 text-center shadow-xl backdrop-blur-md">
-            <p className="font-mono text-[9px] font-black uppercase tracking-widest text-ink-500">mid</p>
-            <p className="mt-1 font-mono text-lg font-black text-ember-100">{model.mid ?? "-"}</p>
-          </div>
-          <div className="rounded-md border border-ink-700/70 bg-ink-950/88 px-2 py-2 text-center shadow-xl backdrop-blur-md">
-            <p className="font-mono text-[9px] font-black uppercase tracking-widest text-ink-500">probes</p>
-            <p className="mt-1 font-mono text-lg font-black text-ink-50">{model.probes ?? 0}</p>
-          </div>
+        <div className="flex max-w-[16rem] flex-wrap justify-end gap-1 sm:max-w-[21rem]">
+          {stats.map(([label, value]) => (
+            <div key={label} className="rounded border border-ink-700/65 bg-ink-950/72 px-1.5 py-1 text-center shadow-lg backdrop-blur-sm">
+              <span className="block font-mono text-[8px] font-black uppercase tracking-widest text-ink-500">{label}</span>
+              <span className="block max-w-[4.5rem] truncate font-mono text-[11px] font-black leading-tight text-ink-50">{value}</span>
+            </div>
+          ))}
         </div>
       </div>
 
-      <div className="pointer-events-none absolute inset-x-3 bottom-3 z-10 flex flex-wrap gap-2">
-        <span className="rounded-md border border-arc-400/35 bg-ink-950/82 px-2 py-1 font-mono text-[10px] font-bold uppercase text-arc-200 backdrop-blur">
-          blue = search window
-        </span>
-        <span className="rounded-md border border-ember-400/35 bg-ink-950/82 px-2 py-1 font-mono text-[10px] font-bold uppercase text-ember-200 backdrop-blur">
-          orange = mid probe
-        </span>
-        <span className="rounded-md border border-verdant-400/35 bg-ink-950/82 px-2 py-1 font-mono text-[10px] font-bold uppercase text-verdant-200 backdrop-blur">
-          green = target/found
-        </span>
+      <div className="pointer-events-none absolute inset-x-2 bottom-2 z-10 flex flex-wrap items-end justify-between gap-2 sm:inset-x-3 sm:bottom-3">
+        <p className="hidden max-w-[24rem] rounded-md border border-arc-400/25 bg-ink-950/68 px-2 py-1.5 text-[10px] leading-snug text-ink-300 shadow-lg backdrop-blur-sm sm:block">
+          {model.detail}
+        </p>
+        <div className="ml-auto flex flex-wrap justify-end gap-1">
+          <span className="rounded border border-arc-400/35 bg-ink-950/72 px-1.5 py-1 font-mono text-[9px] font-bold uppercase text-arc-200 backdrop-blur">blue window</span>
+          <span className="rounded border border-ember-400/35 bg-ink-950/72 px-1.5 py-1 font-mono text-[9px] font-bold uppercase text-ember-200 backdrop-blur">orange mid</span>
+          <span className="rounded border border-verdant-400/35 bg-ink-950/72 px-1.5 py-1 font-mono text-[9px] font-bold uppercase text-verdant-200 backdrop-blur">green found</span>
+        </div>
       </div>
     </>
   );
@@ -323,11 +326,12 @@ function Overlay({ model }: { model: BinarySearchSceneModel }) {
 export function BinarySearchStage3D({ step }: { step: TraceStep }) {
   const p = useTheme3D();
   const model = useMemo(() => getBinarySearchSceneModel(step), [step]);
+  const hud = useStageHud();
 
   if (!model) return null;
 
   return (
-    <div className="codeanvil-canvas-fill relative h-full min-h-[23rem] w-full overflow-hidden rounded-md @container">
+    <div className="codeanvil-canvas-fill relative h-full w-full overflow-hidden rounded-md @container">
       <Canvas
         dpr={[1.25, 2]}
         camera={{ position: [0, 2.1, 7.15], fov: 38 }}
@@ -337,7 +341,8 @@ export function BinarySearchStage3D({ step }: { step: TraceStep }) {
         <CanvasSizeSync />
         <Scene model={model} p={p} />
       </Canvas>
-      <Overlay model={model} />
+      <HudToggle open={hud.hudOpen} onToggle={hud.toggleHud} />
+      {hud.hudOpen && <Overlay model={model} />}
     </div>
   );
 }

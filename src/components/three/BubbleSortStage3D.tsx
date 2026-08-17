@@ -6,6 +6,7 @@ import type { TraceStep } from "../../types/trace";
 import { getBubbleSortSceneModel, type BubbleSortSceneModel } from "../../engine/sortStage";
 import { useTheme3D, type Theme3DPalette } from "../../lib/theme3d";
 import { CanvasSizeSync } from "./CanvasSizeSync";
+import { HudToggle, useStageHud } from "./StageHud";
 
 interface SortBar {
   identity: string;
@@ -353,7 +354,7 @@ function Overlay({ model }: { model: BubbleSortSceneModel }) {
 
   return (
     <>
-      <div className="pointer-events-none absolute inset-x-2 top-2 z-10 flex items-start justify-between gap-2 sm:inset-x-3 sm:top-3">
+      <div className="pointer-events-none absolute left-2 right-11 top-2 z-10 flex items-start justify-between gap-2 sm:left-3 sm:right-12 sm:top-3">
         <div className="min-w-0 max-w-[13rem] rounded-md border border-arc-400/30 bg-ink-950/72 px-2.5 py-1.5 shadow-lg backdrop-blur-sm sm:max-w-[18rem]">
           <div className="flex min-w-0 items-center gap-1.5">
             <span className="shrink-0 rounded border border-verdant-400/35 bg-verdant-500/10 px-1.5 py-0.5 font-mono text-[9px] font-black uppercase tracking-widest text-verdant-200">
@@ -393,11 +394,12 @@ function Overlay({ model }: { model: BubbleSortSceneModel }) {
 export function BubbleSortStage3D({ step }: { step: TraceStep }) {
   const p = useTheme3D();
   const model = getBubbleSortSceneModel(step);
+  const hud = useStageHud();
 
   if (!model) return null;
 
   return (
-    <div className="codeanvil-canvas-fill relative h-full min-h-[22rem] w-full overflow-hidden rounded-md">
+    <div className="codeanvil-canvas-fill relative h-full w-full overflow-hidden rounded-md">
       <Canvas
         dpr={[1.25, 2]}
         data-testid="bubble-sort-stage-canvas"
@@ -408,7 +410,8 @@ export function BubbleSortStage3D({ step }: { step: TraceStep }) {
         <CanvasSizeSync />
         <Scene model={model} p={p} />
       </Canvas>
-      <Overlay model={model} />
+      <HudToggle open={hud.hudOpen} onToggle={hud.toggleHud} />
+      {hud.hudOpen && <Overlay model={model} />}
     </div>
   );
 }

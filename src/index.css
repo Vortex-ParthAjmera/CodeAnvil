@@ -6,37 +6,49 @@
 /* molten glow, per the logo), electric blue secondary — no violet.     */
 /* ------------------------------------------------------------------ */
 @theme {
-  /* Navy-tinted graphite — the dark logo's deep #000010 surfaces. */
-  --color-ink-950: #070a13;
-  --color-ink-900: #0e1119;
-  --color-ink-850: #141825;
-  --color-ink-800: #1a2030;
-  --color-ink-700: #262e42;
-  --color-ink-600: #38415a;
-  --color-ink-500: #4d5772;
-  --color-ink-400: #7c86a0;
-  --color-ink-300: #a5adc2;
-  --color-ink-200: #ccd2e0;
-  --color-ink-100: #e9ecf4;
+  /* --- Dark mode (default) --- */
+  /* Surfaces: deep navy-black */
+  --color-ink-950: #0A0E1A;
+  --color-ink-900: #131A2E;
+  --color-ink-850: #1C2440;
+  --color-ink-800: #232D4A;
+  --color-ink-700: #2A3352;
+  --color-ink-600: #3A4568;
+  --color-ink-500: #556078;
+  --color-ink-400: #7C86A0;
+  --color-ink-300: #94A3B8;
+  --color-ink-200: #CBD5E1;
+  --color-ink-100: #F1F5F9;
 
-  /* Warm amber — the brand accent (the anvil's molten edge, #F09030). */
-  --color-ember-300: #fbbf24;
-  --color-ember-400: #f59e0b;
-  --color-ember-500: #f97316;
-  --color-ember-600: #ea580c;
+  /* Cyan — the logo's glow left edge */
+  --color-cyan-300: #22D3EE;
+  --color-cyan-400: #4CC9F0;
+  --color-cyan-500: #06B6D4;
 
-  /* Electric blue — the secondary accent (the anvil's steel, #00A0F0). */
-  --color-arc-300: #7dd3fc;
-  --color-arc-400: #38bdf8;
-  --color-arc-500: #0ea5e9;
+  /* Blue — primary accent (logo center) */
+  --color-arc-300: #60A5FA;
+  --color-arc-400: #3B82F6;
+  --color-arc-500: #2563EB;
 
-  --color-verdant-300: #6ee7b7;
-  --color-verdant-400: #34d399;
-  --color-verdant-500: #10b981;
+  /* Purple — gradient partner (logo right edge) */
+  --color-purple-300: #A78BFA;
+  --color-purple-400: #8B5CF6;
+  --color-purple-500: #7C3AED;
 
-  --color-rose-300: #fca5a5;
-  --color-rose-400: #f87171;
-  --color-rose-500: #ef4444;
+  /* Orange — hot accent, CTAs, forge moments */
+  --color-ember-300: #FDBA74;
+  --color-ember-400: #FB923C;
+  --color-ember-500: #FB8500;
+  --color-ember-600: #EA580C;
+
+  /* Semantic accents */
+  --color-verdant-300: #6EE7B7;
+  --color-verdant-400: #34D399;
+  --color-verdant-500: #10B981;
+
+  --color-rose-300: #FCA5A5;
+  --color-rose-400: #F87171;
+  --color-rose-500: #EF4444;
 
   --font-sans: "Space Grotesk Variable", ui-sans-serif, system-ui, -apple-system,
     "Segoe UI", Roboto, sans-serif;
@@ -86,7 +98,7 @@ body {
 .app-ambient {
   background: radial-gradient(
     1100px 640px at 78% -12%,
-    color-mix(in srgb, var(--color-ember-500) 12%, transparent),
+    color-mix(in srgb, var(--color-arc-400) 12%, transparent),
     transparent 62%
   );
 }
@@ -106,7 +118,7 @@ body {
   top: -16vh;
   background: radial-gradient(
     circle,
-    color-mix(in srgb, var(--color-ember-400) 42%, transparent),
+    color-mix(in srgb, var(--color-cyan-400) 42%, transparent),
     transparent 70%
   );
   animation: blob-drift-1 30s ease-in-out infinite alternate;
@@ -118,7 +130,7 @@ body {
   top: 20vh;
   background: radial-gradient(
     circle,
-    color-mix(in srgb, var(--color-arc-500) 34%, transparent),
+    color-mix(in srgb, var(--color-arc-400) 34%, transparent),
     transparent 70%
   );
   animation: blob-drift-2 38s ease-in-out infinite alternate;
@@ -130,7 +142,7 @@ body {
   bottom: -18vh;
   background: radial-gradient(
     circle,
-    color-mix(in srgb, var(--color-verdant-500) 26%, transparent),
+    color-mix(in srgb, var(--color-purple-400) 26%, transparent),
     transparent 70%
   );
   animation: blob-drift-3 34s ease-in-out infinite alternate;
@@ -169,8 +181,8 @@ body {
   position: absolute;
   bottom: -12px;
   border-radius: 9999px;
-  background: var(--color-ember-300);
-  box-shadow: 0 0 8px color-mix(in srgb, var(--color-ember-400) 80%, transparent);
+  background: var(--color-ember-500);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--color-ember-500) 80%, transparent);
   animation: ember-rise var(--dur, 14s) linear infinite;
   animation-delay: var(--delay, 0s);
   opacity: 0;
@@ -205,23 +217,15 @@ body {
   transform: translate3d(-9999px, -9999px, 0);
   background: radial-gradient(
     circle,
-    color-mix(in srgb, var(--color-ember-400) 13%, transparent),
+    color-mix(in srgb, var(--color-arc-400) 13%, transparent),
     transparent 68%
   );
   mix-blend-mode: screen;
   transition: transform 0.12s ease-out;
-}
-
-/* Blinking caret used by the live commentary typewriter */
+}/* Blinking caret used by the live commentary typewriter */
 @keyframes caret-blink {
-  0%,
-  45% {
-    opacity: 1;
-  }
-  50%,
-  100% {
-    opacity: 0;
-  }
+  0%, 45% { opacity: 1; }
+  50%, 100% { opacity: 0; }
 }
 .caret {
   display: inline-block;
@@ -229,7 +233,7 @@ body {
   height: 1em;
   margin-left: 2px;
   vertical-align: -0.12em;
-  background: var(--color-ember-400);
+  background: var(--color-cyan-400);
   animation: caret-blink 0.9s step-end infinite;
 }
 
@@ -260,31 +264,31 @@ body {
 /* Active (currently executing) line — glides between lines instead of
    snapping, with a soft plasma halo (strong ease-out, ~300ms). */
 .cm-ca-active {
-  background: color-mix(in srgb, var(--color-ember-400) 12%, transparent) !important;
+  background: color-mix(in srgb, var(--color-cyan-400) 12%, transparent) !important;
   box-shadow:
-    inset 3px 0 0 var(--color-ember-400),
-    0 0 22px -8px color-mix(in srgb, var(--color-ember-400) 55%, transparent);
+    inset 3px 0 0 var(--color-cyan-400),
+    0 0 22px -8px color-mix(in srgb, var(--color-cyan-400) 55%, transparent);
   transition:
     background-color 0.3s cubic-bezier(0.23, 1, 0.32, 1),
     box-shadow 0.3s cubic-bezier(0.23, 1, 0.32, 1);
 }
 .cm-ca-active .cm-gutterElement {
-  color: var(--color-ember-400) !important;
+  color: var(--color-cyan-400) !important;
   font-weight: 700;
 }
 
 /* Syntax colors (dark, tuned for Python) */
 .cm-editor .ͼb {
-  color: var(--color-arc-400); /* keywords */
+  color: var(--color-purple-400); /* keywords */
 }
 .cm-editor .ͼc {
   color: var(--color-verdant-400); /* strings */
 }
 .cm-editor .ͼd {
-  color: var(--color-ember-400); /* numbers */
+  color: var(--color-cyan-400); /* numbers */
 }
 .cm-editor .ͼe {
-  color: var(--color-ink-300); /* comments */
+  color: var(--color-ink-400); /* comments */
 }
 
 /* ------------------------------------------------------------------ */
@@ -293,48 +297,46 @@ body {
 /* tokens with the arc / verdant palettes.                              */
 /* ------------------------------------------------------------------ */
 :root[data-theme="arc"] {
-  --color-ember-300: #7dd3fc;
-  --color-ember-400: #38bdf8;
-  --color-ember-500: #0ea5e9;
-  --color-ember-600: #0284c7;
+  --color-arc-300: #7dd3fc;
+  --color-arc-400: #38bdf8;
+  --color-arc-500: #0ea5e9;
 }
 :root[data-theme="verdant"] {
-  --color-ember-300: #6ee7b7;
-  --color-ember-400: #34d399;
-  --color-ember-500: #10b981;
-  --color-ember-600: #059669;
+  --color-verdant-300: #6ee7b7;
+  --color-verdant-400: #34d399;
+  --color-verdant-500: #10b981;
 }
 
 :root[data-theme="arc"] .text-forged {
   background-image: linear-gradient(
     180deg,
-    #d9f4ff 0%,
-    #38bdf8 55%,
-    #0369a1 100%
+    #BAE6FD 0%,
+    #38BDF8 55%,
+    #0369A1 100%
   );
 }
 :root[data-theme="verdant"] .text-forged {
   background-image: linear-gradient(
     180deg,
-    #d9fbf0 0%,
-    #34d399 55%,
+    #A7F3D0 0%,
+    #34D399 55%,
     #047857 100%
   );
 }
 :root[data-mode="light"][data-theme="arc"] .text-forged {
   background-image: linear-gradient(
     180deg,
-    #0c4a6e 0%,
-    #0369a1 55%,
-    #082f49 100%
+    #0C4A6E 0%,
+    #0369A1 55%,
+    #082F49 100%
   );
 }
 :root[data-mode="light"][data-theme="verdant"] .text-forged {
   background-image: linear-gradient(
     180deg,
-    #064e3b 0%,
+    #064E3B 0%,
     #047857 55%,
-    #022c22 100%
+    #022C22 100%
   );
 }
 
@@ -345,50 +347,52 @@ body {
 /* accents deepen so text keeps contrast on white.                      */
 /* ------------------------------------------------------------------ */
 :root[data-mode="light"] {
-  /* Surfaces: near-white page, white cards, light borders */
-  --color-ink-950: #f5f5f8;
-  --color-ink-900: #ffffff;
-  --color-ink-850: #f2f2f6;
-  --color-ink-800: #e9e9ef;
-  --color-ink-700: #d8d9e2;
-  --color-ink-600: #b6b8c6;
-  --color-ink-500: #8e92a1;
-  --color-ink-400: #6f7485;
-  --color-ink-300: #555a6b;
-  --color-ink-200: #3c4152;
-  --color-ink-100: #262a37;
+  /* --- Light mode --- */
+  /* Surfaces: white page, near-white cards */
+  --color-ink-950: #FFFFFF;
+  --color-ink-900: #FFFFFF;
+  --color-ink-850: #F8FAFC;
+  --color-ink-800: #F1F5F9;
+  --color-ink-700: #E2E8F0;
+  --color-ink-600: #CBD5E1;
+  --color-ink-500: #94A3B8;
+  --color-ink-400: #64748B;
+  --color-ink-300: #475569;
+  --color-ink-200: #334155;
+  --color-ink-100: #0F172A;
 
-  /* Navy text on white — the light logo's #101828 ink. */
-  --color-ink-100: #1b2236;
-  --color-ink-200: #343c55;
-  --color-ink-300: #4e5670;
-  --color-ink-400: #69718a;
-  --color-ink-500: #8a92ab;
-  --color-ink-600: #b3bace;
-  --color-ink-700: #d5dae6;
-  --color-ink-800: #e8ebf3;
-  --color-ink-850: #f1f3f8;
-  --color-ink-900: #ffffff;
-  --color-ink-950: #f6f7fa;
+  /* Navy accent (replaces ember as primary on light) */
+  --color-navy-400: #1E3A8A;
+  --color-navy-500: #1E40AF;
 
-  /* Accents deepened for contrast on light surfaces: the amber and the
-     light logo's royal blue (#1070F0) both darken to stay readable. */
-  --color-ember-300: #d97706;
-  --color-ember-400: #b45309;
-  --color-ember-500: #92400e;
-  --color-ember-600: #78350f;
+  /* Blue — primary accent */
+  --color-arc-300: #60A5FA;
+  --color-arc-400: #2563EB;
+  --color-arc-500: #1D4ED8;
 
-  --color-arc-300: #2563eb;
-  --color-arc-400: #1d4ed8;
-  --color-arc-500: #1e40af;
+  /* Orange — sparing accent */
+  --color-ember-300: #FB923C;
+  --color-ember-400: #F97316;
+  --color-ember-500: #EA580C;
+  --color-ember-600: #C2410C;
 
-  --color-verdant-300: #047857;
-  --color-verdant-400: #059669;
-  --color-verdant-500: #065f46;
+  /* Cyan muted on light (keeps logo family) */
+  --color-cyan-300: #06B6D4;
+  --color-cyan-400: #0891B2;
+  --color-cyan-500: #0E7490;
 
-  --color-rose-300: #dc2626;
-  --color-rose-400: #b91c1c;
-  --color-rose-500: #991b1b;
+  /* Purple muted on light */
+  --color-purple-300: #7C3AED;
+  --color-purple-400: #6D28D9;
+  --color-purple-500: #5B21B6;
+
+  --color-verdant-300: #059669;
+  --color-verdant-400: #047857;
+  --color-verdant-500: #065F46;
+
+  --color-rose-300: #DC2626;
+  --color-rose-400: #B91C1C;
+  --color-rose-500: #991B1B;
 
   /* Native scrollbars + form controls follow the light palette */
   color-scheme: light;
@@ -396,16 +400,14 @@ body {
 
 /* Story unlockable themes repainted for light surfaces */
 :root[data-mode="light"][data-theme="arc"] {
-  --color-ember-300: #0284c7;
-  --color-ember-400: #0369a1;
-  --color-ember-500: #075985;
-  --color-ember-600: #0c4a6e;
+  --color-arc-300: #0284c7;
+  --color-arc-400: #0369a1;
+  --color-arc-500: #075985;
 }
 :root[data-mode="light"][data-theme="verdant"] {
-  --color-ember-300: #059669;
-  --color-ember-400: #047857;
-  --color-ember-500: #065f46;
-  --color-ember-600: #064e3b;
+  --color-verdant-300: #059669;
+  --color-verdant-400: #047857;
+  --color-verdant-500: #065f46;
 }
 
 /* Light-specific surface tweaks that can't ride the tokens */
@@ -413,7 +415,7 @@ body {
   background: linear-gradient(
     180deg,
     rgba(255, 255, 255, 0.82),
-    rgba(245, 245, 248, 0.94)
+    rgba(248, 250, 252, 0.94)
   );
 }
 /* Only swap the gradient IMAGE here — never the shorthand, or the
@@ -422,8 +424,8 @@ body {
 :root[data-mode="light"] .text-forged {
   background-image: linear-gradient(
     180deg,
-    #1e3a8a 0%,
-    #1d4ed8 55%,
+    #1E3A8A 0%,
+    #2563EB 55%,
     #172554 100%
   );
 }
@@ -505,9 +507,9 @@ body {
   background:
     radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.28), transparent 42%),
     radial-gradient(circle at 68% 74%, rgba(0, 0, 0, 0.55), transparent 52%),
-    var(--orb-color, var(--color-ember-400));
+    var(--orb-color, var(--color-arc-400));
   box-shadow:
-    0 18px 44px -12px color-mix(in srgb, var(--orb-color, var(--color-ember-400)) 45%, transparent),
+    0 18px 44px -12px color-mix(in srgb, var(--orb-color, var(--color-arc-400)) 45%, transparent),
     inset 0 2px 6px rgba(255, 255, 255, 0.35),
     inset 0 -6px 14px rgba(0, 0, 0, 0.4);
   transform: translateZ(0);
@@ -519,9 +521,9 @@ body {
   background:
     radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.55), transparent 42%),
     radial-gradient(circle at 68% 74%, rgba(0, 0, 0, 0.2), transparent 52%),
-    var(--orb-color, var(--color-ember-400));
+    var(--orb-color, var(--color-arc-400));
   box-shadow:
-    0 18px 44px -12px color-mix(in srgb, var(--orb-color, var(--color-ember-400)) 35%, transparent),
+    0 18px 44px -12px color-mix(in srgb, var(--orb-color, var(--color-arc-400)) 35%, transparent),
     inset 0 2px 6px rgba(255, 255, 255, 0.55),
     inset 0 -6px 14px rgba(0, 0, 0, 0.12);
 }
@@ -537,9 +539,9 @@ body {
 }
 
 /* Gradient headline used on heroes (reads as light catching an edge).
-   Electric blue — the anvil's steel — instead of the old violet. */
+   Cyan → Blue → Purple — matching the logo's glow family. */
 .text-forged {
-  background: linear-gradient(180deg, #dff2ff 0%, #38bdf8 55%, #075985 100%);
+  background: linear-gradient(180deg, #4CC9F0 0%, #3B82F6 45%, #8B5CF6 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -551,7 +553,7 @@ body {
   .text-forged {
     background: none;
     -webkit-text-fill-color: currentcolor;
-    color: var(--color-ember-400);
+    color: var(--color-cyan-400);
   }
 }
 
@@ -565,17 +567,17 @@ body {
 .lift-3d:hover {
   transform: translateY(-2px) scale(1.012);
   box-shadow: 0 14px 34px -14px rgba(0, 0, 0, 0.7),
-    0 0 22px -6px color-mix(in srgb, var(--color-ember-400) 24%, transparent);
+    0 0 22px -6px color-mix(in srgb, var(--color-cyan-400) 24%, transparent);
 }
 
 /* Duel timer ring: conic sweep with inner depth */
 .timer-ring {
   background: conic-gradient(
-    var(--color-ember-400) var(--pct, 100%),
+    var(--color-cyan-400) var(--pct, 100%),
     var(--color-ink-700) 0
   );
   box-shadow:
-    0 0 24px -4px color-mix(in srgb, var(--color-ember-400) 38%, transparent),
+    0 0 24px -4px color-mix(in srgb, var(--color-cyan-400) 38%, transparent),
     inset 0 0 0 1px rgba(255, 255, 255, 0.04);
 }
 
@@ -623,7 +625,7 @@ body {
   background: linear-gradient(
     105deg,
     transparent 42%,
-    color-mix(in srgb, var(--color-ember-400) 9%, transparent) 50%,
+    color-mix(in srgb, var(--color-cyan-400) 9%, transparent) 50%,
     transparent 58%
   );
   transform: translateX(-130%);
@@ -637,25 +639,22 @@ body {
   100% {
     transform: translateX(130%);
   }
-}
-
-/* Breathing border + glow on the 3D viewport frame */
+}/* Breathing border + glow on the 3D viewport frame */
 .viewport-frame {
   animation: frame-pulse 6s ease-in-out infinite;
 }
 @keyframes frame-pulse {
-  0%,
-  100% {
-    border-color: color-mix(in srgb, var(--color-ember-500) 26%, var(--color-ink-700));
+  0%, 100% {
+    border-color: color-mix(in srgb, var(--color-arc-400) 26%, var(--color-ink-700));
     box-shadow:
-      0 0 44px -18px color-mix(in srgb, var(--color-ember-500) 45%, transparent),
-      inset 0 0 34px -20px color-mix(in srgb, var(--color-ember-500) 42%, transparent);
+      0 0 44px -18px color-mix(in srgb, var(--color-arc-400) 45%, transparent),
+      inset 0 0 34px -20px color-mix(in srgb, var(--color-arc-400) 42%, transparent);
   }
   50% {
-    border-color: color-mix(in srgb, var(--color-ember-400) 48%, var(--color-ink-700));
+    border-color: color-mix(in srgb, var(--color-cyan-400) 48%, var(--color-ink-700));
     box-shadow:
-      0 0 64px -14px color-mix(in srgb, var(--color-ember-400) 62%, transparent),
-      inset 0 0 46px -16px color-mix(in srgb, var(--color-ember-400) 55%, transparent);
+      0 0 64px -14px color-mix(in srgb, var(--color-cyan-400) 62%, transparent),
+      inset 0 0 46px -16px color-mix(in srgb, var(--color-cyan-400) 55%, transparent);
   }
 }
 
@@ -671,10 +670,10 @@ body {
   border-radius: 999px;
   background: linear-gradient(
     90deg,
-    color-mix(in srgb, var(--color-ember-600) 60%, transparent),
-    var(--color-ember-400)
+    var(--color-purple-400),
+    var(--color-arc-400)
   );
-  box-shadow: 0 0 12px color-mix(in srgb, var(--color-ember-400) 70%, transparent);
+  box-shadow: 0 0 12px color-mix(in srgb, var(--color-arc-400) 70%, transparent);
   transition: width 0.5s ease-out;
 }
 
@@ -696,17 +695,14 @@ body {
   .cursor-glow {
     display: none;
   }
-}
-
-/* Timeline: the active step dot breathes a soft ring so the current
+}/* Timeline: the active step dot breathes a soft ring so the current
    position stays legible during fast playback. */
 @keyframes timeline-dot-pulse {
-  0%,
-  100% {
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-ember-400) 50%, transparent);
+  0%, 100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--color-cyan-400) 50%, transparent);
   }
   55% {
-    box-shadow: 0 0 0 5px color-mix(in srgb, var(--color-ember-400) 0%, transparent);
+    box-shadow: 0 0 0 5px color-mix(in srgb, var(--color-cyan-400) 0%, transparent);
   }
 }
 .timeline-dot-active {
@@ -722,12 +718,12 @@ body {
   background:
     radial-gradient(
       620px 320px at 18% -10%,
-      color-mix(in srgb, var(--color-ember-500) 13%, transparent),
+      color-mix(in srgb, var(--color-cyan-400) 13%, transparent),
       transparent 60%
     ),
     radial-gradient(
       520px 300px at 88% 112%,
-      color-mix(in srgb, var(--color-arc-500) 9%, transparent),
+      color-mix(in srgb, var(--color-purple-400) 9%, transparent),
       transparent 62%
     );
   animation: stage-drift 16s ease-in-out infinite alternate;
@@ -762,7 +758,7 @@ body {
 /* Fade-slide for changed values */
 @keyframes value-flash {
   0% {
-    background-color: color-mix(in srgb, var(--color-ember-400) 34%, transparent);
+    background-color: color-mix(in srgb, var(--color-cyan-400) 34%, transparent);
   }
   100% {
     background-color: transparent;
@@ -775,8 +771,8 @@ body {
 /* Coordinate paper used behind the atlas and holographic workbench. */
 .atlas-grid {
   background-image:
-    linear-gradient(rgba(56, 189, 248, 0.045) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(56, 189, 248, 0.045) 1px, transparent 1px);
+    linear-gradient(rgba(76, 201, 240, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(76, 201, 240, 0.045) 1px, transparent 1px);
   background-size: 28px 28px;
   mask-image: linear-gradient(to right, black, transparent 88%);
 }
@@ -787,7 +783,7 @@ body {
   appearance: none;
   border-radius: 999px;
   background: var(--color-ink-700);
-  accent-color: var(--color-ember-400);
+  accent-color: var(--color-arc-400);
 }
 .trace-range::-webkit-slider-thumb {
   width: 11px;
@@ -795,8 +791,8 @@ body {
   appearance: none;
   border: 2px solid var(--color-ink-950);
   border-radius: 999px;
-  background: var(--color-ember-400);
-  box-shadow: 0 0 10px color-mix(in srgb, var(--color-ember-400) 45%, transparent);
+  background: var(--color-arc-400);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--color-arc-400) 45%, transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {

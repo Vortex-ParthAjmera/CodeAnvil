@@ -144,6 +144,36 @@
       "sourceType": "github",
       "skillPath": "skills/stitch-skill/SKILL.md",
       "computedHash": "13322f38406cd3abf16ba45e35bdc9b18002d0153a79b4612b97aefc65d5a335"
+    },
+    "vitest-testing": {
+      "source": "codeanvil/local",
+      "sourceType": "local",
+      "skillPath": ".agents/skills/vitest-testing/SKILL.md",
+      "computedHash": "55ccacbb43f6428351d320196533d680402c42168ed15c46a543de571a210841"
+    },
+    "react-performance": {
+      "source": "codeanvil/local",
+      "sourceType": "local",
+      "skillPath": ".agents/skills/react-performance/SKILL.md",
+      "computedHash": "95797debe96e78b7d586f838cc7b0150b3aac99fd8a8e1e01b726b23428fce26"
+    },
+    "a11y-checklist": {
+      "source": "codeanvil/local",
+      "sourceType": "local",
+      "skillPath": ".agents/skills/a11y-checklist/SKILL.md",
+      "computedHash": "96c638d2e4d8cb2ed47668d732348078a66cccb9bc76d3135c3db5531725a20f"
+    },
+    "typescript-strict": {
+      "source": "codeanvil/local",
+      "sourceType": "local",
+      "skillPath": ".agents/skills/typescript-strict/SKILL.md",
+      "computedHash": "c703645d07835152e2f534a96351a43c5ca4cb13baa62a5c4cd88cab46cebe0f"
+    },
+    "canvas-performance": {
+      "source": "codeanvil/local",
+      "sourceType": "local",
+      "skillPath": ".agents/skills/canvas-performance/SKILL.md",
+      "computedHash": "1e97764b82eb2a1f8a708b3aa6df2ee2b5eb18f874fe70c5ba9befd27d950e96"
     }
   }
 }

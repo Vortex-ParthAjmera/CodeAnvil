@@ -232,7 +232,7 @@ export default function LandingPage({
             className="absolute inset-0"
             style={{
               background:
-                "radial-gradient(ellipse 60% 55% at 60% 60%, rgba(167,139,250,0.20), transparent 68%), radial-gradient(ellipse 45% 35% at 35% 40%, rgba(56,189,248,0.07), transparent 70%), linear-gradient(180deg, var(--color-ink-950), var(--color-ink-850) 60%, var(--color-ink-950))",
+                "radial-gradient(ellipse 60% 55% at 60% 60%, rgba(245,158,11,0.18), transparent 68%), radial-gradient(ellipse 45% 35% at 35% 40%, rgba(56,189,248,0.07), transparent 70%), linear-gradient(180deg, var(--color-ink-950), var(--color-ink-850) 60%, var(--color-ink-950))",
             }}
           />
         )}
@@ -286,8 +286,8 @@ export default function LandingPage({
               style={{
                 textShadow:
                   mode === "dark"
-                    ? "0 0 34px rgba(167,139,250,0.24), 0 18px 48px rgba(0,0,0,0.6)"
-                    : "0 0 30px rgba(167,139,250,0.22), 0 14px 38px rgba(61,43,99,0.16)",
+                    ? "0 0 34px rgba(245,158,11,0.24), 0 18px 48px rgba(0,0,0,0.6)"
+                    : "0 0 30px rgba(245,158,11,0.22), 0 14px 38px rgba(60,60,40,0.16)",
               }}
             >
               {reduce ? (

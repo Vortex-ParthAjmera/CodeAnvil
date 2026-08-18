@@ -202,7 +202,7 @@ export function Cosmos() {
       <mesh ref={ringA} position={[0, 3.6, -14]}>
         <torusGeometry args={[5.6, 0.025, 12, 96]} />
         <meshBasicMaterial
-          color="#8b5cf6"
+          color="#f59e0b"
           transparent
           opacity={0.5}
           blending={THREE.AdditiveBlending}
@@ -221,7 +221,7 @@ export function Cosmos() {
       </mesh>
       <mesh ref={poly} position={[-5.2, 4.8, -20]} scale={1.7}>
         <icosahedronGeometry args={[1.4, 1]} />
-        <meshBasicMaterial color="#a78bfa" wireframe transparent opacity={0.14} />
+        <meshBasicMaterial color="#f59e0b" wireframe transparent opacity={0.14} />
       </mesh>
     </group>
   );
@@ -231,10 +231,10 @@ export function Cosmos() {
 export function FloatingChips() {
   const chips = useMemo(
     () => [
-      { label: "total", value: "10", pos: [2.9, 3.0, 0.6] as [number, number, number], accent: "#a78bfa", delay: 0 },
+      { label: "total", value: "10", pos: [2.9, 3.0, 0.6] as [number, number, number], accent: "#f59e0b", delay: 0 },
       { label: "probe mid", value: "4", pos: [-2.6, 3.3, 0.5] as [number, number, number], accent: "#38bdf8", delay: 900 },
       { label: "fact(3)", value: "→ 6", pos: [3.1, 1.5, -0.4] as [number, number, number], accent: "#34d399", delay: 1800 },
-      { label: "swap", value: "i↔j", pos: [-2.8, 1.8, -0.5] as [number, number, number], accent: "#a78bfa", delay: 2700 },
+      { label: "swap", value: "i↔j", pos: [-2.8, 1.8, -0.5] as [number, number, number], accent: "#f59e0b", delay: 2700 },
     ],
     [],
   );
@@ -273,7 +273,7 @@ function FloatingChip({
       <div
         className={`flex items-center gap-1.5 whitespace-nowrap rounded-md border px-2 py-1 font-mono text-[11px] backdrop-blur-sm transition-all duration-300 ${
           lit
-            ? "scale-110 border-ember-500/70 bg-ink-900/85 text-ink-100 shadow-[0_0_20px_rgba(167,139,250,0.55)]"
+            ? "scale-110 border-ember-500/70 bg-ink-900/85 text-ink-100 shadow-[0_0_20px_rgba(245,158,11,0.55)]"
             : "border-ink-600/80 bg-ink-900/60 text-ink-300"
         }`}
       >
@@ -333,11 +333,11 @@ export function ForgeScene({ scale = 1 }: { scale?: number }) {
           style={{ background: "transparent" }}
         >
           {/* Depth haze so the background melts into the page color */}
-          <fog attach="fog" args={["#0b0c0f", 9, 30]} />
+          <fog attach="fog" args={["#070a13", 9, 30]} />
 
           <ambientLight intensity={0.6} />
           <directionalLight position={[6, 9, 5]} intensity={1.6} color="#fff7ea" />
-          <pointLight position={[0, 2.6, 1.6]} intensity={60} distance={12} color="#a78bfa" />
+          <pointLight position={[0, 2.6, 1.6]} intensity={60} distance={12} color="#f59e0b" />
 
           {/* The cosmos */}
           <Stars
@@ -369,7 +369,7 @@ export function ForgeScene({ scale = 1 }: { scale?: number }) {
             cellColor="#232634"
             sectionSize={4.5}
             sectionThickness={1.1}
-            sectionColor="#8b5cf6"
+            sectionColor="#f59e0b"
             fadeDistance={30}
             fadeStrength={2.2}
             infiniteGrid

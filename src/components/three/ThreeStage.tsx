@@ -188,7 +188,7 @@ function VariableForge({
               initial={{ scale: 0.55, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               transition={{ type: "spring", stiffness: 380, damping: 24 }}
-              className="font-mono text-4xl font-black tabular-nums text-ember-300 [text-shadow:0_0_32px_rgba(167,139,250,0.65)]"
+              className="font-mono text-4xl font-black tabular-nums text-ember-300 [text-shadow:0_0_32px_rgba(251,191,36,0.55)]"
             >
               {display}
             </motion.span>

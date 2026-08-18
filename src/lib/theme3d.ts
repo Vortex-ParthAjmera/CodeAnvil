@@ -31,9 +31,9 @@ export interface Theme3DPalette {
   arcBright: string;
   /** Deep sky — visited cells (arc-500). */
   arcDeep: string;
-  /** Violet accent — mid / swap / goal (ember-400). */
+  /** Amber accent — mid / swap / goal (ember-400). */
   ember: string;
-  /** Bright violet — key / current (ember-300). */
+  /** Bright amber — key / current (ember-300). */
   emberBright: string;
   /** Green accent — max / sorted / start / path (verdant-400). */
   verdant: string;
@@ -67,8 +67,8 @@ const DARK_FALLBACK: Theme3DPalette = {
   arc: "#38bdf8",
   arcBright: "#7dd3fc",
   arcDeep: "#0ea5e9",
-  ember: "#a78bfa",
-  emberBright: "#d6b6ff",
+  ember: "#f59e0b",
+  emberBright: "#fbbf24",
   verdant: "#34d399",
   verdantDeep: "#10b981",
   found: "#f472b6",

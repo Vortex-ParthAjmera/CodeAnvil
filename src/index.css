@@ -2,28 +2,30 @@
 
 /* ------------------------------------------------------------------ */
 /* CodeAnvil brand tokens (docs/28-brand-guide.md)                     */
-/* Dark workshop, graphite surfaces, VIOLET PLASMA accent (replaced     */
-/* the original warm amber), blue secondary.                           */
+/* Dark workshop, navy-black surfaces, WARM AMBER accent (the anvil's   */
+/* molten glow, per the logo), electric blue secondary — no violet.     */
 /* ------------------------------------------------------------------ */
 @theme {
-  --color-ink-950: #0b0c0f;
-  --color-ink-900: #121318;
-  --color-ink-850: #17181e;
-  --color-ink-800: #1c1d24;
-  --color-ink-700: #262833;
-  --color-ink-600: #363947;
-  --color-ink-500: #4a4e5e;
-  --color-ink-400: #7a7f92;
-  --color-ink-300: #a3a8b8;
-  --color-ink-200: #c9cdd8;
-  --color-ink-100: #e7e9ef;
+  /* Navy-tinted graphite — the dark logo's deep #000010 surfaces. */
+  --color-ink-950: #070a13;
+  --color-ink-900: #0e1119;
+  --color-ink-850: #141825;
+  --color-ink-800: #1a2030;
+  --color-ink-700: #262e42;
+  --color-ink-600: #38415a;
+  --color-ink-500: #4d5772;
+  --color-ink-400: #7c86a0;
+  --color-ink-300: #a5adc2;
+  --color-ink-200: #ccd2e0;
+  --color-ink-100: #e9ecf4;
 
-  /* Plasma violet — the new brand accent (was warm amber #f5a524). */
-  --color-ember-300: #c4b5fd;
-  --color-ember-400: #a78bfa;
-  --color-ember-500: #8b5cf6;
-  --color-ember-600: #7c3aed;
+  /* Warm amber — the brand accent (the anvil's molten edge, #F09030). */
+  --color-ember-300: #fbbf24;
+  --color-ember-400: #f59e0b;
+  --color-ember-500: #f97316;
+  --color-ember-600: #ea580c;
 
+  /* Electric blue — the secondary accent (the anvil's steel, #00A0F0). */
   --color-arc-300: #7dd3fc;
   --color-arc-400: #38bdf8;
   --color-arc-500: #0ea5e9;
@@ -303,9 +305,6 @@ body {
   --color-ember-600: #059669;
 }
 
-/* The forged-gradient headline follows the unlockable story themes too.
-   Only background-image is swapped — never the shorthand, so the
-   background-clip: text from .text-forged survives (see light-mode note). */
 :root[data-theme="arc"] .text-forged {
   background-image: linear-gradient(
     180deg,
@@ -359,15 +358,29 @@ body {
   --color-ink-200: #3c4152;
   --color-ink-100: #262a37;
 
-  /* Accents deepened for contrast on light surfaces */
-  --color-ember-300: #7c3aed;
-  --color-ember-400: #6d28d9;
-  --color-ember-500: #5b21b6;
-  --color-ember-600: #4c1d95;
+  /* Navy text on white — the light logo's #101828 ink. */
+  --color-ink-100: #1b2236;
+  --color-ink-200: #343c55;
+  --color-ink-300: #4e5670;
+  --color-ink-400: #69718a;
+  --color-ink-500: #8a92ab;
+  --color-ink-600: #b3bace;
+  --color-ink-700: #d5dae6;
+  --color-ink-800: #e8ebf3;
+  --color-ink-850: #f1f3f8;
+  --color-ink-900: #ffffff;
+  --color-ink-950: #f6f7fa;
 
-  --color-arc-300: #0369a1;
-  --color-arc-400: #0284c7;
-  --color-arc-500: #075985;
+  /* Accents deepened for contrast on light surfaces: the amber and the
+     light logo's royal blue (#1070F0) both darken to stay readable. */
+  --color-ember-300: #d97706;
+  --color-ember-400: #b45309;
+  --color-ember-500: #92400e;
+  --color-ember-600: #78350f;
+
+  --color-arc-300: #2563eb;
+  --color-arc-400: #1d4ed8;
+  --color-arc-500: #1e40af;
 
   --color-verdant-300: #047857;
   --color-verdant-400: #059669;
@@ -409,9 +422,9 @@ body {
 :root[data-mode="light"] .text-forged {
   background-image: linear-gradient(
     180deg,
-    #3b2f63 0%,
-    #7c3aed 55%,
-    #4c1d95 100%
+    #1e3a8a 0%,
+    #1d4ed8 55%,
+    #172554 100%
   );
 }
 :root[data-mode="light"] .app-blob {
@@ -523,9 +536,10 @@ body {
   backdrop-filter: blur(10px);
 }
 
-/* Gradient headline used on heroes (reads as light catching an edge) */
+/* Gradient headline used on heroes (reads as light catching an edge).
+   Electric blue — the anvil's steel — instead of the old violet. */
 .text-forged {
-  background: linear-gradient(180deg, #f3efff 0%, #a78bfa 55%, #6d28d9 100%);
+  background: linear-gradient(180deg, #dff2ff 0%, #38bdf8 55%, #075985 100%);
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;

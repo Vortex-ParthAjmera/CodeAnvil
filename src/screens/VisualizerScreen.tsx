@@ -266,7 +266,7 @@ export function VisualizerScreen({ onNavigate }: { onNavigate: (route: Route) =>
       <header className="relative shrink-0 overflow-hidden border-b border-ink-700 bg-ink-900 px-4 py-3 sm:px-6">
         <div className="atlas-grid pointer-events-none absolute inset-0 opacity-30" />
         <div className="relative flex flex-wrap items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-ember-500/40 bg-ember-500/10 shadow-[0_0_28px_rgba(167,139,250,0.16)]">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-ember-500/40 bg-ember-500/10 shadow-[0_0_28px_rgba(245,158,11,0.16)]">
             <Box size={18} className="text-ember-300" />
           </div>
           <div>

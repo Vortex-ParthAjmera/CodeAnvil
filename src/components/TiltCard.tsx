@@ -64,7 +64,7 @@ export function TiltCard({
           aria-hidden
           className="pointer-events-none absolute inset-0 rounded-[inherit]"
           style={{
-            background: `radial-gradient(260px circle at ${style.spotX} ${style.spotY}, rgba(167,139,250,0.14), transparent 65%)`,
+            background: `radial-gradient(260px circle at ${style.spotX} ${style.spotY}, rgba(245,158,11,0.16), transparent 65%)`,
           }}
         />
       )}

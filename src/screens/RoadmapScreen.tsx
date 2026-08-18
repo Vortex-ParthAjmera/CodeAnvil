@@ -31,7 +31,7 @@ const STATUS_COLORS: Record<ProblemStatus, string> = {
   none: "#262833",
   attempted: "#38bdf8",
   solved: "#34d399",
-  mastered: "#a78bfa",
+  mastered: "#f59e0b",
 };
 
 const STATUS_LABEL: Record<ProblemStatus, string> = {
@@ -79,7 +79,7 @@ function RoadmapGraph3D({
             <Line
               key={`${p}-${n.id}`}
               points={[a, b]}
-              color={selectedId === n.id ? "#a78bfa" : "#3a3d4d"}
+              color={selectedId === n.id ? "#f59e0b" : "#3a3d4d"}
               lineWidth={selectedId === n.id ? 1.8 : 1}
               transparent
               opacity={0.55}
@@ -97,7 +97,7 @@ function RoadmapGraph3D({
               <sphereGeometry args={[0.55, 24, 24]} />
               <meshStandardMaterial
                 color={selected ? "#e9e2ff" : color}
-                emissive={selected ? "#a78bfa" : color}
+                emissive={selected ? "#f59e0b" : color}
                 emissiveIntensity={selected ? 1.1 : 0.5}
                 metalness={0.4}
                 roughness={0.3}
@@ -115,7 +115,7 @@ function RoadmapGraph3D({
             <Text
               position={[0, 1.5, 0]}
               fontSize={0.3}
-              color={selected ? "#d6b6ff" : "#7a7f92"}
+              color={selected ? "#fbbf24" : "#7a7f92"}
               anchorX="center"
               anchorY="middle"
             >
@@ -250,7 +250,7 @@ export function RoadmapScreen({ onNavigate }: { onNavigate: (route: Route) => vo
             >
               <ambientLight intensity={0.6} />
               <directionalLight position={[6, 9, 5]} intensity={1.4} />
-              <pointLight position={[0, 6, 4]} intensity={55} distance={20} color="#a78bfa" />
+              <pointLight position={[0, 6, 4]} intensity={55} distance={20} color="#f59e0b" />
               <RoadmapGraph3D selectedId={selectedId} onSelect={setSelectedId} />
               <OrbitControls
                 enablePan={false}

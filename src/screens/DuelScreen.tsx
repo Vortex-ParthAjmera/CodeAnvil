@@ -460,7 +460,7 @@ export function DuelScreen() {
               <Zap size={11} className="text-arc-300" /> Versus — your ghost
             </p>
             {[
-              { name: "You", value: correctRef.current / Math.max(1, questions.length), color: "#a78bfa", ms: 0 },
+              { name: "You", value: correctRef.current / Math.max(1, questions.length), color: "#f59e0b", ms: 0 },
               { name: "Ghost", value: Math.min(1, raceElapsed / (ghostMs * Math.max(1, questions.length))), color: "#38bdf8", ms: raceElapsed },
             ].map((lane) => (
               <div key={lane.name} className="mb-2.5">

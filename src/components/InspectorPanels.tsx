@@ -67,7 +67,7 @@ function MemoryArray({
                 className={cn(
                   "flex h-9 w-9 items-center justify-center rounded border font-mono text-xs",
                   hl?.role === "mid"
-                    ? "border-ember-400 bg-ember-500/20 text-ember-300 shadow-[0_0_10px_rgba(167,139,250,0.35)]"
+                    ? "border-ember-400 bg-ember-500/20 text-ember-300 shadow-[0_0_10px_rgba(245,158,11,0.35)]"
                     : hl?.role === "reading"
                       ? "border-arc-500 bg-arc-500/15 text-arc-300"
                       : "border-ink-600 bg-ink-800 text-ink-200",

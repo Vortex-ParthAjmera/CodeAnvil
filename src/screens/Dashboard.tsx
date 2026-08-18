@@ -119,7 +119,7 @@ export function Dashboard({
         <div className="relative mb-8 overflow-hidden rounded-xl border border-ink-700 bg-gradient-to-br from-ink-900 via-ink-850 to-ink-950 p-6">
           {/* floating depth orbs */}
           <div className="orb pointer-events-none absolute -right-10 -top-14 h-44 w-44 animate-float-slow opacity-70" style={{ "--orb-color": "#0ea5e9" } as React.CSSProperties} />
-          <div className="orb pointer-events-none absolute -bottom-16 right-24 h-32 w-32 animate-float opacity-60" style={{ "--orb-color": "#a78bfa" } as React.CSSProperties} />
+          <div className="orb pointer-events-none absolute -bottom-16 right-24 h-32 w-32 animate-float opacity-60" style={{ "--orb-color": "#f59e0b" } as React.CSSProperties} />
           <div className="relative">
             <div className="mb-3 flex items-center gap-3">
               <BrandLogo className="h-12 w-auto" />

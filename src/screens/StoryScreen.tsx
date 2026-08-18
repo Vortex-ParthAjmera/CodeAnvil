@@ -27,10 +27,10 @@ import { cn } from "../lib/cn";
 
 /** Orb accent colors per world — the worlds read as floating 3D spheres. */
 const WORLD_ORBS: Record<WorldId, string> = {
-  arrays: "#a78bfa",
+  arrays: "#f59e0b",
   recursion: "#38bdf8",
   searching: "#34d399",
-  sorting: "#a78bfa",
+  sorting: "#f59e0b",
 };
 
 type WorldId = "arrays" | "recursion" | "searching" | "sorting";
@@ -138,7 +138,7 @@ const BADGES: BadgeDef[] = [
 ];
 
 const THEMES: { id: ThemeId; name: string; accent: string; unlockXp: number }[] = [
-  { id: "ember", name: "Plasma Forge", accent: "#a78bfa", unlockXp: 0 },
+  { id: "ember", name: "Amber Forge", accent: "#f59e0b", unlockXp: 0 },
   { id: "arc", name: "Arc Circuit", accent: "#38bdf8", unlockXp: 60 },
   { id: "verdant", name: "Verdant Grove", accent: "#34d399", unlockXp: 120 },
 ];

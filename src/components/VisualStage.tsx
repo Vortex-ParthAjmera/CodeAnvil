@@ -23,9 +23,9 @@ function cellRoleClass(role: string | undefined): string {
   return cn(
     "flex h-14 w-14 items-center justify-center rounded-lg border-2 font-mono text-lg transition-all",
     role === "mid" &&
-      "border-ember-400 bg-ember-500/20 text-ember-300 shadow-[0_0_18px_rgba(167,139,250,0.4)] scale-105",
+      "border-ember-400 bg-ember-500/20 text-ember-300 shadow-[0_0_18px_rgba(245,158,11,0.4)] scale-105",
     role === "swap" &&
-      "border-ember-400 bg-ember-500/20 text-ember-300 shadow-[0_0_18px_rgba(167,139,250,0.4)] scale-105",
+      "border-ember-400 bg-ember-500/20 text-ember-300 shadow-[0_0_18px_rgba(245,158,11,0.4)] scale-105",
     role === "reading" && "border-arc-500 bg-arc-500/15 text-arc-300",
     role === "compare" && "border-arc-500 bg-arc-500/15 text-arc-300",
     role === "max" &&
@@ -138,7 +138,7 @@ const GRID_ROLE_CLASS: Record<string, string> = {
   goal: "border-ember-300 bg-ember-400/40 text-ember-100",
   wall: "border-ink-600 bg-ink-700 text-ink-500",
   current:
-    "border-ember-300 bg-ember-400/70 text-ink-950 shadow-[0_0_20px_rgba(167,139,250,0.7)] scale-110",
+    "border-ember-300 bg-ember-400/70 text-ink-950 shadow-[0_0_20px_rgba(245,158,11,0.7)] scale-110",
   frontier: "border-arc-300 bg-arc-400/50 text-ink-950",
   visited: "border-arc-500/40 bg-arc-500/20 text-arc-200",
   path: "border-verdant-300 bg-verdant-400/50 text-ink-950",
@@ -368,7 +368,7 @@ function LoopNarrative({
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: "spring", stiffness: 380, damping: 24 }}
             className={cn(
-              "font-mono font-black tabular-nums text-ember-300 [text-shadow:0_0_32px_rgba(167,139,250,0.65)]",
+              "font-mono font-black tabular-nums text-ember-300 [text-shadow:0_0_32px_rgba(251,191,36,0.55)]",
               compact ? "text-4xl" : "text-6xl",
             )}
           >

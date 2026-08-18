@@ -81,7 +81,7 @@ const STATUS_BAR: Record<ProblemStatus, string> = {
   none: "#262833",
   attempted: "#38bdf8",
   solved: "#34d399",
-  mastered: "#a78bfa",
+  mastered: "#f59e0b",
 };
 
 function StructureCard({
@@ -101,7 +101,7 @@ function StructureCard({
       className={cn(
         "group w-full rounded-xl border p-4 text-left transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ember-400",
         selected
-          ? "border-ember-500/60 bg-ember-500/10 shadow-[0_0_28px_rgba(167,139,250,0.12)]"
+          ? "border-ember-500/60 bg-ember-500/10 shadow-[0_0_28px_rgba(245,158,11,0.12)]"
           : "border-ink-700 bg-ink-900 hover:-translate-y-0.5 hover:border-ink-600",
       )}
     >
@@ -134,7 +134,7 @@ function ProblemRow({ problem, onVisualize }: { problem: DsaProblem; onVisualize
           <h3 className="truncate text-sm font-medium text-ink-100">{problem.title}</h3>
           <Badge tone={difficultyTone(problem.difficulty)}>{problem.difficulty}</Badge>
           {isCore && <Badge tone="amber">Core</Badge>}
-          {problem.exampleId && <span className="h-1.5 w-1.5 rounded-full bg-ember-400 shadow-[0_0_8px_#a78bfa]" title="Polished 3D trace available" />}
+          {problem.exampleId && <span className="h-1.5 w-1.5 rounded-full bg-ember-400 shadow-[0_0_8px_#f59e0b]" title="Polished 3D trace available" />}
           {companies.slice(0, 2).map((c) => (
             <span key={c} className="hidden text-[9px] uppercase tracking-wider text-ink-600 lg:inline">
               {c}

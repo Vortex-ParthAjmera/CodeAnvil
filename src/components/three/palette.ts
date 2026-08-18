@@ -1,13 +1,13 @@
 /**
  * Shared multicolor palette for CodeAnvil's 3D scenes.
- * The brand accent (violet) leads; cyan/green/magenta/amber add life.
+ * The brand accent (warm amber) leads; blue/green/magenta add life.
  */
 export const PALETTE = [
-  "#a78bfa", // violet — brand lead
-  "#38bdf8", // cyan
+  "#f59e0b", // amber — brand lead
+  "#38bdf8", // electric blue
   "#34d399", // emerald
   "#f472b6", // magenta
-  "#fbbf24", // amber
+  "#a78bfa", // violet
 ] as const;
 
 export type PaletteHue = (typeof PALETTE)[number];

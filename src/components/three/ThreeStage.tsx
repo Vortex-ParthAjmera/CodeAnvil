@@ -1,44 +1,67 @@
-import { useMemo } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { motion } from "motion/react";
-import { Canvas } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Grid as InfiniteGrid, Html, OrbitControls, Text } from "@react-three/drei";
+import * as THREE from "three";
 import type { StackFrame, TraceStep } from "../../types/trace";
 import { BarsGroup, type BarDescriptor } from "./ThreeBars";
 import { cn } from "../../lib/cn";
+import { FormulaChip } from "../FormulaChip";
 import {
-  RANGE_RE,
+  buildChipModel,
+  deriveRangeEnd,
   findAccumulator,
   findCounter,
+  isLoopNarrativeTrace,
+  iterationsElapsed,
   parseFormula,
-  type ParsedFormula,
 } from "../../lib/loopNarrative";
 import { useTheme3D, type Theme3DPalette } from "../../lib/theme3d";
 
 const EASE_OUT = [0.23, 1, 0.32, 1] as const;
 
-function FormulaChip({
-  formula,
-  prefix,
-}: {
-  formula: ParsedFormula | null;
-  prefix?: string;
-}) {
-  if (!formula) return null;
-  return (
-    <Html position={[0, -0.5, 0]} center style={{ pointerEvents: "none" }}>
-      <div className="whitespace-nowrap rounded-md border border-arc-400/35 bg-ink-950/90 px-3 py-1.5 font-mono text-sm font-black text-ink-50 shadow-xl backdrop-blur">
-        {prefix && (
-          <span className="mr-2 text-[9px] font-bold uppercase tracking-[0.2em] text-ink-500">
-            {prefix}
-          </span>
-        )}
-        <span className="text-ink-400">{formula.lhs}</span> ={" "}
-        <span className="text-ink-200">{formula.a}</span> {formula.op}{" "}
-        <span className="text-ember-300">{formula.b}</span> ={" "}
-        <span className="text-verdant-300">{formula.result}</span>
-      </div>
-    </Html>
+const DEFAULT_CAM = [0, 2.6, 8.2] as const;
+/** Pulled back a touch so the narrative band sits above the bars. */
+const COMPOSITE_CAM = [0, 3.2, 11] as const;
+
+/**
+ * Damped camera reframe (mirrors the grid's ReframeCamera): frames the scene
+ * instantly on mount, then glides when the array-loop narrative flips the
+ * stage into composite mode. Rendered before OrbitControls so its position
+ * update is adopted each frame; once settled it goes quiet so the user's own
+ * zoom/orbit is never fought.
+ */
+function StageCamera({ composite }: { composite: boolean }) {
+  const camera = useThree((state) => state.camera) as THREE.PerspectiveCamera;
+  const targetVec = useRef(
+    new THREE.Vector3(...(composite ? COMPOSITE_CAM : DEFAULT_CAM)),
   );
+  const reframing = useRef(false);
+
+  useLayoutEffect(() => {
+    const cam = composite ? COMPOSITE_CAM : DEFAULT_CAM;
+    camera.position.set(cam[0], cam[1], cam[2]);
+    camera.lookAt(0, 0, 0);
+  }, [camera]);
+
+  useEffect(() => {
+    const next = new THREE.Vector3(...(composite ? COMPOSITE_CAM : DEFAULT_CAM));
+    if (targetVec.current.distanceTo(next) < 0.001) return;
+    targetVec.current.copy(next);
+    reframing.current = true;
+  }, [camera, composite]);
+
+  useFrame((_, delta) => {
+    if (!reframing.current) return;
+    const t = 1 - Math.pow(0.0009, delta);
+    camera.position.lerp(targetVec.current, t);
+    if (camera.position.distanceTo(targetVec.current) < 0.015) {
+      camera.position.copy(targetVec.current);
+      reframing.current = false;
+    }
+  });
+
+  return null;
 }
 
 /**
@@ -58,6 +81,9 @@ function VariableForge({
   line,
   event,
   p,
+  stepKey,
+  steps,
+  composite = false,
 }: {
   description?: string;
   variables: Record<string, unknown>;
@@ -65,54 +91,69 @@ function VariableForge({
   line: number;
   event: string;
   p: Theme3DPalette;
+  stepKey?: string | number;
+  steps?: TraceStep[];
+  /** Array-loop mode: the bars share the scene, so the narrative sits above
+      the bars (counter + hero) with the formula below them, and the line/event
+      readout is dropped (the HUD already shows it). */
+  composite?: boolean;
 }) {
   const counterName = useMemo(() => findCounter(variables), [variables]);
-  const formula = parseFormula(description);
   const heroValue = variables[heroName];
   const display = heroValue === undefined ? "" : String(heroValue);
+  const isNumericHero = typeof heroValue === "number";
 
-  // On an iteration step the multiply hasn't run yet — preview it.
   const counterValue =
     counterName !== null && typeof variables[counterName] === "number"
       ? (variables[counterName] as number)
       : null;
-  const nextFormula =
-    !formula &&
-    event === "loop_iteration" &&
-    typeof heroValue === "number" &&
-    counterValue !== null &&
-    Number.isFinite(heroValue) &&
-    Number.isFinite(counterValue)
-      ? {
-          lhs: heroName,
-          a: heroValue,
-          op: "×",
-          b: counterValue,
-          result: heroValue * counterValue,
-        }
-      : null;
 
-  const rangeMatch = RANGE_RE.exec(description ?? "");
-  const rangeEnd = rangeMatch ? Number(rangeMatch[2]) : null;
+  // The current step (stepKey is the trace step id) drives the chip model and
+  // the progress dots, exactly like the 2D narrative.
+  const currentStep = useMemo(
+    () => (steps ?? []).find((s) => String(s.id) === String(stepKey)),
+    [steps, stepKey],
+  );
+  const chip = useMemo(() => {
+    if (currentStep) {
+      return buildChipModel(currentStep, steps ?? [], heroName, heroValue, counterValue);
+    }
+    const f = parseFormula(description);
+    return f ? { kind: "formula" as const, formula: f } : null;
+  }, [currentStep, steps, heroName, heroValue, counterValue, description]);
+  const rangeEnd = useMemo(() => deriveRangeEnd(steps ?? []), [steps]);
+  const elapsed = currentStep
+    ? iterationsElapsed(steps ?? [], currentStep)
+    : counterValue ?? 0;
 
   const statusTag =
     event === "loop_iteration"
       ? "NEXT ITERATION"
       : event === "assignment"
         ? "UPDATED"
-        : event === "output_write"
-          ? "PRINTED"
-          : event === "program_start"
-            ? "START"
-            : event === "program_end"
-              ? "DONE"
-              : "";
+        : event === "comparison"
+          ? "CHECKED"
+          : event === "output_write"
+            ? "PRINTED"
+            : event === "program_start"
+              ? "START"
+              : event === "program_end"
+                ? "DONE"
+                : "";
+
+  // The stage is wide and short, so the narrative never stacks tightly:
+  // the counter sits left of center and the hero center, the chip below them,
+  // and a single compact line/event readout at the bottom — each overlay box
+  // clears the next by a healthy gap instead of overlapping.
+  const counterPos: [number, number, number] = composite ? [-3.4, 2.4, 0] : [-3.4, 1.9, 0];
+  const heroPos: [number, number, number] = composite ? [0, 2.4, 0] : [0, 1.0, 0];
+  const chipPos: [number, number, number] = composite ? [0, -2.0, 0] : [0, -1.0, 0];
 
   return (
-    <group position={[0, 0.15, 0]}>
+    <group position={[0, composite ? 0 : 0.15, 0]}>
       {/* Loop counter + progress dots (top) */}
       {counterName !== null && counterValue !== null && (
-        <Html position={[0, 2.3, 0]} center style={{ pointerEvents: "none" }}>
+        <Html position={counterPos} center style={{ pointerEvents: "none" }}>
           <div className="flex flex-col items-center gap-1.5">
             <span className="font-mono text-xs font-black uppercase tracking-[0.25em] text-ink-400">
               {counterName} = {counterValue}
@@ -124,7 +165,7 @@ function VariableForge({
                     key={idx}
                     className={cn(
                       "h-1.5 w-1.5 rounded-full transition-colors",
-                      idx < counterValue ? "bg-ember-400" : "bg-ink-700",
+                      idx < elapsed ? "bg-ember-400" : "bg-ink-700",
                     )}
                   />
                 ))}
@@ -134,44 +175,51 @@ function VariableForge({
         </Html>
       )}
 
-      {/* Hero value */}
-      <Html position={[0, 0.68, 0]} center style={{ pointerEvents: "none" }}>
-        <div className="flex flex-col items-center">
-          <span className="font-mono text-[10px] font-black uppercase tracking-[0.3em] text-ink-500">
-            {heroName ?? "step"}
-          </span>
-          <motion.span
-            key={`${heroName}-${display}`}
-            initial={{ scale: 0.55, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ type: "spring", stiffness: 380, damping: 24 }}
-            className="font-mono text-5xl font-black tabular-nums text-ember-300 [text-shadow:0_0_32px_rgba(167,139,250,0.65)]"
-          >
-            {display}
-          </motion.span>
-          {statusTag && (
+      {/* Hero value — skipped when not numeric (e.g. the array itself on the
+          first step of an array loop) */}
+      {isNumericHero && (
+        <Html position={heroPos} center style={{ pointerEvents: "none" }}>
+          <div className="flex flex-col items-center">
+            <span className="font-mono text-[10px] font-black uppercase tracking-[0.3em] text-ink-500">
+              {heroName ?? "step"}
+            </span>
             <motion.span
-              key={`tag-${statusTag}-${display}`}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.25, delay: 0.08, ease: EASE_OUT }}
-              className="mt-1 rounded border border-ember-400/40 bg-ember-500/10 px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-ember-300"
+              key={`${heroName}-${display}`}
+              initial={{ scale: 0.55, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ type: "spring", stiffness: 380, damping: 24 }}
+              className="font-mono text-4xl font-black tabular-nums text-ember-300 [text-shadow:0_0_32px_rgba(167,139,250,0.65)]"
             >
-              {statusTag}
+              {display}
             </motion.span>
-          )}
-        </div>
-      </Html>
+            {statusTag && (
+              <motion.span
+                key={`tag-${statusTag}-${display}`}
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ duration: 0.25, delay: 0.08, ease: EASE_OUT }}
+                className="mt-1 rounded border border-ember-400/40 bg-ember-500/10 px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-ember-300"
+              >
+                {statusTag}
+              </motion.span>
+            )}
+          </div>
+        </Html>
+      )}
 
-      {/* The arithmetic, shown or previewed */}
-      <FormulaChip formula={formula ?? nextFormula} prefix={nextFormula ? "next" : undefined} />
+      {/* The chip explaining this step — inside Html so the pulsing chip sits
+          on the stage; keyed by step so the operand pulse replays. */}
+      {chip && (
+        <Html position={chipPos} center style={{ pointerEvents: "none" }}>
+          <FormulaChip model={chip} stepKey={stepKey} />
+        </Html>
+      )}
 
-      <Text position={[0, -1.4, 0.25]} fontSize={0.26} color={p.emberBright} anchorX="center">
-        LINE {line}
-      </Text>
-      <Text position={[0, -1.8, 0.2]} fontSize={0.15} color={p.arcBright} anchorX="center">
-        {event.replaceAll("_", " ").toUpperCase()}
-      </Text>
+      {!composite && (
+        <Text position={[0, -1.72, 0.25]} fontSize={0.18} color={p.emberBright} anchorX="center">
+          LINE {line} · {event.replaceAll("_", " ").toUpperCase()}
+        </Text>
+      )}
     </group>
   );
 }
@@ -219,7 +267,13 @@ export function ThreeStage({
   // even when the stage mounts mid-trace (session resume, direct navigation).
   const accumulator = useMemo(() => findAccumulator(steps), [steps]);
 
-  const heroName = !values
+  // Array loops (Sum of Array, Max in Array) get the narrative composited
+  // over the bars; variable-only loops (Factorial (Loop)) keep the narrative
+  // as the whole scene.
+  const loopTrace = useMemo(() => isLoopNarrativeTrace(steps ?? []), [steps]);
+  const composite = loopTrace && !!values;
+
+  const heroName = !values || loopTrace
     ? (parseFormula(storyboard?.description)?.lhs ??
       changed?.find((name) => name !== counterName && name in variables) ??
       accumulator ??
@@ -229,14 +283,16 @@ export function ThreeStage({
     : "step";
 
   // In the variable-only scene the hero + counter are rendered big already;
-  // hide their chips so the stage doesn't duplicate them.
+  // hide their chips so the stage doesn't duplicate them. In composite mode
+  // the narrative + bars tell the whole story, so no chips float at all.
   const hiddenChips = useMemo(() => {
+    if (composite) return new Set(varEntries.map(([name]) => name));
     if (values) return new Set<string>();
     const set = new Set<string>();
     if (counterName) set.add(counterName);
     set.add(heroName);
     return set;
-  }, [counterName, heroName, values]);
+  }, [counterName, heroName, values, composite, varEntries]);
 
   const colors: Record<string, string> = {
     default: p.barDefault,
@@ -265,11 +321,19 @@ export function ThreeStage({
       <directionalLight position={[6, 9, 5]} intensity={1.4 * p.lighting.directional} />
       <pointLight position={[0, 4, 3]} intensity={45 * p.lighting.accent} distance={13} color={p.ember} />
 
+      <StageCamera composite={composite} />
+
       {values && (
-        <BarsGroup values={values} states={states ?? []} maxH={2.8} baseY={-1.1} colors={colors} />
+        <BarsGroup
+          values={values}
+          states={states ?? []}
+          maxH={composite ? 2.0 : 2.8}
+          baseY={composite ? -1.6 : -1.1}
+          colors={colors}
+        />
       )}
 
-      {!values && (
+      {(!values || composite) && (
         <VariableForge
           description={storyboard?.description}
           variables={variables}
@@ -277,6 +341,9 @@ export function ThreeStage({
           line={storyboard?.line ?? 1}
           event={storyboard?.event ?? "line_enter"}
           p={p}
+          stepKey={stepKey}
+          steps={steps}
+          composite={composite}
         />
       )}
 
@@ -289,7 +356,7 @@ export function ThreeStage({
         return (
           <Html
             key={`${name}-${stepKey}`}
-            position={[spread, values ? 2.6 : 1.4, 0]}
+            position={[spread, values ? 2.6 : 2.55, 0]}
             center
             style={{ pointerEvents: "none", zIndex: 5 }}
           >
@@ -354,7 +421,7 @@ export function ThreeStage({
 
       <OrbitControls
         enablePan={false}
-        autoRotate={!!values}
+        autoRotate={!!values && !loopTrace}
         autoRotateSpeed={0.6}
         minDistance={4}
         maxDistance={14}

@@ -1,6 +1,14 @@
+import { useMemo } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import type { GridHighlight, MemoryItem, TraceStep } from "../types/trace";
 import { cn } from "../lib/cn";
+import {
+  RANGE_RE,
+  findAccumulator,
+  findCounter,
+  hasLoopNarrative,
+  parseFormula,
+} from "../lib/loopNarrative";
 import { RecursionTree } from "./RecursionTree";
 import { selectRendererForStep } from "../engine/traceActions";
 
@@ -213,6 +221,200 @@ function GridStage({ item }: { item: MemoryItem }) {
   );
 }
 
+/**
+ * The 2D sibling of the 3D VariableForge: the loop narrative for
+ * variable-only traces (e.g. Factorial (Loop)). The hero is always the
+ * *accumulator* the loop computes, with the loop counter + progress dots
+ * above it and the live formula below — on iteration steps the formula is
+ * *previewed* (NEXT result = 1 x 2 = 2), so the computation explains itself
+ * in 2D mode too.
+ */
+function LoopNarrative({ step, steps }: { step: TraceStep; steps: TraceStep[] }) {
+  const reduce = useReducedMotion();
+  const variables = step.variables ?? {};
+  const counterName = findCounter(variables);
+  const counterValue =
+    counterName !== null && typeof variables[counterName] === "number"
+      ? (variables[counterName] as number)
+      : null;
+  const formula = parseFormula(step.description);
+
+  // Hero = accumulator, falling back to the first defined variable so the
+  // pre-loop steps (e.g. "Set n = 5") still narrate something real.
+  const accumulator = useMemo(() => findAccumulator(steps), [steps]);
+  const changedVar = step.changed?.variables?.find(
+    (n) => n !== counterName && n in variables,
+  );
+  const heroName =
+    (formula?.lhs ??
+      changedVar ??
+      accumulator ??
+      Object.keys(variables).find((n) => n !== counterName) ??
+      Object.keys(variables)[0]) ??
+    "step";
+  const heroValue = variables[heroName];
+  const display =
+    heroValue === undefined ? "—" : String(heroValue);
+
+  // On an iteration step the multiply hasn't run yet — preview it.
+  const nextFormula =
+    !formula &&
+    step.event === "loop_iteration" &&
+    typeof heroValue === "number" &&
+    counterValue !== null &&
+    Number.isFinite(heroValue) &&
+    Number.isFinite(counterValue)
+      ? {
+          lhs: heroName,
+          a: heroValue,
+          op: "×" as const,
+          b: counterValue,
+          result: heroValue * counterValue,
+        }
+      : null;
+
+  // The loop range (range 1..5) is read from any loop_iteration description
+  // so the progress dots stay visible on assignment steps too.
+  const rangeEnd = useMemo(() => {
+    for (const s of steps) {
+      const m = RANGE_RE.exec(s.description ?? "");
+      if (m) return Number(m[2]);
+    }
+    return null;
+  }, [steps]);
+
+  const statusTag =
+    step.event === "loop_iteration"
+      ? "NEXT ITERATION"
+      : step.event === "assignment"
+        ? "UPDATED"
+        : step.event === "output_write"
+          ? "PRINTED"
+          : step.event === "program_start"
+            ? "START"
+            : step.event === "program_end"
+              ? "DONE"
+              : "";
+
+  const otherVars = Object.entries(variables).filter(
+    ([name, v]) => name !== heroName && name !== counterName && v !== undefined,
+  );
+
+  return (
+    <div className="flex h-full flex-col items-center justify-center gap-4 p-6 text-center">
+      <motion.span
+        key={`badge-${step.id}`}
+        initial={reduce ? false : { opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2, ease: EASE_OUT }}
+        className="rounded-full bg-ember-500/15 px-3 py-1 font-mono text-xs font-semibold uppercase tracking-wider text-ember-300 ring-1 ring-ember-500/40"
+      >
+        {step.event.replaceAll("_", " ")}
+      </motion.span>
+
+      {/* Loop counter + progress dots */}
+      {counterName !== null && counterValue !== null && (
+        <div className="flex flex-col items-center gap-1.5">
+          <span className="font-mono text-xs font-black uppercase tracking-[0.25em] text-ink-400">
+            {counterName} = {counterValue}
+          </span>
+          {rangeEnd !== null && (
+            <div className="flex gap-1.5">
+              {Array.from({ length: Math.max(1, rangeEnd) }, (_, idx) => (
+                <motion.span
+                  key={idx}
+                  initial={reduce ? false : { scale: 0.4, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ delay: 0.06 + Math.min(idx, 8) * 0.02 }}
+                  className={cn(
+                    "h-1.5 w-1.5 rounded-full transition-colors",
+                    idx < counterValue ? "bg-ember-400" : "bg-ink-700",
+                  )}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Hero accumulator */}
+      <div className="flex flex-col items-center">
+        <span className="font-mono text-[10px] font-black uppercase tracking-[0.3em] text-ink-500">
+          {heroName}
+        </span>
+        <motion.span
+          key={`${heroName}-${display}`}
+          initial={reduce ? false : { scale: 0.55, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 380, damping: 24 }}
+          className="font-mono text-6xl font-black tabular-nums text-ember-300 [text-shadow:0_0_32px_rgba(167,139,250,0.65)]"
+        >
+          {display}
+        </motion.span>
+        {statusTag && (
+          <motion.span
+            key={`tag-${statusTag}-${display}`}
+            initial={reduce ? false : { opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.25, delay: 0.08, ease: EASE_OUT }}
+            className="mt-1 rounded border border-ember-400/40 bg-ember-500/10 px-1.5 py-0.5 font-mono text-[9px] font-bold uppercase tracking-[0.2em] text-ember-300"
+          >
+            {statusTag}
+          </motion.span>
+        )}
+      </div>
+
+      {/* The arithmetic, shown or previewed */}
+      {(formula ?? nextFormula) && (
+        <motion.div
+          key={`formula-${step.id}`}
+          initial={reduce ? false : { opacity: 0, y: 6, scale: 0.96 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.22, ease: EASE_OUT }}
+          className="whitespace-nowrap rounded-md border border-arc-400/35 bg-ink-950/90 px-4 py-2 font-mono text-sm font-black text-ink-50 shadow-xl"
+        >
+          {nextFormula && (
+            <span className="mr-2 text-[9px] font-bold uppercase tracking-[0.2em] text-ink-500">
+              next
+            </span>
+          )}
+          <span className="text-ink-400">{(formula ?? nextFormula)!.lhs}</span> ={" "}
+          <span className="text-ink-200">{(formula ?? nextFormula)!.a}</span>{" "}
+          {(formula ?? nextFormula)!.op}{" "}
+          <span className="text-ember-300">{(formula ?? nextFormula)!.b}</span> ={" "}
+          <span className="text-verdant-300">{(formula ?? nextFormula)!.result}</span>
+        </motion.div>
+      )}
+
+      {/* The step's own words, for steps the narrative can't express (prints) */}
+      <p className="max-w-md text-xs leading-relaxed text-ink-400">{step.description}</p>
+
+      {/* Remaining variables (n = 5) */}
+      {otherVars.length > 0 && (
+        <div className="flex flex-wrap justify-center gap-2">
+          {otherVars.map(([name, value], i) => (
+            <motion.span
+              key={`${name}-${String(value)}`}
+              initial={reduce ? false : { opacity: 0, y: 6, scale: 0.92 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{
+                type: "spring",
+                stiffness: 520,
+                damping: 30,
+                delay: 0.05 + Math.min(i, 6) * 0.03,
+              }}
+              className="rounded border border-ink-700 bg-ink-800 px-2 py-1 font-mono text-xs"
+            >
+              <span className="text-ink-500">{name} = </span>
+              <span className="text-ink-100">{String(value)}</span>
+            </motion.span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /** Default forge stage: semantic action badge + description + variable chips.
  *
  * The step block refreshes on every step (keyed by step.id): a quick rise-fade
@@ -291,6 +493,10 @@ export function VisualStage({
 }) {
   const visual = step.visual;
   const dispatch = selectRendererForStep(step);
+  // Variable-only loop traces (e.g. Factorial (Loop)) get the loop narrative
+  // instead of the plain forge stage, so the 2D stage explains the
+  // computation the same way the 3D VariableForge does.
+  const loopTrace = useMemo(() => hasLoopNarrative(steps), [steps]);
 
   if (dispatch.kind === "recursion_tree" && visual?.type === "recursion_tree") {
     return (
@@ -313,6 +519,8 @@ export function VisualStage({
     const item = step.memory?.find((m) => m.id === visual.itemId);
     if (item) return <GridStage item={item} />;
   }
+
+  if (loopTrace) return <LoopNarrative step={step} steps={steps} />;
 
   return <ForgeStage step={step} />;
 }

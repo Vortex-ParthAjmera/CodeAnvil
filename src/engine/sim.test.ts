@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   binarySearchSteps,
   bubbleSortSteps,
+  buildRandomMaze,
   gridSearchSteps,
   insertionSortSteps,
   selectionSortSteps,
@@ -123,5 +124,38 @@ describe("gridSearchSteps", () => {
     };
     const steps = gridSearchSteps(blocked, "bfs");
     expect(steps[steps.length - 1].path).toBeUndefined();
+  });
+});
+
+describe("buildRandomMaze", () => {
+  it("builds a maze of the requested size with open start and goal", () => {
+    const maze = buildRandomMaze(7, 6, 3);
+    expect(maze.grid.length).toBe(7);
+    expect(maze.grid[0].length).toBe(6);
+    expect(maze.start).toEqual([0, 0]);
+    expect(maze.goal).toEqual([6, 5]);
+    expect(maze.grid[0][0]).toBe(0);
+    expect(maze.grid[6][5]).toBe(0);
+  });
+
+  it("always produces a connected maze (reachable goal)", () => {
+    for (const seed of [1, 2, 3, 7, 42, 99]) {
+      const maze = buildRandomMaze(5, 5, seed);
+      const steps = gridSearchSteps(maze, "bfs");
+      expect(steps[steps.length - 1].path, `seed ${seed}`).toBeDefined();
+    }
+  });
+
+  it("is deterministic per seed", () => {
+    const a = buildRandomMaze(6, 5, 11);
+    const b = buildRandomMaze(6, 5, 11);
+    expect(a.grid).toEqual(b.grid);
+    const c = buildRandomMaze(6, 5, 12);
+    expect(a.grid).not.toEqual(c.grid);
+  });
+
+  it("clamps dimensions to the 2-9 range", () => {
+    expect(buildRandomMaze(1, 20, 1).grid.length).toBe(2);
+    expect(buildRandomMaze(1, 20, 1).grid[0].length).toBe(9);
   });
 });

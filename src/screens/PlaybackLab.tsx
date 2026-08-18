@@ -489,7 +489,7 @@ export function PlaybackLab({
                           ? (config[field.key] as unknown[]).join(", ")
                           : String(config[field.key] ?? field.default)
                       }
-                      onBlur={(e) => {
+                      onChange={(e) => {
                         const raw = e.target.value;
                         const next = { ...config };
                         if (field.key === "array") {
@@ -507,6 +507,12 @@ export function PlaybackLab({
                         } else if (field.key === "n" || field.key === "target") {
                           const n = Number(raw);
                           if (Number.isFinite(n)) next[field.key] = n;
+                        } else if (field.key === "rows" || field.key === "cols") {
+                          const n = Math.round(Number(raw));
+                          if (Number.isFinite(n)) next[field.key] = Math.max(2, Math.min(9, n));
+                        } else if (field.key === "seed") {
+                          const n = Math.round(Number(raw));
+                          if (Number.isFinite(n)) next[field.key] = Math.max(1, Math.min(9999, n));
                         } else if (field.key === "text") {
                           const text = raw.trim().replace(/[^a-zA-Z]/g, "");
                           if (text.length >= 2) next.text = text;

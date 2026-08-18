@@ -115,6 +115,32 @@ describe("generateTrace", () => {
     expect(trace.steps.every((s) => s.line >= 1)).toBe(true);
     expect(trace.steps.every((s) => s.description.length > 0)).toBe(true);
   });
+
+  it.each([
+    ["bfs-grid", "bfs"],
+    ["dfs-grid", "dfs"],
+  ] as const)("%s honors rows/cols/seed forge inputs", (kind, _) => {
+    const trace = generateTrace(kind, { rows: 8, cols: 6, seed: 3 });
+    const grid = trace.steps[0].memory?.find((m) => Array.isArray(m.value))!
+      .value as number[][];
+    expect(grid.length).toBe(8);
+    expect(grid[0].length).toBe(6);
+    // The trace must actually solve the maze, not just paint it.
+    const pathStep = trace.steps.find((s) =>
+      s.memory?.some((m) =>
+        m.highlights?.some((h) => "role" in h && h.role === "path"),
+      ),
+    );
+    expect(pathStep).toBeDefined();
+  });
+
+  it("grid traces default to the 5x5 maze without rows/cols", () => {
+    const trace = generateTrace("bfs-grid", {});
+    const grid = trace.steps[0].memory?.find((m) => Array.isArray(m.value))!
+      .value as number[][];
+    expect(grid.length).toBe(5);
+    expect(grid[0].length).toBe(5);
+  });
 });
 
 describe("story script", () => {

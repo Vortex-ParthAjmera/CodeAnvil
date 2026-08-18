@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Edges, Grid as InfiniteGrid, Html, Line, OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import type { TraceStep } from "../../types/trace";
@@ -37,6 +37,45 @@ function cellZ(row: number, rows: number): number {
 
 function sameCoord(a: GridCoord | null, b: GridCoord): boolean {
   return !!a && a.row === b.row && a.col === b.col;
+}
+
+/**
+ * Damped camera reframe: frames the grid instantly on mount, then glides
+ * smoothly to the new framing whenever the grid size changes mid-session
+ * instead of snapping. Rendered before OrbitControls so its position update
+ * is adopted (not overwritten) each frame; once settled it goes quiet, so
+ * the user's own zoom/orbit is never fought.
+ */
+function ReframeCamera({ target }: { target: readonly [number, number, number] }) {
+  const camera = useThree((state) => state.camera) as THREE.PerspectiveCamera;
+  const targetVec = useRef(new THREE.Vector3(target[0], target[1], target[2]));
+  const reframing = useRef(false);
+
+  // Frame the grid immediately on mount.
+  useLayoutEffect(() => {
+    camera.position.set(target[0], target[1], target[2]);
+    camera.lookAt(0, 0, 0);
+  }, [camera]);
+
+  // When the target moves, start a glide.
+  useEffect(() => {
+    const next = new THREE.Vector3(target[0], target[1], target[2]);
+    if (targetVec.current.distanceTo(next) < 0.001) return;
+    targetVec.current.copy(next);
+    reframing.current = true;
+  }, [camera, target]);
+
+  useFrame((_, delta) => {
+    if (!reframing.current) return;
+    const t = 1 - Math.pow(0.0009, delta);
+    camera.position.lerp(targetVec.current, t);
+    if (camera.position.distanceTo(targetVec.current) < 0.015) {
+      camera.position.copy(targetVec.current);
+      reframing.current = false;
+    }
+  });
+
+  return null;
 }
 
 function positionFor(coord: GridCoord, model: GridSearchSceneModel, y = 0.2): [number, number, number] {
@@ -203,11 +242,13 @@ function Scene({
   p,
   reducedMotion,
   cameraDistance,
+  cameraTarget,
 }: {
   model: GridSearchSceneModel;
   p: Theme3DPalette;
   reducedMotion: boolean;
   cameraDistance: number;
+  cameraTarget: readonly [number, number, number];
 }) {
   const scene = useRef<THREE.Group>(null);
   const stageWidth = Math.max(5.4, model.cols * 0.95 + 1.4);
@@ -220,6 +261,7 @@ function Scene({
 
   return (
     <>
+      <ReframeCamera target={cameraTarget} />
       <ambientLight intensity={0.76 * p.lighting.ambient} />
       <directionalLight position={[5, 8, 4]} intensity={1.45 * p.lighting.directional} />
       <pointLight position={[-2, 3.8, 2.8]} intensity={42 * p.lighting.accent} distance={12} color={p.arcBright} />
@@ -418,7 +460,7 @@ export function GridSearchStage3D({ step }: { step: TraceStep }) {
       <Canvas
         data-testid="grid-search-stage-canvas"
         dpr={[1.25, 2]}
-        camera={{ position: framing.position, fov: 42 }}
+        camera={{ fov: 42 }}
         gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
         style={{ width: "100%", height: "100%", background: "transparent" }}
       >
@@ -428,6 +470,7 @@ export function GridSearchStage3D({ step }: { step: TraceStep }) {
           p={p}
           reducedMotion={reducedMotion}
           cameraDistance={framing.distance}
+          cameraTarget={framing.position}
         />
       </Canvas>
       <HudToggle open={hud.hudOpen} onToggle={hud.toggleHud} />

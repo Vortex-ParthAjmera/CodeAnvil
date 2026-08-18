@@ -5,35 +5,16 @@ import { Grid as InfiniteGrid, Html, OrbitControls, Text } from "@react-three/dr
 import type { StackFrame, TraceStep } from "../../types/trace";
 import { BarsGroup, type BarDescriptor } from "./ThreeBars";
 import { cn } from "../../lib/cn";
+import {
+  RANGE_RE,
+  findAccumulator,
+  findCounter,
+  parseFormula,
+  type ParsedFormula,
+} from "../../lib/loopNarrative";
 import { useTheme3D, type Theme3DPalette } from "../../lib/theme3d";
 
 const EASE_OUT = [0.23, 1, 0.32, 1] as const;
-
-/** Pulls `result = 1 x 3 = 3`-style formulas out of a step description. */
-const FORMULA_RE = /([a-z_][a-z0-9_]*)\s*=\s*(-?\d+)\s*([×+*\-])\s*(-?\d+)\s*=\s*(-?\d+)/i;
-const COUNTER_RE = /\b(i|j|k|idx|index)\b/;
-const RANGE_RE = /range\s*(\d+)\.\.(\d+)/;
-
-interface ParsedFormula {
-  lhs: string;
-  a: number;
-  op: string;
-  b: number;
-  result: number;
-}
-
-function parseFormula(description?: string): ParsedFormula | null {
-  if (!description) return null;
-  const m = FORMULA_RE.exec(description);
-  if (!m) return null;
-  return {
-    lhs: m[1],
-    a: Number(m[2]),
-    op: m[3] === "*" ? "×" : m[3],
-    b: Number(m[4]),
-    result: Number(m[5]),
-  };
-}
 
 function FormulaChip({
   formula,
@@ -57,14 +38,6 @@ function FormulaChip({
         <span className="text-verdant-300">{formula.result}</span>
       </div>
     </Html>
-  );
-}
-
-/** A loop counter (i/j/k) whose value is a number. */
-function findCounter(variables: Record<string, unknown>): string | null {
-  return (
-    Object.keys(variables).find((name) => COUNTER_RE.test(name) && typeof variables[name] === "number") ??
-    null
   );
 }
 
@@ -244,19 +217,7 @@ export function ThreeStage({
   // The hero is the *accumulator* — the variable the loop computes. Find it by
   // scanning the trace for the last non-counter assignment target, so it works
   // even when the stage mounts mid-trace (session resume, direct navigation).
-  const accumulator = useMemo(() => {
-    if (!steps) return null;
-    for (let i = steps.length - 1; i >= 0; i--) {
-      const s = steps[i];
-      const target = s.actions?.find(
-        (a) => typeof a.target === "string" && !COUNTER_RE.test(a.target as string),
-      )?.target as string | undefined;
-      if (target) return target;
-      const ch = s.changed?.variables?.find((n) => !COUNTER_RE.test(n));
-      if (ch) return ch;
-    }
-    return null;
-  }, [steps]);
+  const accumulator = useMemo(() => findAccumulator(steps), [steps]);
 
   const heroName = !values
     ? (parseFormula(storyboard?.description)?.lhs ??

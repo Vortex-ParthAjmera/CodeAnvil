@@ -367,6 +367,69 @@ export interface MazeSpec {
   goal: [number, number];
 }
 
+/** Deterministic PRNG (mulberry32) so a seed always yields the same maze. */
+function mulberry32(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+function mazeConnected(grid: GridCell[][], start: [number, number], goal: [number, number]): boolean {
+  const rows = grid.length;
+  const cols = grid[0]?.length ?? 0;
+  const seen = new Set<string>([`${start[0]},${start[1]}`]);
+  const queue: [number, number][] = [start];
+  while (queue.length > 0) {
+    const [r, c] = queue.shift() as [number, number];
+    if (r === goal[0] && c === goal[1]) return true;
+    for (const [dr, dc] of [[1, 0], [-1, 0], [0, 1], [0, -1]] as const) {
+      const nr = r + dr;
+      const nc = c + dc;
+      if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && grid[nr][nc] === 0 && !seen.has(`${nr},${nc}`)) {
+        seen.add(`${nr},${nc}`);
+        queue.push([nr, nc]);
+      }
+    }
+  }
+  return false;
+}
+
+/**
+ * Builds a random maze of the requested size with a guaranteed start-to-goal
+ * path. Wall placement is seeded (deterministic), and every attempt is
+ * validated for connectivity before being returned.
+ */
+export function buildRandomMaze(rows: number, cols: number, seed = 1): MazeSpec {
+  const r = Math.max(2, Math.min(9, Math.round(rows)));
+  const c = Math.max(2, Math.min(9, Math.round(cols)));
+  const start: [number, number] = [0, 0];
+  const goal: [number, number] = [r - 1, c - 1];
+
+  for (let attempt = 0; attempt < 16; attempt++) {
+    const rand = mulberry32(seed * 2654435761 + attempt * 1013904223);
+    const grid: GridCell[][] = Array.from({ length: r }, () =>
+      Array.from({ length: c }, () => 0 as GridCell),
+    );
+    for (let row = 0; row < r; row++) {
+      for (let col = 0; col < c; col++) {
+        if ((row === 0 && col === 0) || (row === r - 1 && col === c - 1)) continue;
+        if (rand() < 0.22) grid[row][col] = 1;
+      }
+    }
+    if (mazeConnected(grid, start, goal)) return { grid, start, goal };
+  }
+
+  // Fallback: a fully open grid is always connected.
+  const open: GridCell[][] = Array.from({ length: r }, () =>
+    Array.from({ length: c }, () => 0 as GridCell),
+  );
+  return { grid: open, start, goal };
+}
+
 const key = (r: number, c: number) => `${r},${c}`;
 const parseKey = (k: string): [number, number] => {
   const [r, c] = k.split(",").map(Number);

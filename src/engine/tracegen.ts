@@ -11,6 +11,7 @@ import { detectLanguage } from "./detect";
 import {
   binarySearchSteps,
   bubbleSortSteps,
+  buildRandomMaze,
   gridSearchSteps,
   insertionSortSteps,
   selectionSortSteps,
@@ -55,6 +56,9 @@ export interface PlayableConfig {
   text?: string;
   tree?: (number | null)[];
   maze?: MazeSpec;
+  rows?: number;
+  cols?: number;
+  seed?: number;
 }
 
 const clone = <T,>(a: T[]): T[] => [...a];
@@ -1680,17 +1684,21 @@ export function generateTrace(
       return twoSumTrace(values, config.target ?? 9, source);
     case "bfs-grid":
     case "dfs-grid": {
-      const maze = config.maze ?? {
-        grid: [
-          [0, 0, 0, 0, 0],
-          [0, 1, 1, 1, 0],
-          [0, 0, 0, 1, 0],
-          [1, 1, 0, 0, 0],
-          [0, 0, 0, 1, 0],
-        ],
-        start: [0, 0] as [number, number],
-        goal: [4, 4] as [number, number],
-      };
+      const maze =
+        config.maze ??
+        (config.rows || config.cols
+          ? buildRandomMaze(config.rows ?? 5, config.cols ?? 5, config.seed ?? 1)
+          : {
+              grid: [
+                [0, 0, 0, 0, 0],
+                [0, 1, 1, 1, 0],
+                [0, 0, 0, 1, 0],
+                [1, 1, 0, 0, 0],
+                [0, 0, 0, 1, 0],
+              ],
+              start: [0, 0] as [number, number],
+              goal: [4, 4] as [number, number],
+            });
       return gridTraceGen(kind, maze, source);
     }
   }
@@ -1698,7 +1706,7 @@ export function generateTrace(
 
 /** Registry of playable kinds with their editable inputs (lab "Inputs" panel). */
 export interface InputField {
-  key: "array" | "n" | "target" | "text" | "tree";
+  key: "array" | "n" | "target" | "text" | "tree" | "rows" | "cols" | "seed";
   label: string;
   default: unknown;
   help: string;
@@ -1726,6 +1734,14 @@ export const PLAYABLE_INPUTS: Partial<Record<PlayableKind, InputField[]>> = {
     { key: "array", label: "Numbers", default: [2, 7, 11, 15], help: "Auto-sorted" },
     { key: "target", label: "Target", default: 9, help: "Pair sum to find" },
   ],
-  "bfs-grid": [],
-  "dfs-grid": [],
+  "bfs-grid": [
+    { key: "rows", label: "Rows", default: 5, help: "Grid height (2-9)" },
+    { key: "cols", label: "Cols", default: 5, help: "Grid width (2-9)" },
+    { key: "seed", label: "Seed", default: 1, help: "Wall layout seed" },
+  ],
+  "dfs-grid": [
+    { key: "rows", label: "Rows", default: 5, help: "Grid height (2-9)" },
+    { key: "cols", label: "Cols", default: 5, help: "Grid width (2-9)" },
+    { key: "seed", label: "Seed", default: 1, help: "Wall layout seed" },
+  ],
 };

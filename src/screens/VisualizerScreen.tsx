@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import {
   Box,
   Braces,
@@ -478,15 +478,23 @@ export function VisualizerScreen({ onNavigate }: { onNavigate: (route: Route) =>
           {step && trace ? (
             <>
               <div className="viewport-frame relative min-h-[330px] flex-1 overflow-hidden rounded-lg border border-ink-700/60">
-                {viewMode === "galaxy" ? (
-                  <CodeGalaxy3D
-                    code={code}
-                    activeLine={step.line}
-                    onPick={(line) => playback.scrub(Math.max(0, line - 1))}
-                  />
-                ) : (
-                  <ExecutionStage3D step={step} />
-                )}
+                <Suspense
+                  fallback={
+                    <div className="flex h-full min-h-[330px] items-center justify-center bg-ink-950/80 text-xs font-medium text-ink-400">
+                      Forging 3D stage...
+                    </div>
+                  }
+                >
+                  {viewMode === "galaxy" ? (
+                    <CodeGalaxy3D
+                      code={code}
+                      activeLine={step.line}
+                      onPick={(line) => playback.scrub(Math.max(0, line - 1))}
+                    />
+                  ) : (
+                    <ExecutionStage3D step={step} />
+                  )}
+                </Suspense>
                 {!useSpecializedStage && (
                   <>
                     <div className="pointer-events-none absolute left-3 top-3 rounded-lg border border-ink-700/80 bg-ink-950/80 px-3 py-2 shadow-xl backdrop-blur-md">

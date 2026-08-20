@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { detectAndGenerate, detectLanguage, extractNumberArray } from "./detect";
+import { detectAndGenerate, detectLanguage, extractNumberArray, normalizeLanguageHint } from "./detect";
 import { traceIsValid } from "./validateTrace";
 
 describe("detectLanguage", () => {
@@ -15,6 +15,13 @@ describe("detectLanguage", () => {
     expect(detectLanguage("package main\nfunc main() { fmt.Println(1) }")).toBe("go");
     expect(detectLanguage("fn main() { let mut total = 0; println!(\"{}\", total); }")).toBe("rust");
     expect(detectLanguage("public class Main { public static void main(String[] a) {} }")).toBe("java");
+  });
+
+  it("normalizes user-facing language choices", () => {
+    expect(normalizeLanguageHint("Auto")).toBeUndefined();
+    expect(normalizeLanguageHint("JS")).toBe("javascript");
+    expect(normalizeLanguageHint("cpp")).toBe("c++");
+    expect(normalizeLanguageHint("CSharp")).toBe("c#");
   });
 });
 
@@ -70,6 +77,38 @@ describe("detectAndGenerate — recognized patterns", () => {
     expect(res.kind).toBe("bubble-sort");
     const last = res.trace?.steps[res.trace.steps.length - 1];
     expect(last?.event).toBe("program_end");
+  });
+
+  it("detects selection sort and keeps it off the bubble-specific path", () => {
+    const res = detectAndGenerate(
+      "arr = [6, 3, 8, 2, 9]\nn = len(arr)\nfor i in range(n - 1):\n    min_idx = i\n    for j in range(i + 1, n):\n        if arr[j] < arr[min_idx]:\n            min_idx = j\n    arr[i], arr[min_idx] = arr[min_idx], arr[i]\nprint(arr)",
+    );
+    expect(res.kind).toBe("selection-sort");
+    expect(res.trace).toBeDefined();
+    expect(traceIsValid(res.trace!)).toBe(true);
+    expect(res.trace!.steps[0].variables.algorithm).toBe("selection-sort");
+  });
+
+  it("detects insertion sort", () => {
+    const res = detectAndGenerate(
+      "arr = [5, 2, 8, 1]\nn = len(arr)\nfor i in range(1, n):\n    key = arr[i]\n    j = i\n    while j > 0 and arr[j - 1] > arr[j]:\n        arr[j], arr[j - 1] = arr[j - 1], arr[j]\n        j -= 1\nprint(arr)",
+    );
+    expect(res.kind).toBe("insertion-sort");
+    expect(res.trace).toBeDefined();
+    expect(traceIsValid(res.trace!)).toBe(true);
+  });
+
+  it("honors a user-selected language while keeping detected language visible", () => {
+    const res = detectAndGenerate(
+      "arr = [1, 2, 3]\ntotal = 0\nfor i in range(len(arr)):\n    total = total + arr[i]\nprint(total)",
+      { languageHint: "c++" },
+    );
+    expect(res.kind).toBe("sum-array");
+    expect(res.language).toBe("c++");
+    expect(res.detectedLanguage).toBe("python");
+    expect(res.requestedLanguage).toBe("c++");
+    expect(res.trace?.language).toBe("c++");
+    expect(res.validation?.errors).toEqual([]);
   });
 
   it("detects max of array in javascript", () => {

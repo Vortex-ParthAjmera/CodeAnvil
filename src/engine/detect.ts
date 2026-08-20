@@ -9,7 +9,7 @@
 
 import type { TraceDocument } from "../types/trace";
 import { arrayMemory, arrayVisual, buildRecursionTrace, buildSortTrace, TraceBuilder } from "../data/traces/builders";
-import { binarySearchSteps, bubbleSortSteps } from "./sim";
+import { binarySearchSteps, bubbleSortSteps, insertionSortSteps, selectionSortSteps } from "./sim";
 import { buildStructuralStoryboard } from "./storyboard";
 import { validateTrace } from "./validateTrace";
 
@@ -21,6 +21,8 @@ export type DetectionKind =
   | "fibonacci-recursion"
   | "binary-search"
   | "bubble-sort"
+  | "selection-sort"
+  | "insertion-sort"
   | "two-sum"
   | "script";
 
@@ -31,6 +33,21 @@ export interface DetectionResult {
   trace?: TraceDocument;
   note: string;
   matched: string[];
+  detectedLanguage?: string;
+  requestedLanguage?: string;
+  validation?: {
+    errors: string[];
+    warnings: string[];
+  };
+}
+
+export interface DetectionOptions {
+  /**
+   * "auto" keeps static detection. Any concrete language label is a user hint:
+   * the visualizer still pattern-matches safely, but reports the trace under
+   * the language the user selected.
+   */
+  languageHint?: string;
 }
 
 const LANGUAGE_SIGNATURES: Array<[string, RegExp]> = [
@@ -58,6 +75,49 @@ export function detectLanguage(code: string): string {
     if (signature.test(trimmed)) return language;
   }
   return "unknown";
+}
+
+export function normalizeLanguageHint(language?: string): string | undefined {
+  const raw = language?.trim().toLowerCase();
+  if (!raw || raw === "auto" || raw === "auto / unknown") return undefined;
+  const aliases: Record<string, string> = {
+    js: "javascript",
+    jsx: "javascript",
+    ts: "typescript",
+    tsx: "typescript",
+    py: "python",
+    cpp: "c++",
+    "c-plus-plus": "c++",
+    csharp: "c#",
+    cs: "c#",
+    golang: "go",
+    rs: "rust",
+    story: "story-script",
+    script: "story-script",
+  };
+  return aliases[raw] ?? raw;
+}
+
+function resolveLanguage(code: string, options?: DetectionOptions) {
+  const detectedLanguage = detectLanguage(code);
+  const requestedLanguage = normalizeLanguageHint(options?.languageHint);
+  return {
+    detectedLanguage,
+    requestedLanguage,
+    language: requestedLanguage ?? detectedLanguage,
+  };
+}
+
+function validationSummary(trace: TraceDocument) {
+  const issues = validateTrace(trace);
+  return {
+    errors: issues.filter((issue) => issue.level === "error").map((issue) => issue.message),
+    warnings: issues.filter((issue) => issue.level === "warning").map((issue) => issue.message),
+  };
+}
+
+function traceWithLanguage(trace: TraceDocument, language: string): TraceDocument {
+  return trace.language === language ? trace : { ...trace, language };
 }
 
 /** Extracts the first array literal of numbers, e.g. `arr = [3, 8, 2, 9, 5]`. */
@@ -139,6 +199,17 @@ const SIG = {
     (/for\s+j\s+in\s+range\s*\(\s*(n|arr\.length)\s*-\s*1\s*-\s*i\s*\)/.test(code) ||
       /for\s*\(.*j.*<\s*(n|arr\.length)\s*-\s*1\s*-\s*i/.test(code)) &&
     /arr\s*\[\s*j\s*\]\s*>\s*arr\s*\[\s*j\s*\+\s*1\s*\]/.test(code),
+
+  selectionSort: (code: string) =>
+    /\b(min_idx|minIndex|min_index|minimum)\b/.test(code) &&
+    /arr\s*\[\s*j\s*\]\s*<\s*arr\s*\[\s*(min_idx|minIndex|min_index|minimum)\s*\]/.test(code) &&
+    /arr\s*\[\s*i\s*\][\s\S]*arr\s*\[\s*(min_idx|minIndex|min_index|minimum)\s*\]/.test(code),
+
+  insertionSort: (code: string) =>
+    (/\binsertion\s*sort\b/i.test(code) ||
+      (/\b(key|current)\b/.test(code) && /while\b[^\n]*(j|i)\s*>\s*0/.test(code))) &&
+    (/arr\s*\[\s*j\s*-\s*1\s*\]\s*>\s*(key|arr\s*\[\s*j\s*\])/.test(code) ||
+      /arr\s*\[\s*j\s*\]\s*=\s*arr\s*\[\s*j\s*-\s*1\s*\]/.test(code)),
 
   /** Two Sum with a hash map: `complement in seen`, `map.has(complement)`, etc. */
   twoSumHash: (code: string) => {
@@ -402,6 +473,16 @@ function searchTrace(values: number[], target: number, code: string): TraceDocum
   return b.build();
 }
 
+function tagAlgorithm(trace: TraceDocument, algorithm: string): TraceDocument {
+  return {
+    ...trace,
+    steps: trace.steps.map((step) => ({
+      ...step,
+      variables: { ...step.variables, algorithm },
+    })),
+  };
+}
+
 function bubbleTrace(values: number[], code: string): TraceDocument {
   return buildSortTrace(
     {
@@ -414,6 +495,56 @@ function bubbleTrace(values: number[], code: string): TraceDocument {
       lines: { setup: 1, compare: 5, swap: 6, settled: 4, done: 7 },
     },
     bubbleSortSteps(values),
+  );
+}
+
+function selectionTrace(values: number[], code: string): TraceDocument {
+  const done = lastLineOf(code, /(print\s*\(|console\.(log|print)|println\s*\()/i) ?? code.split("\n").length;
+  return tagAlgorithm(
+    buildSortTrace(
+      {
+        title: "Selection Sort (generated)",
+        code,
+        topic: "sorting",
+        difficulty: "intermediate",
+        language: detectLanguage(code),
+        durationSeconds: 120,
+        lines: {
+          setup: lineOf(code, /\[[\d\s,.\-]+\]/, 1),
+          compare: lineOf(code, /arr\s*\[\s*j\s*\]\s*<\s*arr\s*\[\s*(min_idx|minIndex|min_index|minimum)\s*\]/, 6),
+          swap: lineOf(code, /arr\s*\[\s*i\s*\][\s\S]*arr\s*\[\s*(min_idx|minIndex|min_index|minimum)\s*\]/, 8),
+          settled: lineOf(code, /\b(min_idx|minIndex|min_index|minimum)\b/, 4),
+          done,
+        },
+      },
+      selectionSortSteps(values),
+    ),
+    "selection-sort",
+  );
+}
+
+function insertionTrace(values: number[], code: string): TraceDocument {
+  const done = lastLineOf(code, /(print\s*\(|console\.(log|print)|println\s*\()/i) ?? code.split("\n").length;
+  return tagAlgorithm(
+    buildSortTrace(
+      {
+        title: "Insertion Sort (generated)",
+        code,
+        topic: "sorting",
+        difficulty: "intermediate",
+        language: detectLanguage(code),
+        durationSeconds: 120,
+        lines: {
+          setup: lineOf(code, /\[[\d\s,.\-]+\]/, 1),
+          compare: lineOf(code, /while\b|arr\s*\[\s*j\s*-\s*1\s*\]\s*>/, 5),
+          swap: lineOf(code, /arr\s*\[\s*j\s*\][\s\S]*arr\s*\[\s*j\s*-\s*1\s*\]/, 6),
+          settled: lineOf(code, /\b(key|current)\b/, 4),
+          done,
+        },
+      },
+      insertionSortSteps(values),
+    ),
+    "insertion-sort",
   );
 }
 
@@ -631,6 +762,8 @@ const KIND_INFO: Record<DetectionKind, { title: string; confidence: number; note
   "fibonacci-recursion": { title: "Fibonacci (recursion)", confidence: 0.95, note: "Recursive fib(n − 1) + fib(n − 2)." },
   "binary-search": { title: "Binary Search", confidence: 0.85, note: "while low <= high with a mid probe." },
   "bubble-sort": { title: "Bubble Sort", confidence: 0.85, note: "Nested loop swapping adjacent out-of-order pairs." },
+  "selection-sort": { title: "Selection Sort", confidence: 0.82, note: "Find the minimum in the unsorted suffix and place it at the front." },
+  "insertion-sort": { title: "Insertion Sort", confidence: 0.82, note: "Grow a sorted prefix by inserting each new key into place." },
   "two-sum": {
     title: "Two Sum (Hash Map)",
     confidence: 0.9,
@@ -639,18 +772,21 @@ const KIND_INFO: Record<DetectionKind, { title: string; confidence: number; note
   script: { title: "Story Script", confidence: 1, note: "Declarative commands turned into a trace." },
 };
 
-export function detectAndGenerate(code: string): DetectionResult {
+export function detectAndGenerate(code: string, options?: DetectionOptions): DetectionResult {
   const trimmed = code.trim();
+  const { language, detectedLanguage, requestedLanguage } = resolveLanguage(trimmed, options);
   if (trimmed.length < 10) {
     return {
       kind: "storyboard",
       confidence: 0,
-      language: detectLanguage(trimmed),
+      language,
       note: "Paste a small program to see its execution visualized.",
       matched: [],
+      detectedLanguage,
+      requestedLanguage,
+      validation: { errors: [], warnings: [] },
     };
   }
-  const language = detectLanguage(trimmed);
   const values = extractNumberArray(trimmed);
   const sourceLines = trimmed.split("\n").length;
 
@@ -666,6 +802,8 @@ export function detectAndGenerate(code: string): DetectionResult {
   add("max-array", SIG.maxArray(trimmed));
   add("binary-search", SIG.binarySearch(trimmed));
   add("bubble-sort", SIG.bubbleSort(trimmed));
+  add("selection-sort", SIG.selectionSort(trimmed));
+  add("insertion-sort", SIG.insertionSort(trimmed));
   add("two-sum", SIG.twoSumHash(trimmed));
 
   // Prefer the most specific match first (recursion > hash map > sort > search > loop).
@@ -674,6 +812,8 @@ export function detectAndGenerate(code: string): DetectionResult {
     "factorial-recursion",
     "two-sum",
     "bubble-sort",
+    "selection-sort",
+    "insertion-sort",
     "binary-search",
     "factorial-loop",
     "sum-array",
@@ -755,13 +895,17 @@ export function detectAndGenerate(code: string): DetectionResult {
           extractTarget(trimmed) ??
           (values && values.length >= 2 ? values[0] + values[1] : 9);
         trace = twoSumTrace(values ?? [2, 7, 11, 15], target, trimmed);
+      } else if (kind === "selection-sort") {
+        trace = selectionTrace(values ?? [6, 3, 8, 2, 9], trimmed);
+      } else if (kind === "insertion-sort") {
+        trace = insertionTrace(values ?? [5, 2, 8, 1], trimmed);
       } else {
         trace = bubbleTrace(values ?? [5, 2, 8, 1], trimmed);
       }
-      const validatedTrace = clampLines(trace, sourceLines);
-      const blockingIssues = validateTrace(validatedTrace).filter((issue) => issue.level === "error");
-      if (blockingIssues.length > 0) {
-        throw new Error(blockingIssues.map((issue) => issue.message).join("; "));
+      const validatedTrace = clampLines(traceWithLanguage(trace, language), sourceLines);
+      const validation = validationSummary(validatedTrace);
+      if (validation.errors.length > 0) {
+        throw new Error(validation.errors.join("; "));
       }
       return {
         kind,
@@ -770,6 +914,9 @@ export function detectAndGenerate(code: string): DetectionResult {
         trace: validatedTrace,
         note: info.note,
         matched: matches,
+        detectedLanguage,
+        requestedLanguage,
+        validation,
       };
     } catch {
       // Fall through to storyboard if a generator fails.
@@ -778,6 +925,7 @@ export function detectAndGenerate(code: string): DetectionResult {
 
   // Unknown code: structural storyboard — construct tour, no execution.
   const { trace, summary } = buildStructuralStoryboard(trimmed, language);
+  const validation = validationSummary(trace);
 
   const interactiveNote = summary.interactive
     ? " This program is interactive — it pauses for user input — so playback is a structural walkthrough only, nothing executes."
@@ -793,5 +941,8 @@ export function detectAndGenerate(code: string): DetectionResult {
     trace,
     note: `No known pattern matched. CodeAnvil narrates the structure — functions, loops, branches, and I/O — line by line.${interactiveNote}${nondetNote}`,
     matched: matches,
+    detectedLanguage,
+    requestedLanguage,
+    validation,
   };
 }

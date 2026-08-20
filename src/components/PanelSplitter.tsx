@@ -53,11 +53,16 @@ export function PanelSplitter({
         : workspace.getBoundingClientRect().height;
     const pxPerUnit = workspaceSize / 14;
     const start = dir === "x" ? e.clientX : e.clientY;
-    let gA = Number.parseFloat(getComputedStyle(elA).flexGrow) || 5;
-    let gB = Number.parseFloat(getComputedStyle(elB).flexGrow) || 5;
+    const gA = Number.parseFloat(getComputedStyle(elA).flexGrow) || 5;
+    const gB = Number.parseFloat(getComputedStyle(elB).flexGrow) || 5;
+    const minGrow = 2;
+    const maxGrow = 9;
 
     const onMove = (ev: PointerEvent) => {
-      const delta = ((dir === "x" ? ev.clientX : ev.clientY) - start) / pxPerUnit;
+      const rawDelta = ((dir === "x" ? ev.clientX : ev.clientY) - start) / pxPerUnit;
+      const minDelta = Math.max(minGrow - gA, gB - maxGrow);
+      const maxDelta = Math.min(maxGrow - gA, gB - minGrow);
+      const delta = Math.min(Math.max(rawDelta, minDelta), maxDelta);
       elA.style.flexGrow = String(gA + delta);
       elB.style.flexGrow = String(gB - delta);
     };

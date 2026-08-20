@@ -2,8 +2,8 @@
 
 /* ------------------------------------------------------------------ */
 /* CodeAnvil brand tokens (docs/28-brand-guide.md)                     */
-/* Dark workshop, navy-black surfaces, WARM AMBER accent (the anvil's   */
-/* molten glow, per the logo), electric blue secondary — no violet.     */
+/* Dark workshop, navy-black surfaces, cyan/blue logo glow, restrained  */
+/* purple edge-light, and warm orange forge accents.                    */
 /* ------------------------------------------------------------------ */
 @theme {
   /* --- Dark mode (default) --- */
@@ -222,7 +222,9 @@ body {
   );
   mix-blend-mode: screen;
   transition: transform 0.12s ease-out;
-}/* Blinking caret used by the live commentary typewriter */
+}
+
+/* Blinking caret used by the live commentary typewriter */
 @keyframes caret-blink {
   0%, 45% { opacity: 1; }
   50%, 100% { opacity: 0; }

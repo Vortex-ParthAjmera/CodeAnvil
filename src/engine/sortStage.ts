@@ -219,8 +219,10 @@ export function isBubbleSortTraceStep(step: TraceStep): boolean {
   const hasAdjacentMotion = model.activePair ? Math.abs(model.activePair[0] - model.activePair[1]) === 1 : false;
   const actionTypes = new Set((step.actions ?? []).map((action) => action.type));
   const actionPhases = new Set((step.actions ?? []).map((action) => textValue(action.phase)).filter(Boolean));
+  const algorithm = textValue(step.variables.algorithm);
   const description = step.description.toLowerCase();
 
+  if (algorithm && algorithm !== "bubble-sort") return false;
   if ([...actionPhases].some((phase) => phase?.startsWith("quick_") || phase?.startsWith("heap_"))) return false;
 
   return (

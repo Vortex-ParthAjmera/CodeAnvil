@@ -21,7 +21,7 @@ const EASE_OUT = [0.23, 1, 0.32, 1] as const;
 
 function cellRoleClass(role: string | undefined): string {
   return cn(
-    "flex h-14 w-14 items-center justify-center rounded-lg border-2 font-mono text-lg transition-all",
+    "flex h-14 w-14 items-center justify-center rounded-lg border-2 font-mono text-lg transition-[transform,background-color,border-color,box-shadow,color] duration-200 ease-out",
     role === "mid" &&
       "border-ember-400 bg-ember-500/20 text-ember-300 shadow-[0_0_18px_rgba(245,158,11,0.4)] scale-105",
     role === "swap" &&

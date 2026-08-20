@@ -20,8 +20,9 @@ import {
   Sparkles,
   Upload,
 } from "lucide-react";
-import { detectAndGenerate, type DetectionResult } from "../engine/detect";
+import { detectAndGenerate, normalizeLanguageHint, type DetectionResult } from "../engine/detect";
 import { storyScriptTrace, DEFAULT_STORY_SCRIPT } from "../engine/storyscript";
+import { validateTrace } from "../engine/validateTrace";
 import { useStepPlayback } from "../engine/useStepPlayback";
 import { isFactorialRecursionStep } from "../engine/recursionStage";
 import { isGridSearchTraceStep } from "../engine/gridStage";
@@ -123,7 +124,30 @@ int main() {
   },
 ];
 
-const LANGUAGE_LABELS = ["Python", "JavaScript", "TypeScript", "C", "C++", "Java", "C#", "Go", "Rust", "Kotlin", "Swift", "Ruby", "PHP", "Dart"];
+const LANGUAGE_CHOICES = [
+  { value: "auto", label: "Auto" },
+  { value: "python", label: "Python" },
+  { value: "javascript", label: "JavaScript" },
+  { value: "typescript", label: "TypeScript" },
+  { value: "c", label: "C" },
+  { value: "c++", label: "C++" },
+  { value: "java", label: "Java" },
+  { value: "c#", label: "C#" },
+  { value: "go", label: "Go" },
+  { value: "rust", label: "Rust" },
+  { value: "kotlin", label: "Kotlin" },
+  { value: "swift", label: "Swift" },
+  { value: "ruby", label: "Ruby" },
+  { value: "php", label: "PHP" },
+  { value: "dart", label: "Dart" },
+  { value: "story-script", label: "Story Script" },
+] as const;
+
+type LanguageChoice = (typeof LANGUAGE_CHOICES)[number]["value"];
+
+const LANGUAGE_LABELS = LANGUAGE_CHOICES.filter((item) => item.value !== "auto").map((item) => item.label);
+const VISUALIZER_CODE_KEY = "codeanvil.visualizer-code.v1";
+const VISUALIZER_LANGUAGE_KEY = "codeanvil.visualizer-language.v1";
 
 function getInitialCode() {
   const draft = sessionStorage.getItem(VISUALIZER_DRAFT_KEY);
@@ -131,7 +155,42 @@ function getInitialCode() {
     sessionStorage.removeItem(VISUALIZER_DRAFT_KEY);
     return draft;
   }
-  return SAMPLES[0].code;
+  return localStorage.getItem(VISUALIZER_CODE_KEY) ?? SAMPLES[0].code;
+}
+
+function getInitialLanguageChoice(): LanguageChoice {
+  const stored = normalizeLanguageHint(localStorage.getItem(VISUALIZER_LANGUAGE_KEY) ?? undefined);
+  return LANGUAGE_CHOICES.some((item) => item.value === stored) ? (stored as LanguageChoice) : "auto";
+}
+
+function choiceForSample(sample: (typeof SAMPLES)[number]): LanguageChoice {
+  const normalized = normalizeLanguageHint(sample.language);
+  return LANGUAGE_CHOICES.some((item) => item.value === normalized) ? (normalized as LanguageChoice) : "auto";
+}
+
+function analyzeSource(source: string, languageChoice: LanguageChoice): DetectionResult {
+  const shouldTryStoryScript = languageChoice === "auto" || languageChoice === "story-script";
+  if (shouldTryStoryScript) {
+    const script = storyScriptTrace(source, "Story Script (generated)");
+    if (script.trace && !script.error && script.trace.steps.length > 0) {
+      const issues = validateTrace(script.trace);
+      return {
+        kind: "script",
+        confidence: 1,
+        language: "story-script",
+        detectedLanguage: "story-script",
+        requestedLanguage: languageChoice === "story-script" ? "story-script" : undefined,
+        trace: script.trace,
+        note: "Story Script — every command became a step. Nothing executed.",
+        matched: ["story-script"],
+        validation: {
+          errors: issues.filter((issue) => issue.level === "error").map((issue) => issue.message),
+          warnings: issues.filter((issue) => issue.level === "warning").map((issue) => issue.message),
+        },
+      };
+    }
+  }
+  return detectAndGenerate(source, { languageHint: languageChoice });
 }
 
 type FocusPanel = "all" | "source" | "stage";
@@ -178,11 +237,17 @@ function ConfidenceMeter({ value }: { value: number }) {
 
 export function VisualizerScreen({ onNavigate }: { onNavigate: (route: Route) => void }) {
   const initialCode = useMemo(getInitialCode, []);
+  const initialLanguageChoice = useMemo(getInitialLanguageChoice, []);
+  const initialResult = useMemo(
+    () => analyzeSource(initialCode, initialLanguageChoice),
+    [initialCode, initialLanguageChoice],
+  );
   const [code, setCode] = useState(initialCode);
-  const [result, setResult] = useState<DetectionResult>(() => detectAndGenerate(initialCode));
+  const [languageChoice, setLanguageChoice] = useState<LanguageChoice>(initialLanguageChoice);
+  const [result, setResult] = useState<DetectionResult>(initialResult);
   const [runToken, setRunToken] = useState(0);
   const [viewMode, setViewMode] = useState<"stage" | "galaxy">(
-    () => (detectAndGenerate(initialCode).kind === "storyboard" ? "galaxy" : "stage"),
+    () => (initialResult.kind === "storyboard" ? "galaxy" : "stage"),
   );
   const [focusedPanel, setFocusedPanel] = useState<FocusPanel>("all");
   const fileInput = useRef<HTMLInputElement>(null);
@@ -201,6 +266,15 @@ export function VisualizerScreen({ onNavigate }: { onNavigate: (route: Route) =>
     : false;
 
   useEffect(() => {
+    try {
+      localStorage.setItem(VISUALIZER_CODE_KEY, code);
+      localStorage.setItem(VISUALIZER_LANGUAGE_KEY, languageChoice);
+    } catch {
+      /* local resume is best-effort */
+    }
+  }, [code, languageChoice]);
+
+  useEffect(() => {
     if (!runToken || !trace?.steps.length) return;
     playback.replay();
     // replay intentionally starts only when a fresh analysis is produced.
@@ -215,28 +289,15 @@ export function VisualizerScreen({ onNavigate }: { onNavigate: (route: Route) =>
 
   function run() {
     if (code.trim().length > MAX_CODE_LENGTH) return;
-    // Story Script: declarative commands describe state directly — no
-    // execution, no pattern matching needed.
-    const script = storyScriptTrace(code, "Story Script (generated)");
-    if (script.trace && !script.error) {
-      applyResult({
-        kind: "script",
-        confidence: 1,
-        language: "story-script",
-        trace: script.trace,
-        note: "Story Script — every command became a step. Nothing executed.",
-        matched: ["story-script"],
-      });
-      setRunToken((token) => token + 1);
-      return;
-    }
-    applyResult(detectAndGenerate(code));
+    applyResult(analyzeSource(code, languageChoice));
     setRunToken((token) => token + 1);
   }
 
   function loadSample(sample: (typeof SAMPLES)[number]) {
+    const nextLanguage = choiceForSample(sample);
     setCode(sample.code);
-    applyResult(detectAndGenerate(sample.code));
+    setLanguageChoice(nextLanguage);
+    applyResult(analyzeSource(sample.code, nextLanguage));
     setRunToken((token) => token + 1);
   }
 
@@ -252,7 +313,7 @@ export function VisualizerScreen({ onNavigate }: { onNavigate: (route: Route) =>
     reader.onload = () => {
       const text = String(reader.result ?? "").slice(0, MAX_CODE_LENGTH);
       setCode(text);
-      applyResult(detectAndGenerate(text));
+      applyResult(analyzeSource(text, languageChoice));
       setRunToken((token) => token + 1);
     };
     reader.readAsText(file);
@@ -260,6 +321,28 @@ export function VisualizerScreen({ onNavigate }: { onNavigate: (route: Route) =>
 
   const tooLong = code.length > MAX_CODE_LENGTH;
   const language = result.language === "unknown" ? "auto / unknown" : result.language;
+  const detectedLanguage =
+    result.detectedLanguage && result.detectedLanguage !== "unknown"
+      ? result.detectedLanguage
+      : "unknown";
+  const validationErrors = result.validation?.errors ?? [];
+  const validationWarnings = result.validation?.warnings ?? [];
+  const validationLabel =
+    validationErrors.length > 0
+      ? "schema blocked"
+      : validationWarnings.length > 0
+        ? "schema warnings"
+        : trace
+          ? "schema valid"
+          : "waiting";
+  const validationTone =
+    validationErrors.length > 0
+      ? "red"
+      : validationWarnings.length > 0
+        ? "amber"
+        : trace
+          ? "green"
+          : "neutral";
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-y-auto lg:overflow-hidden">
@@ -305,6 +388,22 @@ export function VisualizerScreen({ onNavigate }: { onNavigate: (route: Route) =>
                 <option value="" disabled>More</option>{SAMPLES.slice(4).map((sample) => <option key={sample.label}>{sample.label}</option>)}
               </select><ChevronDown size={11} className="pointer-events-none absolute right-2 top-2 text-ink-500" />
             </div>
+            <div className="relative">
+              <select
+                aria-label="Code language"
+                value={languageChoice}
+                onChange={(event) => {
+                  const next = event.target.value as LanguageChoice;
+                  setLanguageChoice(next);
+                  applyResult(analyzeSource(code, next));
+                  setRunToken((token) => token + 1);
+                }}
+                className="h-7 appearance-none rounded-md border border-ink-700 bg-ink-950 pl-2 pr-7 text-[10px] text-ink-300 outline-none hover:border-ink-600"
+              >
+                {LANGUAGE_CHOICES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+              </select>
+              <ChevronDown size={11} className="pointer-events-none absolute right-2 top-2 text-ink-500" />
+            </div>
             <div className="ml-auto">
               <FocusButton
                 active={focusedPanel === "source"}
@@ -325,12 +424,16 @@ export function VisualizerScreen({ onNavigate }: { onNavigate: (route: Route) =>
             <div className="mb-3 flex items-center justify-between gap-3">
               <div className="flex items-center gap-2">
                 <Badge tone="blue">{language}</Badge>
+                <Badge tone={validationTone}>{validationLabel}</Badge>
+                {result.requestedLanguage && result.detectedLanguage && result.requestedLanguage !== result.detectedLanguage && (
+                  <span className="font-mono text-[9px] text-ink-500">detected {detectedLanguage}</span>
+                )}
                 <span className={cn("font-mono text-[9px]", tooLong ? "text-rose-300" : "text-ink-600")}>{code.length.toLocaleString()} / {MAX_CODE_LENGTH.toLocaleString()}</span>
               </div>
               <div className="flex items-center gap-1">
                 <input ref={fileInput} type="file" accept=".py,.js,.ts,.tsx,.jsx,.java,.c,.cpp,.cc,.cs,.go,.rs,.rb,.php,.kt,.swift,.dart,.txt" className="hidden" onChange={(event) => loadFile(event.target.files?.[0])} />
                 <Button variant="ghost" className="h-8 px-2 text-xs" onClick={() => fileInput.current?.click()}><Upload size={13} /> Import</Button>
-                <Button variant="ghost" className="h-8 px-2 text-xs" onClick={() => { setCode(""); setResult(detectAndGenerate("")); }}><CircleStop size={13} /> Clear</Button>
+                <Button variant="ghost" className="h-8 px-2 text-xs" onClick={() => { setCode(""); setResult(detectAndGenerate("", { languageHint: languageChoice })); }}><CircleStop size={13} /> Clear</Button>
               </div>
             </div>
             <Button variant="primary" disabled={tooLong || code.trim().length < 10} className="btn-shine h-10 w-full" onClick={run}><FileSearch size={15} /> Forge 3D trace <span className="ml-auto font-mono text-[9px] opacity-60">Ctrl ↵</span></Button>
@@ -404,6 +507,17 @@ export function VisualizerScreen({ onNavigate }: { onNavigate: (route: Route) =>
                   <div className="min-w-0 flex-1">
                     <p className="text-xs leading-relaxed text-ink-200">{step.description}</p>
                     <p className="mt-1 text-[10px] leading-relaxed text-ink-500">{result.note}</p>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      <Badge tone={result.kind === "storyboard" ? "neutral" : "green"}>{result.kind}</Badge>
+                      <Badge tone={result.matched.length ? "blue" : "neutral"}>{result.matched.length ? result.matched.slice(0, 3).join(" + ") : "no exact pattern"}</Badge>
+                      <Badge tone={validationTone}>{validationLabel}</Badge>
+                    </div>
+                    {validationErrors.length > 0 && (
+                      <p className="mt-1 text-[10px] leading-relaxed text-rose-300">{validationErrors[0]}</p>
+                    )}
+                    {validationErrors.length === 0 && validationWarnings.length > 0 && (
+                      <p className="mt-1 text-[10px] leading-relaxed text-ember-300">{validationWarnings[0]}</p>
+                    )}
                   </div>
                 </div>
                 <input aria-label="Trace position" type="range" min={0} max={Math.max(trace.steps.length - 1, 0)} value={playback.index} onChange={(event) => playback.scrub(Number(event.target.value))} className="trace-range mb-3 w-full" />

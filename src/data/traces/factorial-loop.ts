@@ -19,7 +19,7 @@ export function buildFactorialLoopTrace(): TraceDocument {
   b.step({
     line: 1,
     event: "program_start",
-    description: "Set n = 5. We want 5! = 5 × 4 × 3 × 2 × 1.",
+    description: "n = 5 — we want to compute 5 factorial (5! = 5 × 4 × 3 × 2 × 1 = 120).",
     variables: { n: 5 },
     changed: { variables: ["n"] },
     actions: [{ type: "assignment", target: "n", value: 5 }],
@@ -28,17 +28,18 @@ export function buildFactorialLoopTrace(): TraceDocument {
   b.step({
     line: 2,
     event: "assignment",
-    description: "Initialize result = 1 (multiplicative identity).",
+    description: "result starts at 1 — the multiplicative identity. We will multiply it by every number from 1 to n.",
     variables: { n: 5, result: 1 },
     changed: { variables: ["result"] },
     actions: [{ type: "assignment", target: "result", value: 1 }],
   });
 
   const iterate = (i: number, before: number, after: number) => {
+    const running = i === 1 ? "1" : Array.from({ length: i }, (_, k) => k + 1).join(" × ");
     b.step({
       line: 3,
       event: "loop_iteration",
-      description: `Next iteration: i = ${i} (range 1..${5}).`,
+      description: `Loop iteration ${i} of 5: i = ${i}. Multiply result (${before}) by ${i}.`,
       variables: { n: 5, result: before, i },
       changed: { variables: ["i"] },
       actions: [{ type: "loop_iteration", i }],
@@ -46,7 +47,7 @@ export function buildFactorialLoopTrace(): TraceDocument {
     b.step({
       line: 4,
       event: "assignment",
-      description: `result = ${before} × ${i} = ${after}`,
+      description: `result = ${before} × ${i} = ${after}. Running product so far: ${running} = ${after}.`,
       variables: { n: 5, result: after, i },
       changed: { variables: ["result"] },
       actions: [{ type: "assignment", target: "result", value: after }],
@@ -62,7 +63,7 @@ export function buildFactorialLoopTrace(): TraceDocument {
   b.step({
     line: 5,
     event: "output_write",
-    description: "print(result) writes 120 to the console.",
+    description: "Loop finished — all 5 iterations done. print(result) outputs 120.",
     variables: { n: 5, result: 120 },
     output: "120",
     changed: { output: true },
@@ -72,7 +73,7 @@ export function buildFactorialLoopTrace(): TraceDocument {
   b.step({
     line: 5,
     event: "program_end",
-    description: "Program finished. 5! = 120.",
+    description: "5! = 1 × 2 × 3 × 4 × 5 = 120. Program complete.",
     variables: { n: 5, result: 120 },
     output: "120",
   });

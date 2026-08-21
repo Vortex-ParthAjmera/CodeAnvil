@@ -165,39 +165,43 @@ export function getBinarySearchSceneModel(step: TraceStep): BinarySearchSceneMod
 
   if (operation === "start") {
     headline = "Binary Search starts";
-    detail = "The array is sorted, so each probe can discard half of the remaining values.";
+    detail = `Searching for ${target} in a sorted array of ${values.length} elements. Each probe eliminates half the remaining candidates.`;
   } else if (operation === "target") {
     headline = target === null ? "Set the target" : `Target = ${target}`;
     detail = "Every mid probe will compare against this target value.";
   } else if (operation === "range") {
-    headline = "Set the search window";
-    detail = `The current possible range is ${rangeLabel}.`;
+    headline = low !== null && high !== null ? `Search window: [${low}..${high}]` : "Set the search window";
+    detail = low !== null && high !== null ? `${high - low + 1} elements remain. mid = (${low} + ${high}) // 2 = ${Math.floor(((low ?? 0) + (high ?? 0)) / 2)}.` : `The current possible range is ${rangeLabel}.`;
   } else if (operation === "check") {
     headline = "Check whether the window is open";
     detail = low !== null && high !== null ? `Continue while low <= high, here ${low} <= ${high}.` : step.description;
   } else if (operation === "probe") {
-    headline = mid !== null ? `Probe mid index ${mid}` : "Probe the middle";
-    detail = mid !== null && midValue !== null ? `mid splits the active window. arr[${mid}] = ${midValue}.` : step.description;
+    headline = mid !== null ? `Probe arr[${mid}] = ${midValue ?? "?"}` : "Probe the middle";
+    detail = mid !== null && midValue !== null && target !== null
+      ? `mid = (${low ?? 0} + ${high ?? values.length - 1}) // 2 = ${mid}. Now compare ${midValue} with target ${target}.`
+      : mid !== null && midValue !== null
+        ? `mid splits the active window. arr[${mid}] = ${midValue}.`
+        : step.description;
   } else if (operation === "compare") {
-    headline = "Compare mid with target";
+    headline = midValue !== null && target !== null ? `${midValue} vs ${target}` : "Compare mid with target";
     detail =
       midValue !== null && target !== null && midValue < target
-        ? `${midValue} is smaller than ${target}, so the target can only be to the right.`
+        ? `${midValue} < ${target} — target must be to the RIGHT. Discard the left half.`
         : midValue !== null && target !== null
-          ? `${midValue} is larger than ${target}, so the target can only be to the left.`
+          ? `${midValue} > ${target} — target must be to the LEFT. Discard the right half.`
           : step.description;
   } else if (operation === "discard-left") {
     headline = "Discard the left half";
-    detail = `Everything before low is too small. New search window: ${rangeLabel}.`;
+    detail = `${midValue ?? "?"} < ${target} — values before index ${low} are too small. New window: ${rangeLabel}.`;
   } else if (operation === "discard-right") {
     headline = "Discard the right half";
-    detail = `Everything after high is too large. New search window: ${rangeLabel}.`;
+    detail = `${midValue ?? "?"} > ${target} — values after index ${high} are too large. New window: ${rangeLabel}.`;
   } else if (operation === "found") {
-    headline = foundIndex !== null && foundIndex >= 0 ? `Found target at index ${foundIndex}` : "Target found";
-    detail = midValue !== null && target !== null ? `The mid value equals the target: ${midValue} = ${target}.` : step.description;
+    headline = foundIndex !== null && foundIndex >= 0 ? `Found ${target} at index ${foundIndex}!` : "Target found";
+    detail = midValue !== null && target !== null ? `arr[${foundIndex ?? mid}] = ${midValue} = ${target}. Search complete in ${probes ?? 0} probes.` : step.description;
   } else if (operation === "not-found") {
-    headline = "Search window collapsed";
-    detail = low !== null && high !== null ? `low moved past high (${low} > ${high}), so the target is not present.` : step.description;
+    headline = "Target not in array";
+    detail = low !== null && high !== null ? `low (${low}) > high (${high}) — range collapsed. ${target} is not present.` : step.description;
   } else if (operation === "complete") {
     headline = "Binary Search complete";
     detail = step.output || step.description;

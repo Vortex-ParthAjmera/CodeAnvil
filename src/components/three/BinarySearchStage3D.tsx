@@ -278,7 +278,7 @@ function Scene({ model, p }: { model: BinarySearchSceneModel; p: Theme3DPalette 
 function Overlay({ model }: { model: BinarySearchSceneModel }) {
   const stats = [
     ["target", model.target ?? "-"],
-    ["mid", model.mid ?? "-"],
+    ["compare", model.compareLabel],
     ["probes", model.probes ?? 0],
   ] as const;
 

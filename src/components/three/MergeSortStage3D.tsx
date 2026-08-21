@@ -380,7 +380,7 @@ function Overlay({ model }: { model: MergeSortSceneModel }) {
               {rangeText(model.range)}
             </span>
           </div>
-          <p className="mt-1 truncate text-[11px] font-black leading-tight text-ink-50 sm:text-xs">{model.headline}</p>
+          <p className="mt-1 text-[11px] font-black leading-tight text-ink-50 sm:text-xs">{model.headline}</p>
         </div>
 
         <div className="flex max-w-[16rem] flex-wrap justify-end gap-1 sm:max-w-[21rem]">
@@ -394,7 +394,7 @@ function Overlay({ model }: { model: MergeSortSceneModel }) {
       </div>
 
       <div className="pointer-events-none absolute inset-x-2 bottom-2 z-10 flex items-end justify-between gap-2 sm:inset-x-3 sm:bottom-3">
-        <p className="hidden max-w-[24rem] rounded-md border border-arc-400/25 bg-ink-950/68 px-2 py-1.5 text-[10px] leading-snug text-ink-300 shadow-lg backdrop-blur-sm sm:block">
+        <p className="max-w-[24rem] rounded-md border border-arc-400/25 bg-ink-950/68 px-2 py-1.5 text-[10px] leading-snug text-ink-300 shadow-lg backdrop-blur-sm">
           {model.detail}
         </p>
         <div className="ml-auto flex flex-wrap justify-end gap-1">

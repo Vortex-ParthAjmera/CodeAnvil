@@ -169,7 +169,7 @@ export function getBubbleSortSceneModel(step: TraceStep): BubbleSortSceneModel |
   else if (sortedIndices.length > 0) operation = "settle";
 
   let headline = step.description;
-  let detail = "The trace advances one recorded operation at a time.";
+  let detail = "Bubble Sort repeatedly walks the array, swapping adjacent elements that are out of order. The largest unsorted value 'bubbles up' to its correct position each pass.";
 
   if (operation === "compare" && activePair) {
     const [left, right] = activePair;
@@ -178,12 +178,12 @@ export function getBubbleSortSceneModel(step: TraceStep): BubbleSortSceneModel |
     headline = `Compare a[${left}] = ${leftValue} with a[${right}] = ${rightValue}`;
     detail =
       leftValue > rightValue
-        ? "Left is larger, so Bubble Sort will swap this pair."
-        : "This pair is already ordered, so the scan moves right.";
+        ? `${leftValue} > ${rightValue} — out of order! Bubble Sort will swap this pair so the larger value moves right.`
+        : `${leftValue} ≤ ${rightValue} — already in order. The scan continues to the next pair.`;
   } else if (operation === "swap" && activePair) {
     const [left, right] = activePair;
     headline = `Swap indices ${left} and ${right}`;
-    detail = "The larger value lands on the right lane, moving toward the sorted tail.";
+    detail = `The larger value ${array.values[right]} moves right, closer to its final sorted position. Each swap pushes the heaviest element one step toward the tail.`;
   } else if (operation === "settle") {
     headline = "Lock the sorted tail";
     detail = step.description;
@@ -315,14 +315,14 @@ export function getQuickSortSceneModel(step: TraceStep): QuickSortSceneModel | n
   else if (actionPhase === "quick_single") operation = "single";
 
   let headline = step.description;
-  let detail = "Quick Sort partitions one active range around a pivot, then recurses into the two remaining ranges.";
+  let detail = "Quick Sort picks a pivot element, then partitions the range so smaller values go left and larger values go right. The pivot lands in its final sorted position.";
 
   if (operation === "start") {
     headline = "Quick Sort starts";
-    detail = "Pick a pivot, scan the range, move smaller values left, then lock the pivot into its final slot.";
+    detail = "Pick a pivot, scan the range, move smaller values left, then lock the pivot into its final slot. Left and right halves are sorted recursively.";
   } else if (operation === "partition") {
     headline = pivotValue !== null ? `Partition [${range[0]}..${range[1]}] around pivot ${pivotValue}` : `Partition [${range[0]}..${range[1]}]`;
-    detail = boundaryIndex !== null ? `Boundary i = ${boundaryIndex}; values before it are smaller than the pivot.` : "The boundary marks where the next smaller value will land.";
+    detail = boundaryIndex !== null ? `Boundary i = ${boundaryIndex}; everything before i is smaller than the pivot ${pivotValue ?? "?"}. The scan starts at j = ${scanIndex ?? range[0]}.` : "The boundary marks where the next smaller value will land.";
   } else if (operation === "compare") {
     const scanValue = scanIndex !== null ? array.values[scanIndex] : null;
     headline = scanValue !== null && pivotValue !== null ? `Compare ${scanValue} with pivot ${pivotValue}` : step.description;
@@ -416,11 +416,11 @@ export function getHeapSortSceneModel(step: TraceStep): HeapSortSceneModel | nul
   else if (actionPhase === "heap_extract") operation = "extract";
 
   let headline = step.description;
-  let detail = "Heap Sort maintains a max-heap in the unsorted prefix and grows a sorted tail on the right.";
+  let detail = "Heap Sort first builds a max-heap (parent ≥ children), then repeatedly extracts the root maximum into the sorted tail.";
 
   if (operation === "start") {
     headline = "Heap Sort starts";
-    detail = "First build a max-heap so the largest unsorted value rises to index 0.";
+    detail = "Phase 1: build a max-heap so the largest value rises to index 0. Phase 2: swap root to the end, shrink the heap, and sift-down to restore the heap rule.";
   } else if (operation === "heapify") {
     headline = parentIndex !== null ? `Heapify subtree at index ${parentIndex}` : "Heapify subtree";
     detail = `Unsorted heap size is ${heapSize}; the sorted tail is outside that boundary.`;
@@ -524,11 +524,11 @@ export function getMergeSortSceneModel(step: TraceStep): MergeSortSceneModel | n
   const fallbackRightValues = rightRange ? array.values.slice(rightRange[0], rightRange[1] + 1) : [];
 
   let headline = step.description;
-  let detail = "Merge Sort keeps each half sorted, then writes the smaller front value into the output window.";
+  let detail = "Merge Sort recursively splits the array into halves until single elements remain, then merges pairs back in sorted order by comparing front elements.";
 
   if (operation === "start") {
     headline = "Merge Sort starts";
-    detail = "First split the array into smaller runs. The merge phase rebuilds each range in sorted order.";
+    detail = "Phase 1: split the array into halves down to single elements. Phase 2: merge pairs back by always taking the smaller front element from each half.";
   } else if (operation === "split") {
     headline = mid !== null ? `Split [${range[0]}..${range[1]}] at mid ${mid}` : `Split [${range[0]}..${range[1]}]`;
     detail = "The active range is divided into a left run and a right run before recursion continues.";

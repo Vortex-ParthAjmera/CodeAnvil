@@ -297,14 +297,17 @@ export function PlaybackLab({
     window.setTimeout(() => setSavedFlash(false), 1600);
   }
 
-  // Live audio + forge heat: a hammer-tap per step (skip the initial render).
+  // Live audio + forge heat: contextual sound per step (skip the initial render).
   const prevStep = useRef<number>(state.stepIndex);
   useEffect(() => {
     if (prevStep.current === state.stepIndex) return;
     prevStep.current = state.stepIndex;
-    sound.step();
+    const ev = step.event;
+    if (ev === "comparison" || ev === "compare") sound.compare();
+    else if (ev === "swap") sound.swap();
+    else sound.step();
     bumpHeat(1);
-  }, [state.stepIndex]);
+  }, [state.stepIndex, step.event]);
 
   // Answer feedback: rising arpeggio on correct, low buzz on wrong.
   const lastAnswerRef = useRef(lastAnswer?.promptId ?? null);

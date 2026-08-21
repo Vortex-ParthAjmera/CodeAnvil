@@ -114,6 +114,21 @@ export const sound = {
   wrong() {
     tone(150, 0.22, { type: "square", gain: 0.04, glide: 105 });
   },
+  /** Comparison — quick high-low blip. */
+  compare() {
+    tone(660, 0.06, { type: "triangle", gain: 0.06 });
+    tone(440, 0.06, { type: "triangle", gain: 0.05, delay: 0.04 });
+  },
+  /** Swap — rising two-note to indicate movement. */
+  swap() {
+    tone(440, 0.08, { type: "sine", gain: 0.07 });
+    tone(660, 0.12, { type: "sine", gain: 0.08, delay: 0.05 });
+  },
+  /** Found / match — bright ascending ping. */
+  found() {
+    tone(523.25, 0.1, { type: "sine", gain: 0.09 });
+    tone(783.99, 0.18, { type: "sine", gain: 0.1, delay: 0.06 });
+  },
   /** Session / duel complete — small fanfare. */
   complete() {
     [523.25, 659.25, 783.99, 1046.5, 1318.51].forEach((f, i) =>

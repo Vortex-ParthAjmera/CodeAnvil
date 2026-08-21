@@ -11,6 +11,7 @@ import {
 import { useTheme3D, type Theme3DPalette } from "../../lib/theme3d";
 import { CanvasSizeSync } from "./CanvasSizeSync";
 import { HudToggle, useStageHud } from "./StageHud";
+import { StageProgressBar } from "./StageProgressBar";
 
 function gapForCount(count: number): number {
   if (count <= 6) return 1.04;
@@ -323,7 +324,7 @@ function Overlay({ model }: { model: BinarySearchSceneModel }) {
   );
 }
 
-export function BinarySearchStage3D({ step }: { step: TraceStep }) {
+export function BinarySearchStage3D({ step, steps }: { step: TraceStep; steps?: TraceStep[] }) {
   const p = useTheme3D();
   const model = useMemo(() => getBinarySearchSceneModel(step), [step]);
   const hud = useStageHud();
@@ -343,6 +344,7 @@ export function BinarySearchStage3D({ step }: { step: TraceStep }) {
       </Canvas>
       <HudToggle open={hud.hudOpen} onToggle={hud.toggleHud} />
       {hud.hudOpen && <Overlay model={model} />}
+      <StageProgressBar step={step} steps={steps} />
     </div>
   );
 }

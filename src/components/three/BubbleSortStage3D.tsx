@@ -7,6 +7,7 @@ import { getBubbleSortSceneModel, type BubbleSortSceneModel } from "../../engine
 import { useTheme3D, type Theme3DPalette } from "../../lib/theme3d";
 import { CanvasSizeSync } from "./CanvasSizeSync";
 import { HudToggle, useStageHud } from "./StageHud";
+import { StageProgressBar } from "./StageProgressBar";
 
 interface SortBar {
   identity: string;
@@ -391,7 +392,7 @@ function Overlay({ model }: { model: BubbleSortSceneModel }) {
   );
 }
 
-export function BubbleSortStage3D({ step }: { step: TraceStep }) {
+export function BubbleSortStage3D({ step, steps }: { step: TraceStep; steps?: TraceStep[] }) {
   const p = useTheme3D();
   const model = getBubbleSortSceneModel(step);
   const hud = useStageHud();
@@ -412,6 +413,7 @@ export function BubbleSortStage3D({ step }: { step: TraceStep }) {
       </Canvas>
       <HudToggle open={hud.hudOpen} onToggle={hud.toggleHud} />
       {hud.hudOpen && <Overlay model={model} />}
+      <StageProgressBar step={step} steps={steps} />
     </div>
   );
 }

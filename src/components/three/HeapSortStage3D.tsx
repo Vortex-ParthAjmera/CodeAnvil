@@ -7,6 +7,7 @@ import { getHeapSortSceneModel, type HeapSortSceneModel } from "../../engine/sor
 import { useTheme3D, type Theme3DPalette } from "../../lib/theme3d";
 import { CanvasSizeSync } from "./CanvasSizeSync";
 import { HudToggle, useStageHud } from "./StageHud";
+import { StageProgressBar } from "./StageProgressBar";
 
 const GAP = 0.96;
 const BAR_WIDTH = 0.58;
@@ -367,7 +368,7 @@ function Overlay({ model }: { model: HeapSortSceneModel }) {
   );
 }
 
-export function HeapSortStage3D({ step }: { step: TraceStep }) {
+export function HeapSortStage3D({ step, steps }: { step: TraceStep; steps?: TraceStep[] }) {
   const p = useTheme3D();
   const model = useMemo(() => getHeapSortSceneModel(step), [step]);
   const hud = useStageHud();
@@ -388,6 +389,7 @@ export function HeapSortStage3D({ step }: { step: TraceStep }) {
       </Canvas>
       <HudToggle open={hud.hudOpen} onToggle={hud.toggleHud} />
       {hud.hudOpen && <Overlay model={model} />}
+      <StageProgressBar step={step} steps={steps} />
     </div>
   );
 }

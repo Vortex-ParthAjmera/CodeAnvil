@@ -11,6 +11,7 @@ import {
 import { useTheme3D, type Theme3DPalette } from "../../lib/theme3d";
 import { CanvasSizeSync } from "./CanvasSizeSync";
 import { HudToggle, useStageHud } from "./StageHud";
+import { StageProgressBar } from "./StageProgressBar";
 
 const FRAME_GAP = 0.76;
 const FRAME_WIDTH = 4.45;
@@ -360,6 +361,7 @@ export function FactorialRecursionStage3D({
       </Canvas>
       <HudToggle open={hud.hudOpen} onToggle={hud.toggleHud} />
       {hud.hudOpen && <Overlay model={model} />}
+      <StageProgressBar step={step} steps={steps} />
     </div>
   );
 }

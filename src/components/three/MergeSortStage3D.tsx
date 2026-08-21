@@ -7,6 +7,7 @@ import { getMergeSortSceneModel, type MergeSortSceneModel } from "../../engine/s
 import { useTheme3D, type Theme3DPalette } from "../../lib/theme3d";
 import { CanvasSizeSync } from "./CanvasSizeSync";
 import { HudToggle, useStageHud } from "./StageHud";
+import { StageProgressBar } from "./StageProgressBar";
 
 const SLOT_GAP = 1.04;
 const TILE_WIDTH = 0.72;
@@ -407,7 +408,7 @@ function Overlay({ model }: { model: MergeSortSceneModel }) {
   );
 }
 
-export function MergeSortStage3D({ step }: { step: TraceStep }) {
+export function MergeSortStage3D({ step, steps }: { step: TraceStep; steps?: TraceStep[] }) {
   const p = useTheme3D();
   const model = useMemo(() => getMergeSortSceneModel(step), [step]);
   const reducedMotion = useReducedMotionPreference();
@@ -429,6 +430,7 @@ export function MergeSortStage3D({ step }: { step: TraceStep }) {
       </Canvas>
       <HudToggle open={hud.hudOpen} onToggle={hud.toggleHud} />
       {hud.hudOpen && <Overlay model={model} />}
+      <StageProgressBar step={step} steps={steps} />
     </div>
   );
 }

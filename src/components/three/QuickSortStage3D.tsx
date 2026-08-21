@@ -7,6 +7,7 @@ import { getQuickSortSceneModel, type QuickSortSceneModel } from "../../engine/s
 import { useTheme3D, type Theme3DPalette } from "../../lib/theme3d";
 import { CanvasSizeSync } from "./CanvasSizeSync";
 import { HudToggle, useStageHud } from "./StageHud";
+import { StageProgressBar } from "./StageProgressBar";
 
 const GAP = 1.1;
 const BAR_WIDTH = 0.68;
@@ -366,7 +367,7 @@ function Overlay({ model }: { model: QuickSortSceneModel }) {
   );
 }
 
-export function QuickSortStage3D({ step }: { step: TraceStep }) {
+export function QuickSortStage3D({ step, steps }: { step: TraceStep; steps?: TraceStep[] }) {
   const p = useTheme3D();
   const model = useMemo(() => getQuickSortSceneModel(step), [step]);
   const hud = useStageHud();
@@ -387,6 +388,7 @@ export function QuickSortStage3D({ step }: { step: TraceStep }) {
       </Canvas>
       <HudToggle open={hud.hudOpen} onToggle={hud.toggleHud} />
       {hud.hudOpen && <Overlay model={model} />}
+      <StageProgressBar step={step} steps={steps} />
     </div>
   );
 }

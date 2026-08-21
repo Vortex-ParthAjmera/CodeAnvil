@@ -32,31 +32,31 @@ export function ExecutionStage3D({ step, steps }: { step: TraceStep; steps?: Tra
   const dispatch = selectRendererForStep(step);
 
   if (dispatch.kind === "array" && isBinarySearchTraceStep(step)) {
-    return <BinarySearchStage3D step={step} />;
+    return <BinarySearchStage3D step={step} steps={steps} />;
   }
 
   if (dispatch.kind === "array" && isQuickSortTraceStep(step)) {
-    return <QuickSortStage3D step={step} />;
+    return <QuickSortStage3D step={step} steps={steps} />;
   }
 
   if (dispatch.kind === "array" && isHeapSortTraceStep(step)) {
-    return <HeapSortStage3D step={step} />;
+    return <HeapSortStage3D step={step} steps={steps} />;
   }
 
   if (dispatch.kind === "array" && isBubbleSortTraceStep(step)) {
-    return <BubbleSortStage3D step={step} />;
+    return <BubbleSortStage3D step={step} steps={steps} />;
   }
 
   if (dispatch.kind === "array" && isMergeSortTraceStep(step)) {
-    return <MergeSortStage3D step={step} />;
+    return <MergeSortStage3D step={step} steps={steps} />;
   }
 
   if (dispatch.kind === "recursion_tree" && isFactorialRecursionStep(step)) {
-    return <FactorialRecursionStage3D step={step} />;
+    return <FactorialRecursionStage3D step={step} steps={steps} />;
   }
 
   if (dispatch.kind === "grid" && isGridSearchTraceStep(step)) {
-    return <GridSearchStage3D step={step} />;
+    return <GridSearchStage3D step={step} steps={steps} />;
   }
 
   if (dispatch.kind === "grid" && visual?.type === "grid") {

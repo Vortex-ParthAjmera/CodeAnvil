@@ -618,7 +618,7 @@ export function palindromeSteps(text: string): PalindromeStep[] {
     l: 0,
     r: Math.max(0, chars.length - 1),
     status: "probe",
-    description: `Pointers start at both ends: l = 0, r = ${chars.length - 1}. Compare pairs while moving inward.`,
+    description: `Two pointers start at both ends of "${text}". If every symmetric pair matches, it is a palindrome.`,
     comparisons,
   });
 
@@ -631,7 +631,7 @@ export function palindromeSteps(text: string): PalindromeStep[] {
       l,
       r,
       status: "probe",
-      description: `Compare '${chars[l]}' (l = ${l}) with '${chars[r]}' (r = ${r}).`,
+      description: `Compare s[${l}] = '${chars[l]}' with s[${r}] = '${chars[r]}'. These are the ${comparisons}${comparisons === 1 ? "st" : comparisons === 2 ? "nd" : "rd"} pair from the outside in.`,
       comparisons,
     });
     if (chars[l] !== chars[r]) {
@@ -640,7 +640,7 @@ export function palindromeSteps(text: string): PalindromeStep[] {
         l,
         r,
         status: "invalid",
-        description: `'${chars[l]}' ≠ '${chars[r]}' — not a palindrome.`,
+        description: `'${chars[l]}' ≠ '${chars[r]}' — mismatch found at position ${l} vs ${r}. "${text}" is NOT a palindrome.`,
         comparisons,
       });
       return steps;
@@ -650,7 +650,7 @@ export function palindromeSteps(text: string): PalindromeStep[] {
       l,
       r,
       status: "ok",
-      description: `'${chars[l]}' == '${chars[r]}' — matched. Move both pointers inward.`,
+      description: `'${chars[l]}' == '${chars[r]}' ✓ — match! Move l right to ${l + 1}, r left to ${r - 1}.`,
       comparisons,
     });
     l++;
@@ -661,7 +661,7 @@ export function palindromeSteps(text: string): PalindromeStep[] {
     l,
     r,
     status: "done",
-    description: `All ${comparisons} pairs matched — "${text}" is a palindrome.`,
+    description: `All ${comparisons} symmetric pairs matched. "${text}" reads the same forwards and backwards — it IS a palindrome.`,
     comparisons,
   });
   return steps;
@@ -693,7 +693,7 @@ export function twoSumSortedSteps(input: number[], target: number): TwoSumStep[]
     sum: a[l] + a[r],
     target,
     status: "probe",
-    description: `Two pointers start at the ends of the sorted list. Target: ${target}.`,
+    description: `Sorted array: [${a.join(", ")}]. Two pointers at the ends; their sum ${a[l]} + ${a[r]} = ${a[l] + a[r]} vs target ${target}.`,
     probes,
   });
 
@@ -707,7 +707,7 @@ export function twoSumSortedSteps(input: number[], target: number): TwoSumStep[]
       sum,
       target,
       status: "probe",
-      description: `a[${l}] + a[${r}] = ${a[l]} + ${a[r]} = ${sum}.`,
+      description: `a[${l}] + a[${r}] = ${a[l]} + ${a[r]} = ${sum}. Is ${sum} ${sum === target ? "=" : sum < target ? "<" : ">"} ${target}?`,
       probes,
     });
     if (sum === target) {
@@ -718,7 +718,7 @@ export function twoSumSortedSteps(input: number[], target: number): TwoSumStep[]
         sum,
         target,
         status: "found",
-        description: `${sum} == ${target} — found! Indices ${l} and ${r} (values ${a[l]} and ${a[r]}).`,
+        description: `${sum} == ${target} ✓ — found the pair! a[${l}] = ${a[l]} and a[${r}] = ${a[r]} sum to ${target}.`,
         probes,
       });
       return steps;
@@ -732,7 +732,7 @@ export function twoSumSortedSteps(input: number[], target: number): TwoSumStep[]
         sum,
         target,
         status: "probe",
-        description: `${sum} < ${target} — move the left pointer right (l = ${l}) to increase the sum.`,
+        description: `${sum} < ${target} — sum too small. Move l right to ${l} (value ${a[l]}) to try a bigger left element.`,
         probes,
       });
     } else {
@@ -744,7 +744,7 @@ export function twoSumSortedSteps(input: number[], target: number): TwoSumStep[]
         sum,
         target,
         status: "probe",
-        description: `${sum} > ${target} — move the right pointer left (r = ${r}) to decrease the sum.`,
+        description: `${sum} > ${target} — sum too large. Move r left to ${r} (value ${a[r]}) to try a smaller right element.`,
         probes,
       });
     }

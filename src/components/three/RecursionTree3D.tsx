@@ -10,9 +10,9 @@ import type {
 import { useTheme3D, type Theme3DPalette } from "../../lib/theme3d";
 import { hue } from "./palette";
 
-const SPACING = 1.85; // world units per leaf slot (increased to prevent text overlap)
-const LEVEL = 1.45; // vertical distance between tree levels (increased for label clearance)
-const Z_SPREAD = 0.85; // sibling separation in depth (increased for less overlap)
+const SPACING = 2.3; // world units per leaf slot (prevent text overlap)
+const LEVEL = 1.7; // vertical distance between tree levels (label clearance)
+const Z_SPREAD = 1.0; // sibling separation in depth
 
 interface Pos {
   x: number;
@@ -207,7 +207,7 @@ function TreeGroup({
             <NodeSphere node={node} active={active} scaleTarget={1} pal={pal} />
             <Text
               position={[0, 0.58, 0]}
-              fontSize={0.2}
+              fontSize={0.17}
               color={returned ? pal.verdant : active ? pal.textStrong : pal.textStrong}
               anchorX="center"
               anchorY="middle"
@@ -305,7 +305,7 @@ export function RecursionTree3D({
     <Canvas
       dpr={[1, 1.75]}
       camera={{
-        position: [0, 1.8, Math.max(7.5, (leafCount * SPACING) / 2 + 4)],
+        position: [0, 1.8, Math.max(8.5, (leafCount * SPACING) / 2 + 4.5)],
         fov: 38,
       }}
       gl={{ antialias: true, alpha: true }}

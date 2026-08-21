@@ -7,8 +7,8 @@ import type {
   TraceStep,
 } from "../types/trace";
 
-const NODE_SPACING_X = 52;
-const LEVEL_HEIGHT = 66;
+const NODE_SPACING_X = 72;
+const LEVEL_HEIGHT = 82;
 const NODE_R = 17;
 const PAD = 28;
 
@@ -115,7 +115,7 @@ function TreeNode({
         x={x}
         y={y + 3.5}
         textAnchor="middle"
-        fontSize="9.5"
+        fontSize="8.5"
         fontFamily="var(--font-mono)"
         fontWeight={active ? 700 : 400}
         fill={

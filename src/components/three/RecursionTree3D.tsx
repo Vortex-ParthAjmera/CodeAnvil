@@ -10,9 +10,9 @@ import type {
 import { useTheme3D, type Theme3DPalette } from "../../lib/theme3d";
 import { hue } from "./palette";
 
-const SPACING = 1.35; // world units per leaf slot
-const LEVEL = 1.25; // vertical distance between tree levels
-const Z_SPREAD = 0.75; // sibling separation in depth
+const SPACING = 1.85; // world units per leaf slot (increased to prevent text overlap)
+const LEVEL = 1.45; // vertical distance between tree levels (increased for label clearance)
+const Z_SPREAD = 0.85; // sibling separation in depth (increased for less overlap)
 
 interface Pos {
   x: number;
@@ -206,27 +206,28 @@ function TreeGroup({
           >
             <NodeSphere node={node} active={active} scaleTarget={1} pal={pal} />
             <Text
-              position={[0, 0.62, 0]}
-              fontSize={0.24}
+              position={[0, 0.58, 0]}
+              fontSize={0.2}
               color={returned ? pal.verdant : active ? pal.textStrong : pal.textStrong}
               anchorX="center"
               anchorY="middle"
+              maxWidth={2.4}
             >
               {node.label}
             </Text>
             {returned && node.returnValue !== undefined && (
               <>
                 <Text
-                  position={[0, -0.78, 0]}
-                  fontSize={0.3}
+                  position={[0, -0.68, 0]}
+                  fontSize={0.24}
                   color={pal.verdant}
                   anchorX="center"
                   anchorY="middle"
                 >
                   ={node.returnValue}
                 </Text>
-                <mesh position={[0, -0.78, 0]}>
-                  <sphereGeometry args={[0.05, 12, 12]} />
+                <mesh position={[0, -0.68, 0]}>
+                  <sphereGeometry args={[0.04, 12, 12]} />
                   <meshStandardMaterial
                     color={pal.verdantDeep}
                     emissive={pal.verdantDeep}
@@ -237,8 +238,8 @@ function TreeGroup({
             )}
             {active && (
               <Text
-                position={[0, 0.95, 0]}
-                fontSize={0.17}
+                position={[0, 0.88, 0]}
+                fontSize={0.14}
                 color={pal.emberBright}
                 anchorX="center"
                 anchorY="middle"
@@ -248,8 +249,8 @@ function TreeGroup({
             )}
             {!active && node.status === "waiting" && (
               <Text
-                position={[0, 0.95, 0]}
-                fontSize={0.13}
+                position={[0, 0.88, 0]}
+                fontSize={0.11}
                 color={pal.textDim}
                 anchorX="center"
                 anchorY="middle"
@@ -304,8 +305,8 @@ export function RecursionTree3D({
     <Canvas
       dpr={[1, 1.75]}
       camera={{
-        position: [0, 1.4, Math.max(6, (leafCount * SPACING) / 2 + 3.5)],
-        fov: 42,
+        position: [0, 1.8, Math.max(7.5, (leafCount * SPACING) / 2 + 4)],
+        fov: 38,
       }}
       gl={{ antialias: true, alpha: true }}
       style={{ background: "transparent" }}

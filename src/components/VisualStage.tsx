@@ -38,16 +38,29 @@ function cellRoleClass(role: string | undefined): string {
   );
 }
 
+/** Detect two-pointer traces by checking for l and r variables. */
+function isTwoPointerStep(step?: TraceStep): boolean {
+  if (!step?.variables) return false;
+  const vars = step.variables;
+  return typeof vars.l === "number" && typeof vars.r === "number";
+}
+
 /** Big array view used when the step highlights array memory (e.g. binary search).
  *
- * Motion model (one idea per step, nothing decorative):
- * - cells glide to new slots via layout animation when the array resizes (merge),
- * - fresh cells pop in / leave with a quick scale-fade (AnimatePresence),
- * - a value that changes pops in place so the eye lands exactly on the write. */
+ * For two-pointer algorithms (palindrome, two-sum), renders animated l/r
+ * pointer arrows below the cells with a sum/comparison chip. */
 function ArrayStage({ item, step }: { item: MemoryItem; step?: TraceStep }) {
   const reduce = useReducedMotion();
+  const vars = step?.variables ?? {};
+  const twoPointer = isTwoPointerStep(step);
+  const lIdx = typeof vars.l === "number" ? (vars.l as number) : -1;
+  const rIdx = typeof vars.r === "number" ? (vars.r as number) : -1;
+  const sumVal = typeof vars.sum === "number" ? (vars.sum as number) : null;
+  const targetVal = typeof vars.target === "number" ? (vars.target as number) : null;
+  const count = item.value.length;
+
   return (
-    <div className="flex h-full flex-col items-center justify-center gap-4 p-4">
+    <div className="flex h-full flex-col items-center justify-center gap-3 p-4">
       {step && (
         <div className="max-w-md rounded-lg border border-ink-700/60 bg-ink-900/80 px-4 py-2.5 text-center shadow-lg backdrop-blur-sm">
           <span className="mr-2 inline-block rounded-full bg-ember-500/15 px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-widest text-ember-300 ring-1 ring-ember-500/30">
@@ -63,61 +76,128 @@ function ArrayStage({ item, step }: { item: MemoryItem; step?: TraceStep }) {
           {item.label}
         </span>
       </div>
-      <div className="flex flex-wrap justify-center gap-2">
-        <AnimatePresence mode="popLayout">
-          {item.value.map((cell, i) => {
-            const hl = item.highlights.find((h) => "index" in h && h.index === i);
-            const role = hl?.role;
-            return (
-              <motion.div
-                key={`cell-${i}`}
-                layout={reduce ? false : "position"}
-                variants={{
-                  hidden: { opacity: 0, scale: 0.7, y: 12 },
-                  show: {
-                    opacity: 1,
-                    scale: 1,
-                    y: 0,
-                    transition: {
-                      type: "spring",
-                      stiffness: 480,
-                      damping: 34,
-                      delay: Math.min(i, 8) * 0.035,
+
+      {/* Two-pointer sum/comparison chip */}
+      {twoPointer && sumVal !== null && targetVal !== null && (
+        <motion.div
+          key={`sum-${sumVal}-${targetVal}-${step?.id}`}
+          initial={reduce ? false : { scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ type: "spring", stiffness: 400, damping: 28 }}
+          className="flex items-center gap-2 rounded-lg border border-arc-400/40 bg-arc-500/10 px-3 py-1.5"
+        >
+          <span className="font-mono text-sm font-bold text-arc-200">
+            {lIdx >= 0 && rIdx >= 0 && item.value[lIdx] !== undefined && item.value[rIdx] !== undefined
+              ? `${item.value[lIdx]} + ${item.value[rIdx]} = ${sumVal}`
+              : `sum = ${sumVal}`}
+          </span>
+          <span className={cn(
+            "font-mono text-xs font-bold",
+            sumVal === targetVal ? "text-verdant-300" : sumVal < targetVal ? "text-arc-300" : "text-ember-300",
+          )}>
+            {sumVal === targetVal ? `= ${targetVal} ✓` : sumVal < targetVal ? `< ${targetVal}` : `> ${targetVal}`}
+          </span>
+        </motion.div>
+      )}
+
+      {/* Array cells */}
+      <div className="relative">
+        <div className="flex flex-wrap justify-center gap-2">
+          <AnimatePresence mode="popLayout">
+            {item.value.map((cell, i) => {
+              const hl = item.highlights.find((h) => "index" in h && h.index === i);
+              const role = hl?.role;
+              const isL = twoPointer && i === lIdx;
+              const isR = twoPointer && i === rIdx;
+              return (
+                <motion.div
+                  key={`cell-${i}`}
+                  layout={reduce ? false : "position"}
+                  variants={{
+                    hidden: { opacity: 0, scale: 0.7, y: 12 },
+                    show: {
+                      opacity: 1,
+                      scale: 1,
+                      y: 0,
+                      transition: {
+                        type: "spring",
+                        stiffness: 480,
+                        damping: 34,
+                        delay: Math.min(i, 8) * 0.035,
+                      },
                     },
-                  },
-                }}
-                initial={reduce ? false : "hidden"}
-                animate="show"
-                exit={
-                  reduce
-                    ? undefined
-                    : { opacity: 0, scale: 0.7, transition: { duration: 0.12 } }
-                }
-                transition={{ type: "spring", stiffness: 380, damping: 34 }}
-                className="flex flex-col items-center"
-              >
-                <div className={cellRoleClass(role)}>
+                  }}
+                  initial={reduce ? false : "hidden"}
+                  animate="show"
+                  exit={
+                    reduce
+                      ? undefined
+                      : { opacity: 0, scale: 0.7, transition: { duration: 0.12 } }
+                  }
+                  transition={{ type: "spring", stiffness: 380, damping: 34 }}
+                  className="flex flex-col items-center"
+                >
+                  <div className={cellRoleClass(role)}>
+                    <motion.span
+                      key={String(cell)}
+                      initial={reduce ? false : { scale: 0.45, opacity: 0.3 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 620,
+                        damping: 26,
+                      }}
+                    >
+                      {String(cell)}
+                    </motion.span>
+                  </div>
+                  <span className="mt-1 font-mono text-[10px] text-ink-500">
+                    {i}
+                  </span>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
+        </div>
+
+        {/* Pointer arrows below the cells */}
+        {twoPointer && lIdx >= 0 && rIdx >= 0 && count > 0 && (
+          <div className="flex justify-center gap-2" style={{ marginTop: 4 }}>
+            {Array.from({ length: count }, (_, i) => {
+              const isL = i === lIdx;
+              const isR = i === rIdx;
+              if (!isL && !isR) return <div key={i} className="w-[56px]" />;
+              return (
+                <motion.div
+                  key={`ptr-${i}`}
+                  initial={reduce ? false : { y: -8, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                  className="flex w-[56px] flex-col items-center"
+                >
                   <motion.span
-                    key={String(cell)}
-                    initial={reduce ? false : { scale: 0.45, opacity: 0.3 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    transition={{
-                      type: "spring",
-                      stiffness: 620,
-                      damping: 26,
-                    }}
+                    animate={{ y: [0, -3, 0] }}
+                    transition={{ repeat: Infinity, duration: 1.2, ease: "easeInOut" }}
+                    className={cn(
+                      "text-lg leading-none",
+                      isL ? "text-arc-300" : "text-ember-300",
+                    )}
                   >
-                    {String(cell)}
+                    ▼
                   </motion.span>
-                </div>
-                <span className="mt-1 font-mono text-[10px] text-ink-500">
-                  {i}
-                </span>
-              </motion.div>
-            );
-          })}
-        </AnimatePresence>
+                  <span className={cn(
+                    "font-mono text-[10px] font-black uppercase",
+                    isL ? "text-arc-300" : "text-ember-300",
+                  )}>
+                    {isL ? "L" : "R"}
+                  </span>
+                </motion.div>
+              );
+            })}
+          </div>
+        )}
       </div>
+
       {item.highlights.length > 0 && (
         <div className="flex flex-wrap justify-center gap-x-3 gap-y-1 text-[11px] text-ink-400">
           {[...new Set(item.highlights.map((h) => h.role))]

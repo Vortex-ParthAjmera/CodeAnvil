@@ -361,6 +361,25 @@ export function ThreeStage({
         </Html>
       )}
 
+      {/* Two-pointer overlay (palindrome, two-sum): pointer labels + sum chip */}
+      {!composite && typeof variables.l === "number" && typeof variables.r === "number" && (
+        <Html position={[0, -1.6, 0]} center style={{ pointerEvents: "none" }}>
+          <div className="flex items-center gap-3 rounded-lg border border-arc-400/30 bg-ink-950/85 px-3 py-1.5 shadow-xl backdrop-blur-sm">
+            <span className="font-mono text-xs font-bold text-arc-300">
+              L → {variables.l}
+            </span>
+            {typeof variables.sum === "number" && typeof variables.target === "number" && (
+              <span className="font-mono text-xs font-bold text-ink-200">
+                sum {String(variables.sum)} {variables.sum === variables.target ? "= " : variables.sum < variables.target ? "< " : "> "} {String(variables.target)}
+              </span>
+            )}
+            <span className="font-mono text-xs font-bold text-ember-300">
+              R → {variables.r}
+            </span>
+          </div>
+        </Html>
+      )}
+
       {/* Floating variable chips — the hero + loop counter are already shown
           prominently by VariableForge, so keep the chips to the rest. */}
       {varEntries.map(([name, value], i) => {

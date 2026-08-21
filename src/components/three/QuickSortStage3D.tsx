@@ -8,6 +8,7 @@ import { useTheme3D, type Theme3DPalette } from "../../lib/theme3d";
 import { CanvasSizeSync } from "./CanvasSizeSync";
 import { HudToggle, useStageHud } from "./StageHud";
 import { StageProgressBar } from "./StageProgressBar";
+import { CodeLineBadge } from "./CodeLineBadge";
 
 const GAP = 1.1;
 const BAR_WIDTH = 0.68;
@@ -388,6 +389,7 @@ export function QuickSortStage3D({ step, steps }: { step: TraceStep; steps?: Tra
       </Canvas>
       <HudToggle open={hud.hudOpen} onToggle={hud.toggleHud} />
       {hud.hudOpen && <Overlay model={model} />}
+      <CodeLineBadge step={step} />
       <StageProgressBar step={step} steps={steps} />
     </div>
   );

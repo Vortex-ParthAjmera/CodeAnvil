@@ -12,6 +12,7 @@ import { useTheme3D, type Theme3DPalette } from "../../lib/theme3d";
 import { CanvasSizeSync } from "./CanvasSizeSync";
 import { HudToggle, useStageHud } from "./StageHud";
 import { StageProgressBar } from "./StageProgressBar";
+import { CodeLineBadge } from "./CodeLineBadge";
 
 function gapForCount(count: number): number {
   if (count <= 6) return 1.04;
@@ -344,6 +345,7 @@ export function BinarySearchStage3D({ step, steps }: { step: TraceStep; steps?: 
       </Canvas>
       <HudToggle open={hud.hudOpen} onToggle={hud.toggleHud} />
       {hud.hudOpen && <Overlay model={model} />}
+      <CodeLineBadge step={step} />
       <StageProgressBar step={step} steps={steps} />
     </div>
   );

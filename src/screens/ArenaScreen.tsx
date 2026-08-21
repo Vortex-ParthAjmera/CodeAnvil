@@ -289,9 +289,10 @@ function searchStates(
   step: ReturnType<typeof binarySearchSteps>[number],
 ): BarDescriptor[] {
   const states: BarDescriptor[] = [];
+  const isFound = step.status === "found";
   for (let i = 0; i < step.array.length; i++) {
     if (step.mid === i) {
-      states.push({ index: i, role: "mid" });
+      states.push({ index: i, role: isFound ? "found" : "mid" });
     } else if (i >= step.low && i <= step.high) {
       states.push({ index: i, role: "default" });
     } else {

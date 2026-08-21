@@ -1014,6 +1014,16 @@ function binarySearchTraceGen(values: number[], target: number, code: string): T
       else if (j >= s.low && j <= s.high) highlights.push({ index: j, role: "range" });
       else highlights.push({ index: j, role: "out" });
     }
+    const prev = i > 0 ? steps[i - 1] : undefined;
+    const changedVars: string[] = [];
+    if (i === 0) {
+      changedVars.push("low", "high", "probes");
+    } else {
+      if (s.low !== prev!.low) changedVars.push("low");
+      if (s.high !== prev!.high) changedVars.push("high");
+      if (s.mid !== prev!.mid) changedVars.push("mid");
+      if (s.probes !== prev!.probes) changedVars.push("probes");
+    }
     b.step({
       line: i === 0 ? 1 : i % 2 === 0 ? 4 : 5,
       event: i === 0 ? "program_start" : s.status === "found" ? "comparison" : i === steps.length - 1 ? "program_end" : "line_enter",
@@ -1021,7 +1031,7 @@ function binarySearchTraceGen(values: number[], target: number, code: string): T
       variables: { target, low: s.low, high: s.high, mid: s.mid ?? "—", probes: s.probes },
       memory: [arrayMemory("arr", "arr", s.array, highlights)],
       visual: arrayVisual("arr"),
-      changed: { variables: ["low", "high", "mid", "probes"] },
+      changed: { variables: changedVars },
     });
   });
   return b.build();

@@ -275,6 +275,7 @@ export function binarySearchSteps(input: number[], target: number): SearchStep[]
   let low = 0;
   let high = a.length - 1;
   let probes = 0;
+  let lastMid: number | undefined;
 
   steps.push({
     array: clone(a),
@@ -287,6 +288,7 @@ export function binarySearchSteps(input: number[], target: number): SearchStep[]
 
   while (low <= high) {
     const mid = Math.floor((low + high) / 2);
+    lastMid = mid;
     probes++;
     steps.push({
       array: clone(a),
@@ -315,6 +317,7 @@ export function binarySearchSteps(input: number[], target: number): SearchStep[]
         array: clone(a),
         low,
         high,
+        mid: lastMid,
         status: "probe",
         description: `${a[mid]} < ${target} — discard the left half. New range [${low}..${high}].`,
         probes,
@@ -325,6 +328,7 @@ export function binarySearchSteps(input: number[], target: number): SearchStep[]
         array: clone(a),
         low,
         high,
+        mid: lastMid,
         status: "probe",
         description: `${a[mid]} > ${target} — discard the right half. New range [${low}..${high}].`,
         probes,

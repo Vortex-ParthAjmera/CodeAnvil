@@ -113,7 +113,7 @@ export function buildBinarySearchTrace(): TraceDocument {
         ? `arr[${mid}] == target → ${val} == 7 → true! Found at index ${mid}.`
         : kind === "right"
           ? `arr[${mid}] < target → ${val} < 7 → true. Discard the left half.`
-          : `arr[${mid}] < target → ${val} < 7 → false. Discard the right half.`;
+          : `arr[${mid}] > target → ${val} > 7 → true. Discard the right half.`;
     b.step({
       line: 7,
       event: "comparison",
@@ -126,12 +126,12 @@ export function buildBinarySearchTrace(): TraceDocument {
     });
   };
 
-  const adjustStep = (line: 10 | 12, low: number, high: number, description: string) => {
+  const adjustStep = (line: 10 | 12, low: number, high: number, mid: number, description: string) => {
     b.step({
       line,
       event: "assignment",
       description,
-      variables: vars({ target: 7, low, high }),
+      variables: vars({ target: 7, low, high, mid }),
       memory: [arr()],
       visual: arrayVisual("arr"),
       changed: { variables: line === 10 ? ["low"] : ["high"] },
@@ -149,13 +149,13 @@ export function buildBinarySearchTrace(): TraceDocument {
   loopCheck(0, 5);
   midStep(0, 5);
   compareStep(0, 5, 2, "right");
-  adjustStep(10, 3, 5, "5 < 7, so low = mid + 1 = 3. Search the right half.");
+  adjustStep(10, 3, 5, 2, "5 < 7, so low = mid + 1 = 3. Discard the left half, search the right.");
 
   // Iteration 2: low=3, high=5, mid=4 (arr[4] = 9)
   loopCheck(3, 5);
   midStep(3, 5);
   compareStep(3, 5, 4, "left");
-  adjustStep(12, 3, 3, "9 > 7, so high = mid - 1 = 3. Search the left half.");
+  adjustStep(12, 3, 3, 4, "9 > 7, so high = mid - 1 = 3. Discard the right half, search the left.");
 
   // Iteration 3: low=3, high=3, mid=3 (arr[3] = 7) — found
   loopCheck(3, 3);

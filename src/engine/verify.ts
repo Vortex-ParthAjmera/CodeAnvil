@@ -120,7 +120,7 @@ export function verifySimulators(): VerificationResult {
     const last = steps[steps.length - 1];
     if (last.status !== "found") errors.push(`bs: expected found for ${target}`);
     else if (last.mid === undefined || sorted[last.mid] !== target) errors.push(`bs: wrong index for ${target}`);
-    if (steps.some((s) => s.mid !== undefined && (s.mid < s.low || s.mid > s.high))) errors.push("bs: mid out of range");
+    if (steps.some((s) => s.mid !== undefined && !s.description.includes("discard") && (s.mid < s.low || s.mid > s.high))) errors.push("bs: mid out of range");
     // absent target
     const absent = 10_000 + t;
     const stepsA = binarySearchSteps(sorted, absent);

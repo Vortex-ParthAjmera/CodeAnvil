@@ -410,19 +410,34 @@ function factorialLoopTrace(n: number, code: string): TraceDocument {
   b.step({
     line: 1,
     event: "program_start",
-    description: `Initialize result = 1, then multiply by every integer from 1 to ${n}.`,
+    description: `Set n = ${n}. We want to compute ${n}! = ${n} × ${n - 1} × … × 1.`,
+    variables: { n },
+    changed: { variables: ["n"] },
+  });
+  b.step({
+    line: 2,
+    event: "assignment",
+    description: `result starts at 1 — the multiplicative identity. Every loop iteration multiplies it by the next integer.`,
     variables: { result: 1, n },
     changed: { variables: ["result"] },
   });
   let result = 1;
   for (let i = 1; i <= n; i++) {
+    const before = result;
     result *= i;
     b.step({
-      line: 2,
+      line: 3,
       event: "loop_iteration",
-      description: `i = ${i}. result = ${result / i} × ${i} = ${result}.`,
+      description: `Iteration ${i} of ${n}: loop counter i = ${i}. About to multiply result (${before}) by ${i}.`,
+      variables: { result: before, i, n },
+      changed: { variables: ["i"] },
+    });
+    b.step({
+      line: 4,
+      event: "assignment",
+      description: `result = ${before} × ${i} = ${result}. Running product: ${Array.from({ length: i }, (_, k) => k + 1).join(" × ")} = ${result}.`,
       variables: { result, i, n },
-      changed: { variables: ["result", "i"] },
+      changed: { variables: ["result"] },
     });
   }
   b.step({

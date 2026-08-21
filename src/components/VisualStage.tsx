@@ -44,10 +44,20 @@ function cellRoleClass(role: string | undefined): string {
  * - cells glide to new slots via layout animation when the array resizes (merge),
  * - fresh cells pop in / leave with a quick scale-fade (AnimatePresence),
  * - a value that changes pops in place so the eye lands exactly on the write. */
-function ArrayStage({ item }: { item: MemoryItem }) {
+function ArrayStage({ item, step }: { item: MemoryItem; step?: TraceStep }) {
   const reduce = useReducedMotion();
   return (
     <div className="flex h-full flex-col items-center justify-center gap-4 p-4">
+      {step && (
+        <div className="max-w-md rounded-lg border border-ink-700/60 bg-ink-900/80 px-4 py-2.5 text-center shadow-lg backdrop-blur-sm">
+          <span className="mr-2 inline-block rounded-full bg-ember-500/15 px-2 py-0.5 font-mono text-[9px] font-bold uppercase tracking-widest text-ember-300 ring-1 ring-ember-500/30">
+            {step.event.replace(/_/g, " ")}
+          </span>
+          <p className="mt-1.5 text-xs leading-relaxed text-ink-200">
+            {step.description}
+          </p>
+        </div>
+      )}
       <div className="flex items-baseline gap-2">
         <span className="font-mono text-sm font-semibold text-ink-300">
           {item.label}
@@ -553,7 +563,7 @@ export function VisualStage({
     const item = step.memory?.find((m) => m.id === visual.itemId);
     if (item) {
       if (loopTrace) return <LoopArrayStage step={step} steps={steps} item={item} />;
-      return <ArrayStage item={item} />;
+      return <ArrayStage item={item} step={step} />;
     }
   }
 

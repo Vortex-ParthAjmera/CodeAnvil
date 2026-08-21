@@ -347,6 +347,20 @@ export function ThreeStage({
         />
       )}
 
+      {/* Step description overlay — shows what's happening for every trace */}
+      {!composite && (
+        <Html position={[0, 2.0, 0]} center style={{ pointerEvents: "none" }}>
+          <div className="max-w-xs rounded-lg border border-ink-700/60 bg-ink-950/85 px-3 py-2 text-center shadow-xl backdrop-blur-sm">
+            <span className="inline-block rounded-full bg-ember-500/15 px-2 py-0.5 font-mono text-[8px] font-bold uppercase tracking-widest text-ember-300 ring-1 ring-ember-500/30">
+              {storyboard?.event?.replace(/_/g, " ") ?? ""}
+            </span>
+            <p className="mt-1 max-w-[22rem] text-[11px] leading-snug text-ink-200">
+              {storyboard?.description ?? ""}
+            </p>
+          </div>
+        </Html>
+      )}
+
       {/* Floating variable chips — the hero + loop counter are already shown
           prominently by VariableForge, so keep the chips to the rest. */}
       {varEntries.map(([name, value], i) => {

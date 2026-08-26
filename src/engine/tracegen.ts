@@ -618,7 +618,7 @@ export function palindromeSteps(text: string): PalindromeStep[] {
     l: 0,
     r: Math.max(0, chars.length - 1),
     status: "probe",
-    description: `Two pointers start at both ends of "${text}". If every symmetric pair matches, it is a palindrome.`,
+    description: `Build a character tape for "${text}". L starts at index 0 and R starts at index ${Math.max(0, chars.length - 1)}; everything outside L..R is already verified.`,
     comparisons,
   });
 
@@ -631,7 +631,7 @@ export function palindromeSteps(text: string): PalindromeStep[] {
       l,
       r,
       status: "probe",
-      description: `Compare s[${l}] = '${chars[l]}' with s[${r}] = '${chars[r]}'. These are the ${comparisons}${comparisons === 1 ? "st" : comparisons === 2 ? "nd" : "rd"} pair from the outside in.`,
+      description: `Compare the mirrored pair: s[${l}] = '${chars[l]}' and s[${r}] = '${chars[r]}'. If they match, both edge cells become safe.`,
       comparisons,
     });
     if (chars[l] !== chars[r]) {
@@ -640,7 +640,7 @@ export function palindromeSteps(text: string): PalindromeStep[] {
         l,
         r,
         status: "invalid",
-        description: `'${chars[l]}' ≠ '${chars[r]}' — mismatch found at position ${l} vs ${r}. "${text}" is NOT a palindrome.`,
+        description: `Mismatch: '${chars[l]}' is not '${chars[r]}'. One broken mirror pair is enough, so "${text}" is NOT a palindrome.`,
         comparisons,
       });
       return steps;
@@ -650,7 +650,7 @@ export function palindromeSteps(text: string): PalindromeStep[] {
       l,
       r,
       status: "ok",
-      description: `'${chars[l]}' == '${chars[r]}' ✓ — match! Move l right to ${l + 1}, r left to ${r - 1}.`,
+      description: `Match: '${chars[l]}' equals '${chars[r]}'. Lock both cells, then move L ${l} → ${l + 1} and R ${r} → ${r - 1}.`,
       comparisons,
     });
     l++;
@@ -661,7 +661,7 @@ export function palindromeSteps(text: string): PalindromeStep[] {
     l,
     r,
     status: "done",
-    description: `All ${comparisons} symmetric pairs matched. "${text}" reads the same forwards and backwards — it IS a palindrome.`,
+    description: `Pointers met after ${comparisons} mirror checks. Every locked pair matched, so "${text}" reads the same both ways.`,
     comparisons,
   });
   return steps;
@@ -693,7 +693,7 @@ export function twoSumSortedSteps(input: number[], target: number): TwoSumStep[]
     sum: a[l] + a[r],
     target,
     status: "probe",
-    description: `Sorted array: [${a.join(", ")}]. Two pointers at the ends; their sum ${a[l]} + ${a[r]} = ${a[l] + a[r]} vs target ${target}.`,
+    description: `Sorted array: [${a.join(", ")}]. L starts at the smallest value and R at the largest. If the sum is too small, move L right; if too large, move R left.`,
     probes,
   });
 
@@ -707,7 +707,7 @@ export function twoSumSortedSteps(input: number[], target: number): TwoSumStep[]
       sum,
       target,
       status: "probe",
-      description: `a[${l}] + a[${r}] = ${a[l]} + ${a[r]} = ${sum}. Is ${sum} ${sum === target ? "=" : sum < target ? "<" : ">"} ${target}?`,
+      description: `Probe pair a[${l}] + a[${r}] = ${a[l]} + ${a[r]} = ${sum}. Compare ${sum} with target ${target} to decide which pointer can move.`,
       probes,
     });
     if (sum === target) {
@@ -718,7 +718,7 @@ export function twoSumSortedSteps(input: number[], target: number): TwoSumStep[]
         sum,
         target,
         status: "found",
-        description: `${sum} == ${target} ✓ — found the pair! a[${l}] = ${a[l]} and a[${r}] = ${a[r]} sum to ${target}.`,
+        description: `${sum} equals target ${target}. Keep L at ${l} and R at ${r}; this pair is the answer.`,
         probes,
       });
       return steps;
@@ -732,7 +732,7 @@ export function twoSumSortedSteps(input: number[], target: number): TwoSumStep[]
         sum,
         target,
         status: "probe",
-        description: `${sum} < ${target} — sum too small. Move l right to ${l} (value ${a[l]}) to try a bigger left element.`,
+        description: `${sum} is too small, so the left value must grow. Move L right to index ${l} (value ${a[l]}).`,
         probes,
       });
     } else {
@@ -744,7 +744,7 @@ export function twoSumSortedSteps(input: number[], target: number): TwoSumStep[]
         sum,
         target,
         status: "probe",
-        description: `${sum} > ${target} — sum too large. Move r left to ${r} (value ${a[r]}) to try a smaller right element.`,
+        description: `${sum} is too large, so the right value must shrink. Move R left to index ${r} (value ${a[r]}).`,
         probes,
       });
     }
@@ -757,7 +757,7 @@ export function twoSumSortedSteps(input: number[], target: number): TwoSumStep[]
     sum: a[l] + a[r],
     target,
     status: "not-found",
-    description: `Pointers crossed — no pair sums to ${target} (${probes} probes).`,
+    description: `Pointers met or crossed after ${probes} probes. Every possible outside pair was eliminated, so no pair sums to ${target}.`,
     probes,
   });
   return steps;
@@ -953,61 +953,93 @@ function maxArrayTrace(values: number[], code: string): TraceDocument {
 }
 
 function factorialLoopTrace(n: number, code: string): TraceDocument {
+  const factors = Array.from({ length: n }, (_, index) => index + 1);
+  const factorMemory = (activeIndex = -1, doneThrough = -1) =>
+    arrayMemory(
+      "factors",
+      "factor chain",
+      factors,
+      factors.flatMap((_, index) => {
+        const roles: { index: number; role: string }[] = [];
+        if (index < doneThrough) roles.push({ index, role: "sorted" });
+        if (index === activeIndex) roles.push({ index, role: "key" });
+        return roles;
+      }),
+    );
+
   const b = new TraceBuilder({
     title: "Factorial (Loop)",
     code,
     topic: "loops",
     difficulty: "beginner",
     language: detectLanguage(code),
-    durationSeconds: 60,
+    durationSeconds: 70,
   });
   b.step({
     line: 1,
     event: "program_start",
-    description: `Set n = ${n}. We want to compute ${n}! = ${n} × ${n - 1} × … × 1.`,
-    variables: { n },
+    description: `Choose n = ${n}. The factor chain is [${factors.join(", ")}]; the loop will multiply exactly one factor each turn.`,
+    variables: { n, goal: `multiply 1..${n}` },
+    memory: [factorMemory()],
+    visual: arrayVisual("factors"),
     changed: { variables: ["n"] },
+    actions: [{ type: "assignment", target: "n", value: n }],
   });
   b.step({
     line: 2,
     event: "assignment",
-    description: `result starts at 1 — the multiplicative identity. Every loop iteration multiplies it by the next integer.`,
-    variables: { result: 1, n },
+    description: "result starts at 1, because multiplying by 1 does not change the answer. This gives the loop a safe accumulator.",
+    variables: { result: 1, n, goal: `multiply 1..${n}` },
+    memory: [factorMemory()],
+    visual: arrayVisual("factors"),
     changed: { variables: ["result"] },
+    actions: [{ type: "assignment", target: "result", value: 1 }],
   });
   let result = 1;
   for (let i = 1; i <= n; i++) {
     const before = result;
     result *= i;
+    const running = Array.from({ length: i }, (_, k) => k + 1).join(" × ");
     b.step({
       line: 3,
       event: "loop_iteration",
-      description: `Iteration ${i} of ${n}: loop counter i = ${i}. About to multiply result (${before}) by ${i}.`,
-      variables: { result: before, i, n },
-      changed: { variables: ["i"] },
+      description: `Iteration ${i}/${n}: select factor ${i}. Before multiplication, result is ${before}; line 4 will combine them.`,
+      variables: { result: before, i, n, next_factor: i },
+      memory: [factorMemory(i - 1, i - 1)],
+      visual: arrayVisual("factors"),
+      changed: { variables: ["i", "next_factor"] },
+      actions: [{ type: "loop_iteration", i, item: "factors", index: i - 1 }],
     });
     b.step({
       line: 4,
       event: "assignment",
-      description: `result = ${before} × ${i} = ${result}. Running product: ${Array.from({ length: i }, (_, k) => k + 1).join(" × ")} = ${result}.`,
-      variables: { result, i, n },
-      changed: { variables: ["result"] },
+      description: `result = ${before} × ${i} = ${result}. Lock factor ${i}; running product is ${running} = ${result}.`,
+      variables: { result, i, n, multiplied_through: i },
+      memory: [factorMemory(i - 1, i)],
+      visual: arrayVisual("factors"),
+      changed: { variables: ["result", "multiplied_through"] },
+      actions: [{ type: "assignment", target: "result", value: result, before, factor: i, index: i - 1 }],
     });
   }
   b.step({
     line: 4,
     event: "output_write",
-    description: `print("Factorial:", result) writes: Factorial: ${result}`,
-    variables: { result, n },
+    description: `All ${n} factors are locked. print("Factorial:", result) writes: Factorial: ${result}`,
+    variables: { result, n, multiplied_through: n },
     output: `Factorial: ${result}`,
+    memory: [factorMemory(-1, n)],
+    visual: arrayVisual("factors"),
     changed: { output: true },
+    actions: [{ type: "output_write", value: `Factorial: ${result}` }],
   });
   b.step({
     line: 4,
     event: "program_end",
-    description: `${n}! = ${result}.`,
-    variables: { result, n },
+    description: `${n}! = ${factors.join(" × ")} = ${result}. The loop changed only result and i; no hidden recursion happened.`,
+    variables: { result, n, multiplied_through: n },
     output: `Factorial: ${result}`,
+    memory: [factorMemory(-1, n)],
+    visual: arrayVisual("factors"),
   });
   return b.build();
 }
@@ -1456,11 +1488,23 @@ function palindromeTrace(text: string, code: string): TraceDocument {
       line: i === 0 ? 1 : i === steps.length - 1 ? 6 : s.status === "ok" ? 3 : 4,
       event: i === 0 ? "program_start" : i === steps.length - 1 ? "program_end" : s.status === "invalid" ? "comparison" : "line_enter",
       description: s.description,
-      variables: { l: s.l, r: s.r, comparisons: s.comparisons, result: s.status === "invalid" ? "false" : s.status === "done" ? "true" : "…" },
+      variables: {
+        l: s.l,
+        r: s.r,
+        left_char: s.chars[s.l] ?? "",
+        right_char: s.chars[s.r] ?? "",
+        comparisons: s.comparisons,
+        result: s.status === "invalid" ? "false" : s.status === "done" ? "true" : "…",
+      },
       memory: [arrayMemory("s", "s", s.chars, highlights)],
       visual: arrayVisual("s"),
-      changed: { variables: ["l", "r", "comparisons"] },
-      actions: [{ type: "compare", indices: [s.l, s.r] }],
+      changed: { variables: ["l", "r", "left_char", "right_char", "comparisons"] },
+      actions: [{
+        type: "compare",
+        indices: [s.l, s.r],
+        values: [s.chars[s.l] ?? "", s.chars[s.r] ?? ""],
+        result: s.status === "ok" || s.status === "done",
+      }],
     });
   });
   return b.build();
@@ -1529,7 +1573,14 @@ function twoSumTrace(values: number[], target: number, code: string): TraceDocum
       memory: [arrayMemory("arr", "arr", s.array, highlights)],
       visual: arrayVisual("arr"),
       changed: { variables: ["l", "r", "sum", "probes"] },
-      actions: [{ type: "compare", indices: [s.l, s.r] }],
+      actions: [{
+        type: s.description.includes("Move L") || s.description.includes("Move R") ? "pointer_move" : "compare",
+        pointer: s.description.includes("Move L") ? "L" : s.description.includes("Move R") ? "R" : undefined,
+        to: s.description.includes("Move L") || s.description.includes("Move R") ? (s.description.includes("Move L") ? s.l : s.r) : undefined,
+        indices: [s.l, s.r],
+        values: [s.array[s.l], s.array[s.r]],
+        result: s.sum === s.target,
+      }],
     });
   });
   return b.build();

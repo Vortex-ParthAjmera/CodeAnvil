@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { buildFactorialLoopTrace } from "../data/traces/factorial-loop";
 import {
   generateTrace,
   heapSortSteps,
@@ -57,10 +58,28 @@ describe("heap sort recorder", () => {
   });
 });
 
+describe("factorial loop trace", () => {
+  it("renders a factor-chain memory visual for generated loop traces", () => {
+    const trace = generateTrace("factorial-loop", { n: 5 });
+    const multiply = trace.steps.find((step) => step.description.includes("Lock factor 4"));
+    expect(multiply?.visual).toEqual({ type: "array", itemId: "factors" });
+    expect(multiply?.memory?.[0].id).toBe("factors");
+    expect(multiply?.memory?.[0].highlights.filter((h) => "index" in h && h.role === "sorted")).toHaveLength(4);
+    expect(multiply?.actions?.[0]).toMatchObject({ type: "assignment", target: "result", factor: 4 });
+  });
+
+  it("renders a factor-chain memory visual for the curated example", () => {
+    const trace = buildFactorialLoopTrace();
+    expect(trace.steps.every((step) => step.visual?.type === "array")).toBe(true);
+    expect(trace.steps.some((step) => step.memory?.some((item) => item.id === "factors"))).toBe(true);
+  });
+});
+
 describe("palindrome recorder", () => {
   it("accepts a palindrome", () => {
     const steps = palindromeSteps("racecar");
     expect(steps[steps.length - 1].status).toBe("done");
+    expect(steps[1].description).toContain("mirrored pair");
   });
   it("rejects a non-palindrome at the first mismatch", () => {
     const steps = palindromeSteps("hello");
@@ -74,10 +93,16 @@ describe("two-sum recorder", () => {
     expect(steps[steps.length - 1].status).toBe("found");
     const found = steps.find((s) => s.status === "found")!;
     expect(found.array[found.l] + found.array[found.r]).toBe(9);
+    expect(found.description).toContain("this pair is the answer");
   });
   it("honestly reports absence", () => {
     const steps = twoSumSortedSteps([1, 2, 3], 99);
     expect(steps[steps.length - 1].status).toBe("not-found");
+  });
+
+  it("emits pointer-move actions for sorted two-sum pointer shifts", () => {
+    const trace = generateTrace("two-sum", { array: [1, 2, 9, 10], target: 12 });
+    expect(trace.steps.some((step) => step.actions?.some((action) => action.type === "pointer_move"))).toBe(true);
   });
 });
 

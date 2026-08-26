@@ -119,11 +119,6 @@ function RangeWindow({ model, p }: { model: BinarySearchSceneModel; p: Theme3DPa
         <boxGeometry args={[width, 0.08, 1.28]} />
         <meshStandardMaterial color={p.arcDeep} emissive={p.arc} emissiveIntensity={0.18} transparent opacity={0.34} />
       </mesh>
-      <Html position={[0, 0.31, -0.02]} center style={{ pointerEvents: "none" }}>
-        <div className="whitespace-nowrap rounded-md border border-arc-400/50 bg-ink-950/90 px-2 py-1 font-mono text-[11px] font-black uppercase leading-none text-arc-100 shadow-lg">
-          active window {model.rangeLabel}
-        </div>
-      </Html>
     </group>
   );
 }
@@ -193,28 +188,6 @@ function TargetBeacon({ model, p }: { model: BinarySearchSceneModel; p: Theme3DP
         <torusGeometry args={[0.34, 0.025, 10, 46]} />
         <meshStandardMaterial color={p.verdant} emissive={p.verdant} emissiveIntensity={0.85} />
       </mesh>
-      <Html position={[0, 0.44, 0.08]} center style={{ pointerEvents: "none" }}>
-        <div className="whitespace-nowrap rounded-md border border-verdant-400/55 bg-ink-950/94 px-2 py-1 font-mono text-[11px] font-black uppercase leading-none text-verdant-100 shadow-xl">
-          target {model.target ?? "?"}
-        </div>
-      </Html>
-    </group>
-  );
-}
-
-function DecisionBoard({ model, p }: { model: BinarySearchSceneModel; p: Theme3DPalette }) {
-  return (
-    <group position={[0, 2.18, 0]}>
-      <mesh>
-        <boxGeometry args={[4.45, 0.44, 0.34]} />
-        <meshStandardMaterial color={p.emptyCell} emissive={model.operation === "found" ? p.verdant : p.arc} emissiveIntensity={0.24} transparent opacity={0.86} />
-        <Edges color={model.operation === "found" ? p.verdant : p.arcBright} threshold={20} />
-      </mesh>
-      <Html position={[0, 0, 0.24]} center style={{ pointerEvents: "none" }}>
-        <div className="whitespace-nowrap rounded-md border border-arc-400/45 bg-ink-950/92 px-3 py-1.5 font-mono text-sm font-black text-ink-50 shadow-xl">
-          {model.compareLabel}
-        </div>
-      </Html>
     </group>
   );
 }
@@ -236,7 +209,6 @@ function Scene({ model, p }: { model: BinarySearchSceneModel; p: Theme3DPalette 
       <pointLight position={[3, 2.2, 2.4]} intensity={26 * p.lighting.accent} distance={10} color={p.verdant} />
 
       <group ref={scene} position={[0, -0.48, 0]}>
-        <DecisionBoard model={model} p={p} />
         <TargetBeacon model={model} p={p} />
         <RangeWindow model={model} p={p} />
         <MidProbe model={model} p={p} />
@@ -311,7 +283,7 @@ function Overlay({ model }: { model: BinarySearchSceneModel }) {
         </div>
       </div>
 
-      <div className="pointer-events-none absolute inset-x-2 bottom-2 z-10 flex flex-wrap items-end justify-between gap-2 sm:inset-x-3 sm:bottom-3">
+      <div className="pointer-events-none absolute bottom-2 left-28 right-2 z-10 flex flex-wrap items-end justify-between gap-2 sm:bottom-3 sm:left-36 sm:right-3">
         <p className="max-w-[24rem] rounded-md border border-arc-400/25 bg-ink-950/68 px-2 py-1.5 text-[10px] leading-snug text-ink-300 shadow-lg backdrop-blur-sm">
           {model.detail}
         </p>

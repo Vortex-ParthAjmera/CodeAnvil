@@ -122,11 +122,6 @@ function PartitionFloor({ model, p }: { model: QuickSortSceneModel; p: Theme3DPa
         <boxGeometry args={[width, 0.08, 1.34]} />
         <meshStandardMaterial color={p.arcDeep} emissive={p.arc} emissiveIntensity={0.15} transparent opacity={0.38} />
       </mesh>
-      <Html position={[0, 0.24, -0.52]} center style={{ pointerEvents: "none" }}>
-        <div className="whitespace-nowrap rounded-md border border-arc-400/50 bg-ink-950/92 px-2 py-1 font-mono text-[10px] font-black uppercase leading-none text-arc-100 shadow-lg">
-          active partition [{lo}..{hi}]
-        </div>
-      </Html>
     </group>
   );
 }
@@ -144,11 +139,6 @@ function SmallerZone({ model, p }: { model: QuickSortSceneModel; p: Theme3DPalet
         <boxGeometry args={[width, 0.06, 0.28]} />
         <meshStandardMaterial color={p.verdantDeep} emissive={p.verdant} emissiveIntensity={0.28} transparent opacity={0.58} />
       </mesh>
-      <Html position={[0, 0.2, 0.06]} center style={{ pointerEvents: "none" }}>
-        <div className="whitespace-nowrap rounded-md border border-verdant-400/45 bg-ink-950/90 px-2 py-1 font-mono text-[10px] font-black uppercase leading-none text-verdant-100 shadow-lg">
-          smaller than pivot
-        </div>
-      </Html>
     </group>
   );
 }
@@ -162,11 +152,6 @@ function BoundaryMarker({ model, p }: { model: QuickSortSceneModel; p: Theme3DPa
   return (
     <group position={[x, 0.62, 0.62]}>
       <Line points={[[0, -0.48, 0], [0, 2.34, 0]]} color={p.verdant} lineWidth={2.4} />
-      <Html position={[0, 2.58, 0]} center style={{ pointerEvents: "none" }}>
-        <div className="whitespace-nowrap rounded-md border border-verdant-400/60 bg-ink-950/94 px-2 py-1 font-mono text-[11px] font-black uppercase leading-none text-verdant-100 shadow-xl">
-          i = {model.boundaryIndex}
-        </div>
-      </Html>
     </group>
   );
 }
@@ -180,11 +165,6 @@ function ProbeMarker({ model, p }: { model: QuickSortSceneModel; p: Theme3DPalet
         <coneGeometry args={[0.16, 0.38, 24]} />
         <meshStandardMaterial color={p.arcBright} emissive={p.arcBright} emissiveIntensity={1.05} />
       </mesh>
-      <Html position={[0, 0.32, 0.08]} center style={{ pointerEvents: "none" }}>
-        <div className="whitespace-nowrap rounded-md border border-arc-400/60 bg-ink-950/94 px-2 py-1 font-mono text-[11px] font-black uppercase leading-none text-arc-100 shadow-xl">
-          j = {model.scanIndex}
-        </div>
-      </Html>
     </group>
   );
 }
@@ -198,11 +178,6 @@ function PivotMarker({ model, p }: { model: QuickSortSceneModel; p: Theme3DPalet
         <torusGeometry args={[0.34, 0.025, 10, 44]} />
         <meshStandardMaterial color={p.emberBright} emissive={p.emberBright} emissiveIntensity={1.1} />
       </mesh>
-      <Html position={[0, 0.5, 0.08]} center style={{ pointerEvents: "none" }}>
-        <div className="whitespace-nowrap rounded-md border border-ember-400/60 bg-ink-950/95 px-2.5 py-1 font-mono text-xs font-black uppercase leading-none text-ember-100 shadow-xl">
-          pivot {model.pivotValue}
-        </div>
-      </Html>
     </group>
   );
 }
@@ -354,7 +329,7 @@ function Overlay({ model }: { model: QuickSortSceneModel }) {
         </div>
       </div>
 
-      <div className="pointer-events-none absolute inset-x-2 bottom-2 z-10 flex items-end justify-between gap-2 sm:inset-x-3 sm:bottom-3">
+      <div className="pointer-events-none absolute bottom-2 left-28 right-2 z-10 flex items-end justify-between gap-2 sm:bottom-3 sm:left-36 sm:right-3">
         <p className="max-w-[24rem] rounded-md border border-arc-400/25 bg-ink-950/68 px-2 py-1.5 text-[10px] leading-snug text-ink-300 shadow-lg backdrop-blur-sm">
           {model.detail}
         </p>

@@ -186,11 +186,6 @@ function BoundaryFloor({ model, p }: { model: HeapSortSceneModel; p: Theme3DPale
           <meshStandardMaterial color={p.verdantDeep} emissive={p.verdant} emissiveIntensity={0.24} transparent opacity={0.48} />
         </mesh>
       )}
-      <Html position={[0, -0.46, -1.72]} center style={{ pointerEvents: "none" }}>
-        <div className="rounded-md border border-arc-400/40 bg-ink-950/92 px-2 py-1 font-mono text-[10px] font-black uppercase leading-none text-arc-100 shadow-lg">
-          heap size {model.heapSize} · sorted tail {Math.max(0, count - model.heapSize)}
-        </div>
-      </Html>
     </group>
   );
 }
@@ -225,29 +220,6 @@ function MotionLines({ model, p }: { model: HeapSortSceneModel; p: Theme3DPalett
   }
 
   return null;
-}
-
-function DecisionBoard({ model, p }: { model: HeapSortSceneModel; p: Theme3DPalette }) {
-  const label =
-    model.operation === "extract" && model.extractIndex !== null
-      ? `root -> sorted[${model.extractIndex}]`
-      : model.operation === "compare-left" || model.operation === "compare-right"
-        ? `choose larger child`
-        : model.operation;
-  return (
-    <group position={[0, 3.62, 0.72]}>
-      <mesh>
-        <boxGeometry args={[2.9, 0.24, 0.24]} />
-        <meshStandardMaterial color={p.emptyCell} emissive={model.operation === "extract" ? p.verdant : p.arc} emissiveIntensity={0.18} transparent opacity={0.72} />
-        <Edges color={model.operation === "extract" ? p.verdant : p.arcBright} threshold={18} />
-      </mesh>
-      <Html position={[0, 0, 0.18]} center style={{ pointerEvents: "none" }}>
-        <div className="whitespace-nowrap rounded border border-arc-400/45 bg-ink-950/82 px-2 py-1 font-mono text-[11px] font-black leading-none text-ink-50 shadow-lg backdrop-blur-sm">
-          {label}
-        </div>
-      </Html>
-    </group>
-  );
 }
 
 function Scene({ model, p }: { model: HeapSortSceneModel; p: Theme3DPalette }) {
@@ -287,7 +259,6 @@ function Scene({ model, p }: { model: HeapSortSceneModel; p: Theme3DPalette }) {
       <pointLight position={[3.4, 3.4, -2.4]} intensity={34 * p.lighting.accent} distance={11} color={p.emberBright} />
 
       <group ref={scene} position={[0, -1.72, 0]}>
-        <DecisionBoard model={model} p={p} />
         <HeapTree model={model} p={p} />
         <MotionLines model={model} p={p} />
         <BoundaryFloor model={model} p={p} />
@@ -355,7 +326,7 @@ function Overlay({ model }: { model: HeapSortSceneModel }) {
         </div>
       </div>
 
-      <div className="pointer-events-none absolute inset-x-2 bottom-2 z-10 flex items-end justify-between gap-2 sm:inset-x-3 sm:bottom-3">
+      <div className="pointer-events-none absolute bottom-2 left-28 right-2 z-10 flex items-end justify-between gap-2 sm:bottom-3 sm:left-36 sm:right-3">
         <p className="max-w-[24rem] rounded-md border border-arc-400/25 bg-ink-950/68 px-2 py-1.5 text-[10px] leading-snug text-ink-300 shadow-lg backdrop-blur-sm">
           {model.detail}
         </p>

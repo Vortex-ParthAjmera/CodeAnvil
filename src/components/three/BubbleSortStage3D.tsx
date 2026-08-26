@@ -178,7 +178,6 @@ function PairArc({
   const high = Math.max(leftBar.height, rightBar.height) + 0.78;
   const x1 = leftBar.x;
   const x2 = rightBar.x;
-  const mid = (x1 + x2) / 2;
   const points = Array.from({ length: 18 }, (_, index) => {
     const t = index / 17;
     const x = THREE.MathUtils.lerp(x1, x2, t);
@@ -190,14 +189,6 @@ function PairArc({
   return (
     <group ref={pulse}>
       <Line points={points} color={color} lineWidth={2.6} />
-      <Html position={[mid, high + 0.62, 0]} center style={{ pointerEvents: "none" }}>
-        <div
-          style={{ borderColor: color }}
-          className="whitespace-nowrap rounded border bg-ink-950/82 px-2 py-0.5 font-mono text-[10px] font-black uppercase leading-none text-ink-50 shadow-lg backdrop-blur-sm"
-        >
-          {model.operation === "swap" ? "swap path" : "compare pair"}
-        </div>
-      </Html>
     </group>
   );
 }
@@ -263,11 +254,6 @@ function SortedTail({
         <boxGeometry args={[width, 0.07, 1.18]} />
         <meshStandardMaterial color={p.verdantDeep} transparent opacity={0.46} emissive={p.verdant} emissiveIntensity={0.18} />
       </mesh>
-      <Html position={[0, 0.2, -0.1]} center style={{ pointerEvents: "none" }}>
-        <div className="whitespace-nowrap rounded-md border border-verdant-400/55 bg-ink-950/92 px-2 py-1 font-mono text-[11px] font-bold uppercase leading-none text-verdant-200 shadow-lg">
-          {isTail ? "sorted tail locked" : "sorted values locked"}
-        </div>
-      </Html>
     </group>
   );
 }
@@ -379,7 +365,7 @@ function Overlay({ model }: { model: BubbleSortSceneModel }) {
         </div>
       </div>
 
-      <div className="pointer-events-none absolute inset-x-2 bottom-2 z-10 flex items-end justify-between gap-2 sm:inset-x-3 sm:bottom-3">
+      <div className="pointer-events-none absolute bottom-2 left-28 right-2 z-10 flex items-end justify-between gap-2 sm:bottom-3 sm:left-36 sm:right-3">
         <p className="max-w-[24rem] rounded-md border border-arc-400/25 bg-ink-950/68 px-2 py-1.5 text-[10px] leading-snug text-ink-300 shadow-lg backdrop-blur-sm">
           {model.detail}
         </p>

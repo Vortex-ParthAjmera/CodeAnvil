@@ -159,11 +159,6 @@ function RangeSlab({ model, p }: { model: MergeSortSceneModel; p: Theme3DPalette
           <meshStandardMaterial color={p.emberBright} emissive={p.emberBright} emissiveIntensity={0.62} transparent opacity={0.78} />
         </mesh>
       )}
-      <Html position={[center, 0.18, -0.76]} center style={{ pointerEvents: "none" }}>
-        <div className="rounded-md border border-arc-400/45 bg-ink-950/92 px-2 py-1 font-mono text-[10px] font-black uppercase leading-none text-arc-100 shadow-lg">
-          active [{start}..{end}]
-        </div>
-      </Html>
     </group>
   );
 }
@@ -315,17 +310,6 @@ function Scene({ model, p, reducedMotion }: { model: MergeSortSceneModel; p: The
         <RunTray range={model.leftRange} color={p.arcBright} z={-1.28} p={p} count={model.values.length} />
         <RunTray range={model.rightRange} color={p.emberBright} z={1.28} p={p} count={model.values.length} />
         <MergeLines model={model} p={p} />
-        {(model.operation === "write" || model.operation === "copy") && model.destinationIndex !== null && (
-          <Html
-            position={[xForIndex(model.destinationIndex, model.values.length), 2.36, 0.55]}
-            center
-            style={{ pointerEvents: "none" }}
-          >
-            <div className="rounded-md border border-verdant-400/55 bg-ink-950/94 px-2 py-1 font-mono text-[10px] font-black uppercase leading-none text-verdant-100 shadow-xl">
-              output slot {model.destinationIndex}
-            </div>
-          </Html>
-        )}
         {tiles.map((tile) => (
           <MergeTile key={tile.id} tile={tile} reducedMotion={reducedMotion} />
         ))}
@@ -395,7 +379,7 @@ function Overlay({ model }: { model: MergeSortSceneModel }) {
         </div>
       </div>
 
-      <div className="pointer-events-none absolute inset-x-2 bottom-2 z-10 flex items-end justify-between gap-2 sm:inset-x-3 sm:bottom-3">
+      <div className="pointer-events-none absolute bottom-2 left-28 right-2 z-10 flex items-end justify-between gap-2 sm:bottom-3 sm:left-36 sm:right-3">
         <p className="max-w-[24rem] rounded-md border border-arc-400/25 bg-ink-950/68 px-2 py-1.5 text-[10px] leading-snug text-ink-300 shadow-lg backdrop-blur-sm">
           {model.detail}
         </p>

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Edges, Line, OrbitControls, Text } from "@react-three/drei";
+import { CanvasSizeSync } from "./CanvasSizeSync";
 import * as THREE from "three";
 import type {
   RecursionTreeEdge,
@@ -10,9 +11,9 @@ import type {
 import { useTheme3D, type Theme3DPalette } from "../../lib/theme3d";
 import { hue } from "./palette";
 
-const SPACING = 2.3; // world units per leaf slot (prevent text overlap)
-const LEVEL = 1.7; // vertical distance between tree levels (label clearance)
-const Z_SPREAD = 1.0; // sibling separation in depth
+const SPACING = 2.85; // world units per leaf slot (prevents Fibonacci label collisions)
+const LEVEL = 1.95; // vertical distance between tree levels (return-label clearance)
+const Z_SPREAD = 1.25; // sibling separation in depth
 
 interface Pos {
   x: number;
@@ -123,7 +124,7 @@ function NodeSphere({
 
   return (
     <mesh ref={mesh} scale={0.01}>
-      <sphereGeometry args={[0.42, 28, 28]} />
+      <sphereGeometry args={[0.36, 28, 28]} />
       <meshStandardMaterial
         ref={mat}
         color={color}
@@ -207,26 +208,26 @@ function TreeGroup({
             <NodeSphere node={node} active={active} scaleTarget={1} pal={pal} />
             <Text
               position={[0, 0.58, 0]}
-              fontSize={0.17}
+              fontSize={0.15}
               color={returned ? pal.verdant : active ? pal.textStrong : pal.textStrong}
               anchorX="center"
               anchorY="middle"
-              maxWidth={2.4}
+              maxWidth={1.9}
             >
               {node.label}
             </Text>
             {returned && node.returnValue !== undefined && (
               <>
                 <Text
-                  position={[0, -0.68, 0]}
-                  fontSize={0.24}
+                  position={[0, -0.6, 0]}
+                  fontSize={0.18}
                   color={pal.verdant}
                   anchorX="center"
                   anchorY="middle"
                 >
                   ={node.returnValue}
                 </Text>
-                <mesh position={[0, -0.68, 0]}>
+                <mesh position={[0, -0.6, 0]}>
                   <sphereGeometry args={[0.04, 12, 12]} />
                   <meshStandardMaterial
                     color={pal.verdantDeep}
@@ -245,17 +246,6 @@ function TreeGroup({
                 anchorY="middle"
               >
                 ▶ running
-              </Text>
-            )}
-            {!active && node.status === "waiting" && (
-              <Text
-                position={[0, 0.88, 0]}
-                fontSize={0.11}
-                color={pal.textDim}
-                anchorX="center"
-                anchorY="middle"
-              >
-                waiting
               </Text>
             )}
           </group>
@@ -305,12 +295,13 @@ export function RecursionTree3D({
     <Canvas
       dpr={[1, 1.75]}
       camera={{
-        position: [0, 1.8, Math.max(8.5, (leafCount * SPACING) / 2 + 4.5)],
-        fov: 38,
+        position: [0, 2.25, Math.max(10.5, (leafCount * SPACING) / 2 + 5.5)],
+        fov: 34,
       }}
       gl={{ antialias: true, alpha: true }}
       style={{ background: "transparent" }}
     >
+      <CanvasSizeSync />
       <ambientLight intensity={0.65 * pal.lighting.ambient} />
       <directionalLight position={[5, 8, 4]} intensity={1.5 * pal.lighting.directional} />
       <pointLight
@@ -338,7 +329,7 @@ export function RecursionTree3D({
 
       <OrbitControls
         enablePan={false}
-        autoRotate
+        autoRotate={false}
         autoRotateSpeed={0.7}
         minDistance={3}
         maxDistance={18}

@@ -8,6 +8,7 @@ import { HeapSortStage3D } from "./HeapSortStage3D";
 import { FactorialRecursionStage3D } from "./FactorialRecursionStage3D";
 import { GridSearchStage3D } from "./GridSearchStage3D";
 import { StringTapeStage3D, isStringTapeTraceStep } from "./StringTapeStage3D";
+import { TwoSumStage3D, isTwoSumTraceStep } from "./TwoSumStage3D";
 import { ThreeStage } from "./ThreeStage";
 import type { BarDescriptor } from "./ThreeBars";
 import { selectRendererForStep } from "../../engine/traceActions";
@@ -34,6 +35,10 @@ export function ExecutionStage3D({ step, steps }: { step: TraceStep; steps?: Tra
 
   if (dispatch.kind === "array" && isStringTapeTraceStep(step)) {
     return <StringTapeStage3D step={step} steps={steps} />;
+  }
+
+  if (dispatch.kind === "array" && isTwoSumTraceStep(step)) {
+    return <TwoSumStage3D step={step} steps={steps} />;
   }
 
   if (dispatch.kind === "array" && isBinarySearchTraceStep(step)) {

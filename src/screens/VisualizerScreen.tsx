@@ -28,6 +28,8 @@ import { isFactorialRecursionStep } from "../engine/recursionStage";
 import { isGridSearchTraceStep } from "../engine/gridStage";
 import { isBinarySearchTraceStep } from "../engine/searchStage";
 import { isBubbleSortTraceStep, isHeapSortTraceStep, isMergeSortTraceStep, isQuickSortTraceStep } from "../engine/sortStage";
+import { isStringTapeTraceStep } from "../engine/stringStage";
+import { isTwoSumTraceStep } from "../engine/twoSumStage";
 import { registerGeneratedExample } from "../data/examples";
 import { VISUALIZER_DRAFT_KEY } from "../data/dsaCatalog";
 import type { Route } from "../router";
@@ -262,7 +264,9 @@ export function VisualizerScreen({ onNavigate }: { onNavigate: (route: Route) =>
         isMergeSortTraceStep(step) ||
         isQuickSortTraceStep(step) ||
         isHeapSortTraceStep(step) ||
-        isFactorialRecursionStep(step))
+        isFactorialRecursionStep(step) ||
+        isStringTapeTraceStep(step) ||
+        isTwoSumTraceStep(step))
     : false;
 
   useEffect(() => {
@@ -492,7 +496,7 @@ export function VisualizerScreen({ onNavigate }: { onNavigate: (route: Route) =>
                       onPick={(line) => playback.scrub(Math.max(0, line - 1))}
                     />
                   ) : (
-                    <ExecutionStage3D step={step} />
+                    <ExecutionStage3D step={step} steps={trace.steps} />
                   )}
                 </Suspense>
                 {!useSpecializedStage && (

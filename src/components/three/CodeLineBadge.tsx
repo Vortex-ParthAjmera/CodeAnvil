@@ -8,7 +8,7 @@ import type { TraceStep } from "../../types/trace";
 export function CodeLineBadge({ step }: { step: TraceStep }) {
   const eventLabel = step.event.replace(/_/g, " ");
   return (
-    <div className="pointer-events-none absolute left-3 top-3 z-10 flex items-center gap-2 sm:left-4 sm:top-4">
+    <div className="pointer-events-none absolute left-3 top-16 z-10 flex items-center gap-2 sm:left-4 sm:top-[4.5rem]">
       <div className="flex items-center gap-1.5 rounded-md border border-ink-700/80 bg-ink-950/80 px-2 py-1 shadow-xl backdrop-blur-md">
         <span className="font-mono text-[9px] font-black uppercase tracking-widest text-ink-500">
           line

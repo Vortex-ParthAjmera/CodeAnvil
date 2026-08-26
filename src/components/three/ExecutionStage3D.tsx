@@ -7,6 +7,7 @@ import { QuickSortStage3D } from "./QuickSortStage3D";
 import { HeapSortStage3D } from "./HeapSortStage3D";
 import { FactorialRecursionStage3D } from "./FactorialRecursionStage3D";
 import { GridSearchStage3D } from "./GridSearchStage3D";
+import { StringTapeStage3D, isStringTapeTraceStep } from "./StringTapeStage3D";
 import { ThreeStage } from "./ThreeStage";
 import type { BarDescriptor } from "./ThreeBars";
 import { selectRendererForStep } from "../../engine/traceActions";
@@ -30,6 +31,10 @@ function isArrayHighlight(
 export function ExecutionStage3D({ step, steps }: { step: TraceStep; steps?: TraceStep[] }) {
   const visual = step.visual;
   const dispatch = selectRendererForStep(step);
+
+  if (dispatch.kind === "array" && isStringTapeTraceStep(step)) {
+    return <StringTapeStage3D step={step} steps={steps} />;
+  }
 
   if (dispatch.kind === "array" && isBinarySearchTraceStep(step)) {
     return <BinarySearchStage3D step={step} steps={steps} />;

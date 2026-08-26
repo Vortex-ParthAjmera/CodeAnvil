@@ -56,7 +56,7 @@ export function ExecutionStage3D({ step, steps }: { step: TraceStep; steps?: Tra
   }
 
   if (dispatch.kind === "grid" && isGridSearchTraceStep(step)) {
-    return <GridSearchStage3D step={step} steps={steps} />;
+    return <GridSearchStage3D step={step} />;
   }
 
   if (dispatch.kind === "grid" && visual?.type === "grid") {

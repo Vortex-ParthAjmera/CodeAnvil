@@ -107,8 +107,6 @@ function ArrayStage({ item, step }: { item: MemoryItem; step?: TraceStep }) {
             {item.value.map((cell, i) => {
               const hl = item.highlights.find((h) => "index" in h && h.index === i);
               const role = hl?.role;
-              const isL = twoPointer && i === lIdx;
-              const isR = twoPointer && i === rIdx;
               return (
                 <motion.div
                   key={`cell-${i}`}

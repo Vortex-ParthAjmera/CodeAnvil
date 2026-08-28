@@ -183,7 +183,7 @@ function MergeTile({
         <Html position={[0, tile.height + 0.24, 0]} center style={textCardStyle()}>
           <div
             data-merge-stage="tile-value"
-            className="min-w-8 rounded-md border bg-ink-950/96 px-2 py-1 text-center font-mono text-[13px] font-black leading-none text-ink-50 shadow-xl"
+            className="min-w-7 rounded-md border bg-ink-950/96 px-1.5 py-0.5 text-center font-mono text-[12px] font-black leading-none text-ink-50 shadow-xl"
             style={{ borderColor: tile.edge }}
           >
             {tile.value}
@@ -266,8 +266,8 @@ function TransferTile({
         />
         <Edges color="#f8fbff" threshold={16} />
       </mesh>
-      <Html position={[0, 0.42, 0]} center style={textCardStyle()}>
-        <div data-merge-stage="transfer-value" className="rounded-md border border-verdant-300 bg-ink-950/96 px-2 py-1 font-mono text-[13px] font-black leading-none text-verdant-100 shadow-xl">
+      <Html position={[0, 0.48, 0]} center style={textCardStyle()}>
+        <div data-merge-stage="transfer-value" className="rounded-md border border-verdant-300 bg-ink-950/96 px-1.5 py-0.5 font-mono text-[12px] font-black leading-none text-verdant-100 shadow-xl">
           {value}
         </div>
       </Html>
@@ -364,7 +364,7 @@ function Scene({ model, p, reducedMotion }: { model: MergeSortSceneModel; p: The
       const dimmed = offset < model.leftCursor && !active;
       return {
         id: "left-" + index,
-        label: active && model.takeSide === "left" ? "take" : "",
+        label: "",
         value,
         x: xForArrayIndex(index, model),
         y: SOURCE_Y,
@@ -385,7 +385,7 @@ function Scene({ model, p, reducedMotion }: { model: MergeSortSceneModel; p: The
       const dimmed = offset < model.rightCursor && !active;
       return {
         id: "right-" + index,
-        label: active && model.takeSide === "right" ? "take" : "",
+        label: "",
         value,
         x: xForArrayIndex(index, model),
         y: SOURCE_Y,
@@ -407,7 +407,7 @@ function Scene({ model, p, reducedMotion }: { model: MergeSortSceneModel; p: The
       const color = committed ? roleColor(index, model, p) : p.emptyCell;
       return {
         id: "output-" + index,
-        label: "a[" + String(index) + "]",
+        label: "",
         value,
         x: xForArrayIndex(index, model),
         y: OUTPUT_Y,

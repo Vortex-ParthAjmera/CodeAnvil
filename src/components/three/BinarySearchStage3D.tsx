@@ -88,17 +88,13 @@ function ArrayCell({
         />
         <Edges color={color} threshold={18} />
       </mesh>
-      <Html position={[0, 0.02, 0.4]} center style={{ pointerEvents: "none" }}>
+      <Html position={[0, 0.02, 0.4]} center style={{ pointerEvents: "none", WebkitFontSmoothing: "antialiased", textRendering: "geometricPrecision" }}>
         <div
-          className="min-w-8 rounded-md border bg-ink-950/92 px-2 py-1 text-center font-mono text-sm font-black leading-none text-ink-50 shadow-xl backdrop-blur"
-          style={{ borderColor: color, opacity: cell.isDiscarded ? 0.62 : 1 }}
+          data-binary-stage="value"
+          className="min-w-8 rounded-md border bg-ink-950/95 px-2 py-1 text-center font-mono text-[13px] font-black leading-none text-ink-50 shadow-xl"
+          style={{ borderColor: color, opacity: cell.isDiscarded ? 0.56 : 1 }}
         >
           {cell.value}
-        </div>
-      </Html>
-      <Html position={[0, -0.58, 0.05]} center style={{ pointerEvents: "none" }}>
-        <div className="rounded border border-ink-700/75 bg-ink-950/85 px-1.5 py-0.5 font-mono text-[10px] font-bold leading-none text-ink-400">
-          {cell.index}
         </div>
       </Html>
     </group>
@@ -124,12 +120,10 @@ function RangeWindow({ model, p }: { model: BinarySearchSceneModel; p: Theme3DPa
 }
 
 function BoundFlag({
-  label,
   index,
   count,
   color,
 }: {
-  label: string;
   index: number | null;
   count: number;
   color: string;
@@ -137,16 +131,12 @@ function BoundFlag({
   if (index === null || index < 0 || index >= count) return null;
   const x = xForIndex(index, count);
   return (
-    <group position={[x, -1.05, 0.02]}>
-      <Line points={[[0, 0.12, 0], [0, 0.52, 0]]} color={color} lineWidth={1.8} />
-      <Html position={[0, 0, 0.1]} center style={{ pointerEvents: "none" }}>
-        <div
-          className="rounded border bg-ink-950/92 px-2 py-1 font-mono text-[10px] font-black uppercase leading-none text-ink-50 shadow-lg"
-          style={{ borderColor: color }}
-        >
-          {label}
-        </div>
-      </Html>
+    <group position={[x, -1.04, 0.02]}>
+      <Line points={[[0, 0.12, 0], [0, 0.56, 0]]} color={color} lineWidth={2.2} />
+      <mesh position={[0, 0.03, 0.08]}>
+        <boxGeometry args={[0.22, 0.08, 0.18]} />
+        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.72} />
+      </mesh>
     </group>
   );
 }
@@ -170,11 +160,10 @@ function MidProbe({ model, p }: { model: BinarySearchSceneModel; p: Theme3DPalet
         <coneGeometry args={[0.16, 0.36, 24]} />
         <meshStandardMaterial color={p.emberBright} emissive={p.emberBright} emissiveIntensity={1.1} />
       </mesh>
-      <Html position={[0, 0.34, 0.1]} center style={{ pointerEvents: "none" }}>
-        <div className="whitespace-nowrap rounded-md border border-ember-400/55 bg-ink-950/94 px-2 py-1 font-mono text-[11px] font-black uppercase leading-none text-ember-100 shadow-xl">
-          mid = {mid}
-        </div>
-      </Html>
+      <mesh position={[0, 0.28, 0.08]}>
+        <boxGeometry args={[0.36, 0.055, 0.18]} />
+        <meshStandardMaterial color={p.emberBright} emissive={p.emberBright} emissiveIntensity={0.9} />
+      </mesh>
     </group>
   );
 }
@@ -194,12 +183,6 @@ function TargetBeacon({ model, p }: { model: BinarySearchSceneModel; p: Theme3DP
 
 function Scene({ model, p }: { model: BinarySearchSceneModel; p: Theme3DPalette }) {
   const stageWidth = Math.max(5.7, (model.values.length - 1) * gapForCount(model.values.length) + 1.7);
-  const scene = useRef<THREE.Group>(null);
-
-  useFrame(({ clock }) => {
-    if (!scene.current) return;
-    scene.current.rotation.y = Math.sin(clock.elapsedTime * 0.32) * 0.018;
-  });
 
   return (
     <>
@@ -208,12 +191,12 @@ function Scene({ model, p }: { model: BinarySearchSceneModel; p: Theme3DPalette 
       <pointLight position={[0, 3.4, 3.4]} intensity={42 * p.lighting.accent} distance={12} color={p.arcBright} />
       <pointLight position={[3, 2.2, 2.4]} intensity={26 * p.lighting.accent} distance={10} color={p.verdant} />
 
-      <group ref={scene} position={[0, -0.48, 0]}>
+      <group position={[0, -0.54, 0]}>
         <TargetBeacon model={model} p={p} />
         <RangeWindow model={model} p={p} />
         <MidProbe model={model} p={p} />
-        <BoundFlag label="low" index={model.low} count={model.values.length} color={p.arcBright} />
-        <BoundFlag label="high" index={model.high} count={model.values.length} color={p.emberBright} />
+        <BoundFlag index={model.low} count={model.values.length} color={p.arcBright} />
+        <BoundFlag index={model.high} count={model.values.length} color={p.emberBright} />
         <mesh position={[0, -0.2, -0.35]}>
           <boxGeometry args={[stageWidth, 0.08, 1.34]} />
           <meshStandardMaterial color={p.emptyCell} transparent opacity={0.66} roughness={0.46} metalness={0.24} />
@@ -273,7 +256,7 @@ function Overlay({ model }: { model: BinarySearchSceneModel }) {
           <p className="mt-1 text-[11px] font-black leading-tight text-ink-50 sm:text-xs">{model.headline}</p>
         </div>
 
-        <div className="flex max-w-[16rem] flex-wrap justify-end gap-1 sm:max-w-[21rem]">
+        <div className="hidden max-w-[16rem] flex-wrap justify-end gap-1 min-[560px]:flex sm:max-w-[21rem]">
           {stats.map(([label, value]) => (
             <div key={label} className="rounded border border-ink-700/65 bg-ink-950/72 px-1.5 py-1 text-center shadow-lg backdrop-blur-sm">
               <span className="block font-mono text-[8px] font-black uppercase tracking-widest text-ink-500">{label}</span>
@@ -283,11 +266,11 @@ function Overlay({ model }: { model: BinarySearchSceneModel }) {
         </div>
       </div>
 
-      <div className="pointer-events-none absolute bottom-2 left-28 right-2 z-10 flex flex-wrap items-end justify-between gap-2 sm:bottom-3 sm:left-36 sm:right-3">
+      <div className="pointer-events-none absolute bottom-16 left-3 right-3 z-10 flex flex-wrap items-end justify-between gap-2 sm:left-4 sm:right-4">
         <p className="max-w-[24rem] rounded-md border border-arc-400/25 bg-ink-950/68 px-2 py-1.5 text-[10px] leading-snug text-ink-300 shadow-lg backdrop-blur-sm">
           {model.detail}
         </p>
-        <div className="ml-auto flex flex-wrap justify-end gap-1">
+        <div className="ml-auto hidden flex-wrap justify-end gap-1 min-[760px]:flex">
           <span className="rounded border border-arc-400/35 bg-ink-950/72 px-1.5 py-1 font-mono text-[9px] font-bold uppercase text-arc-200 backdrop-blur">blue window</span>
           <span className="rounded border border-ember-400/35 bg-ink-950/72 px-1.5 py-1 font-mono text-[9px] font-bold uppercase text-ember-200 backdrop-blur">orange mid</span>
           <span className="rounded border border-verdant-400/35 bg-ink-950/72 px-1.5 py-1 font-mono text-[9px] font-bold uppercase text-verdant-200 backdrop-blur">green found</span>
@@ -307,8 +290,9 @@ export function BinarySearchStage3D({ step, steps }: { step: TraceStep; steps?: 
   return (
     <div className="codeanvil-canvas-fill relative h-full w-full overflow-hidden rounded-md @container">
       <Canvas
+        data-testid="binary-search-stage-canvas"
         dpr={[1.25, 2]}
-        camera={{ position: [0, 2.1, 7.15], fov: 38 }}
+        camera={{ position: [0, 2.16, 7.35], fov: 38 }}
         gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
         style={{ width: "100%", height: "100%", background: "transparent" }}
       >

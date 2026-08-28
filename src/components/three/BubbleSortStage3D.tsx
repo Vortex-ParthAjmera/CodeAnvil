@@ -25,7 +25,7 @@ interface SortBar {
 const GAP = 1.22;
 const BAR_WIDTH = 0.72;
 const BAR_DEPTH = 0.68;
-const MAX_BAR_HEIGHT = 2.76;
+const MAX_BAR_HEIGHT = 2.42;
 
 function colorForBar(bar: SortBar, p: Theme3DPalette): string {
   if (bar.isSwap) return p.emberBright;
@@ -53,7 +53,7 @@ function xForIndex(index: number, count: number): number {
   return (index - (count - 1) / 2) * GAP;
 }
 
-function usePulsedScale(base = 1, amount = 0.04, speed = 4) {
+function usePulsedScale(base = 1, amount = 0.025, speed = 3.2) {
   const ref = useRef<THREE.Group>(null);
   useFrame(({ clock }) => {
     if (!ref.current) return;
@@ -124,10 +124,11 @@ function AnimatedBar({ bar, p }: { bar: SortBar; p: Theme3DPalette }) {
         </mesh>
       )}
 
-      <Html position={[0, bar.height + 0.42, 0]} center style={{ pointerEvents: "none" }}>
+      <Html position={[0, bar.height + 0.32, 0]} center style={{ pointerEvents: "none", WebkitFontSmoothing: "antialiased", textRendering: "geometricPrecision" }}>
         <div
+          data-bubble-stage="value"
           style={{ borderColor: isActive ? color : "rgba(255,255,255,0.18)" }}
-          className="min-w-8 rounded-md border bg-ink-950/92 px-2 py-1 text-center font-mono text-sm font-black leading-none text-ink-50 shadow-[0_10px_24px_rgba(0,0,0,0.35)] backdrop-blur"
+          className="min-w-8 rounded-md border bg-ink-950/95 px-2 py-1 text-center font-mono text-[13px] font-black leading-none text-ink-50 shadow-[0_10px_24px_rgba(0,0,0,0.35)]"
         >
           {bar.value}
         </div>
@@ -145,11 +146,6 @@ function IndexRail({ count, p }: { count: number; p: Theme3DPalette }) {
             <boxGeometry args={[0.82, 0.04, 0.82]} />
             <meshStandardMaterial color={p.emptyCell} emissive={p.gridCell} emissiveIntensity={0.16} />
           </mesh>
-          <Html position={[0, -0.46, 0]} center style={{ pointerEvents: "none" }}>
-            <div className="rounded border border-ink-700/80 bg-ink-950/90 px-1.5 py-0.5 font-mono text-[10px] font-bold leading-none text-ink-300">
-              i={index}
-            </div>
-          </Html>
         </group>
       ))}
     </group>
@@ -175,7 +171,7 @@ function PairArc({
   if (!leftBar || !rightBar) return null;
 
   const color = model.operation === "swap" ? p.emberBright : p.arcBright;
-  const high = Math.max(leftBar.height, rightBar.height) + 0.78;
+  const high = Math.max(leftBar.height, rightBar.height) + 0.54;
   const x1 = leftBar.x;
   const x2 = rightBar.x;
   const points = Array.from({ length: 18 }, (_, index) => {
@@ -291,7 +287,7 @@ function Scene({ model, p }: { model: BubbleSortSceneModel; p: Theme3DPalette })
       <pointLight position={[0, 4.2, 3.4]} intensity={48 * p.lighting.accent} distance={12} color={p.arcBright} />
       <pointLight position={[-3, 2.4, 2]} intensity={24 * p.lighting.accent} distance={10} color={p.emberBright} />
 
-      <group position={[0, -1.42, 0]}>
+      <group position={[0, -1.58, 0]}>
         <mesh position={[0, -0.1, 0]}>
           <boxGeometry args={[stageWidth, 0.1, 1.58]} />
           <meshStandardMaterial color={p.emptyCell} transparent opacity={0.72} roughness={0.48} metalness={0.28} />
@@ -306,7 +302,7 @@ function Scene({ model, p }: { model: BubbleSortSceneModel; p: Theme3DPalette })
       </group>
 
       <InfiniteGrid
-        position={[0, -1.68, -0.15]}
+        position={[0, -1.86, -0.15]}
         cellSize={0.48}
         cellThickness={0.55}
         cellColor={p.gridCell}
@@ -355,7 +351,7 @@ function Overlay({ model }: { model: BubbleSortSceneModel }) {
           <p className="mt-1 text-[11px] font-black leading-tight text-ink-50 sm:text-xs">{model.headline}</p>
         </div>
 
-        <div className="flex max-w-[16rem] flex-wrap justify-end gap-1 sm:max-w-[21rem]">
+        <div className="hidden max-w-[16rem] flex-wrap justify-end gap-1 min-[560px]:flex sm:max-w-[21rem]">
           {stats.map(([label, value]) => (
             <div key={label} className="rounded border border-ink-700/65 bg-ink-950/72 px-1.5 py-1 text-center shadow-lg backdrop-blur-sm">
               <span className="block font-mono text-[8px] font-black uppercase tracking-widest text-ink-500">{label}</span>
@@ -365,11 +361,11 @@ function Overlay({ model }: { model: BubbleSortSceneModel }) {
         </div>
       </div>
 
-      <div className="pointer-events-none absolute bottom-2 left-28 right-2 z-10 flex items-end justify-between gap-2 sm:bottom-3 sm:left-36 sm:right-3">
+      <div className="pointer-events-none absolute bottom-16 left-3 right-3 z-10 flex items-end justify-between gap-2 sm:left-4 sm:right-4">
         <p className="max-w-[24rem] rounded-md border border-arc-400/25 bg-ink-950/68 px-2 py-1.5 text-[10px] leading-snug text-ink-300 shadow-lg backdrop-blur-sm">
           {model.detail}
         </p>
-        <div className="ml-auto flex flex-wrap justify-end gap-1">
+        <div className="ml-auto hidden flex-wrap justify-end gap-1 min-[760px]:flex">
           <span className="rounded border border-arc-400/35 bg-ink-950/72 px-1.5 py-1 font-mono text-[9px] font-bold uppercase text-arc-200 backdrop-blur">blue compare</span>
           <span className="rounded border border-ember-400/35 bg-ink-950/72 px-1.5 py-1 font-mono text-[9px] font-bold uppercase text-ember-200 backdrop-blur">violet swap</span>
           <span className="rounded border border-verdant-400/35 bg-ink-950/72 px-1.5 py-1 font-mono text-[9px] font-bold uppercase text-verdant-200 backdrop-blur">green sorted</span>
@@ -391,7 +387,7 @@ export function BubbleSortStage3D({ step, steps }: { step: TraceStep; steps?: Tr
       <Canvas
         dpr={[1.25, 2]}
         data-testid="bubble-sort-stage-canvas"
-        camera={{ position: [0, 3.45, 8.1], fov: 40 }}
+        camera={{ position: [0, 3.5, 8.35], fov: 40 }}
         gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
         style={{ width: "100%", height: "100%", background: "transparent" }}
       >

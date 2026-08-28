@@ -23,7 +23,9 @@ export type DetectionKind =
   | "bubble-sort"
   | "selection-sort"
   | "insertion-sort"
+  | "palindrome"
   | "two-sum"
+  | "two-sum-sorted"
   | "script";
 
 export interface DetectionResult {
@@ -146,6 +148,12 @@ function extractTarget(code: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+function extractStringLiteral(code: string): string | null {
+  const match = code.match(/["'`]([A-Za-z0-9 _-]{2,48})["'`]/);
+  const value = match?.[1]?.trim();
+  return value ? value.replace(/\s+/g, "").toLowerCase() : null;
+}
+
 /** First line (1-based) matching a pattern, or a fallback. */
 function lineOf(code: string, pattern: RegExp, fallback: number): number {
   const lines = code.split("\n");
@@ -210,6 +218,39 @@ const SIG = {
       (/\b(key|current)\b/.test(code) && /while\b[^\n]*(j|i)\s*>\s*0/.test(code))) &&
     (/arr\s*\[\s*j\s*-\s*1\s*\]\s*>\s*(key|arr\s*\[\s*j\s*\])/.test(code) ||
       /arr\s*\[\s*j\s*\]\s*=\s*arr\s*\[\s*j\s*-\s*1\s*\]/.test(code)),
+
+  palindrome: (code: string) => {
+    const named = /\bpalindrome\b/i.test(code);
+    const hasPointers =
+      /\b(l|left)\s*,\s*(r|right)\b/.test(code) ||
+      (/\b(left|l)\b/.test(code) && /\b(right|r)\b/.test(code));
+    const comparesMirror =
+      /\w+\s*\[\s*(l|left)\s*\]\s*!={1,2}\s*\w+\s*\[\s*(r|right)\s*\]/.test(code) ||
+      /\w+\s*\[\s*(l|left)\s*\]\s*={2,3}\s*\w+\s*\[\s*(r|right)\s*\]/.test(code);
+    const movesInward =
+      /(l|left)\s*(\+=\s*1|\+\+|=\s*(l|left)\s*\+\s*1)/.test(code) &&
+      /(r|right)\s*(-=\s*1|--|=\s*(r|right)\s*-\s*1)/.test(code);
+    return (named || hasPointers) && comparesMirror && movesInward;
+  },
+
+  twoSumSorted: (code: string) => {
+    const named = /\btwo\s*[_\- ]?sum\b/i.test(code);
+    const hasTarget = /\btarget\b/i.test(code);
+    const hasPointers =
+      /\b(l|left)\s*,\s*(r|right)\b/.test(code) ||
+      (/\b(l|left)\b/.test(code) && /\b(r|right)\b/.test(code));
+    const addsEnds =
+      /\w+\s*\[\s*(l|left)\s*\]\s*\+\s*\w+\s*\[\s*(r|right)\s*\]/.test(code) ||
+      /\w+\s*\[\s*(r|right)\s*\]\s*\+\s*\w+\s*\[\s*(l|left)\s*\]/.test(code);
+    const comparesTarget =
+      /(sum|total|s)\s*={2,3}\s*target/.test(code) ||
+      /(sum|total|s)\s*<\s*target/.test(code) ||
+      /(sum|total|s)\s*>\s*target/.test(code);
+    const movesPointer =
+      /(l|left)\s*(\+=\s*1|\+\+|=\s*(l|left)\s*\+\s*1)/.test(code) ||
+      /(r|right)\s*(-=\s*1|--|=\s*(r|right)\s*-\s*1)/.test(code);
+    return (named || hasTarget) && hasPointers && addsEnds && comparesTarget && movesPointer;
+  },
 
   /** Two Sum with a hash map: `complement in seen`, `map.has(complement)`, etc. */
   twoSumHash: (code: string) => {
@@ -563,6 +604,297 @@ function insertionTrace(values: number[], code: string): TraceDocument {
   );
 }
 
+
+function palindromeTrace(text: string, code: string): TraceDocument {
+  const chars = Array.from(text || "racecar");
+  const b = new TraceBuilder({
+    title: "Palindrome Check (generated)",
+    code,
+    topic: "two pointers",
+    difficulty: "beginner",
+    language: detectLanguage(code),
+    durationSeconds: 70,
+  });
+
+  const startLine = lineOf(code, /(s|text|word)\s*=|String\s+\w+\s*=/i, 1);
+  const initLine = lineOf(code, /\b(l|left)\s*,\s*(r|right)\b|\b(left|l)\s*=|\b(right|r)\s*=/, 2);
+  const compareLine = lineOf(code, /\[\s*(l|left)\s*\]\s*!={1,2}\s*\w+\s*\[\s*(r|right)\s*\]|\[\s*(l|left)\s*\]\s*={2,3}\s*\w+\s*\[\s*(r|right)\s*\]/, 4);
+  const moveLine = lineOf(code, /(l|left)\s*(\+=\s*1|\+\+|=\s*(l|left)\s*\+\s*1)/, 7);
+  const doneLine = lastLineOf(code, /(return\s+(true|false)|print\s*\(|console\.(log|print)|println\s*\()/i) ?? code.split("\n").length;
+
+  const lockedPairs = new Set<number>();
+  const memory = (highlights: { index: number; role: string }[] = []) => [
+    arrayMemory("s", "s", chars, [
+      ...chars.map((_, index) => ({
+        index,
+        role: lockedPairs.has(index) ? "sorted" : "default",
+      })),
+      ...highlights,
+    ]),
+  ];
+  const vars = (extra: Record<string, unknown>) => ({
+    s: `"${chars.join("")}"`,
+    ...extra,
+  });
+
+  let l = 0;
+  let r = chars.length - 1;
+  let comparisons = 0;
+
+  b.step({
+    line: startLine,
+    event: "program_start",
+    description: `Build a tape for "${chars.join("")}". Palindrome checking compares mirrored characters from both ends.`,
+    variables: vars({ l, r, comparisons, result: "checking" }),
+    memory: memory(),
+    visual: arrayVisual("s"),
+    changed: { variables: ["l", "r"] },
+  });
+  b.step({
+    line: initLine,
+    event: "assignment",
+    description: `Place L at index 0 and R at index ${r}. The active window is the whole string.`,
+    variables: vars({ l, r, comparisons, result: "checking" }),
+    memory: memory([
+      { index: l, role: "compare" },
+      { index: r, role: "compare" },
+    ]),
+    visual: arrayVisual("s"),
+    changed: { variables: ["l", "r"] },
+  });
+
+  while (l < r) {
+    comparisons += 1;
+    const left = chars[l];
+    const right = chars[r];
+    const isMatch = left === right;
+    b.step({
+      line: compareLine,
+      event: "condition_check",
+      description: `Compare mirrored pair s[${l}] = "${left}" and s[${r}] = "${right}".`,
+      variables: vars({ l, r, comparisons, result: "checking" }),
+      memory: memory([
+        { index: l, role: "compare" },
+        { index: r, role: "compare" },
+      ]),
+      visual: arrayVisual("s"),
+      changed: { variables: ["comparisons"] },
+      actions: [{ type: "compare", indices: [l, r], values: [left, right], result: isMatch }],
+    });
+
+    if (!isMatch) {
+      b.step({
+        line: compareLine,
+        event: "program_end",
+        description: `Mismatch: "${left}" does not equal "${right}". One broken mirror pair proves this is not a palindrome.`,
+        variables: vars({ l, r, comparisons, result: false }),
+        output: "Not a palindrome",
+        memory: memory([
+          { index: l, role: "swap" },
+          { index: r, role: "swap" },
+        ]),
+        visual: arrayVisual("s"),
+        changed: { output: true, variables: ["result"] },
+        actions: [{ type: "compare", indices: [l, r], values: [left, right], result: false }],
+      });
+      return b.build();
+    }
+
+    lockedPairs.add(l);
+    lockedPairs.add(r);
+    b.step({
+      line: compareLine,
+      event: "comparison",
+      description: `Match: lock both mirrored letters "${left}" and "${right}". They no longer need to be checked.`,
+      variables: vars({ l, r, comparisons, result: "checking" }),
+      memory: memory([
+        { index: l, role: "sorted" },
+        { index: r, role: "sorted" },
+      ]),
+      visual: arrayVisual("s"),
+      actions: [{ type: "compare", indices: [l, r], values: [left, right], result: true }],
+    });
+
+    l += 1;
+    r -= 1;
+    b.step({
+      line: moveLine,
+      event: "line_enter",
+      description: l < r
+        ? `Move both pointers inward. Next window is [${l}..${r}].`
+        : "Move both pointers inward. The pointers have met or crossed, so every mirrored pair matched.",
+      variables: vars({ l, r, comparisons, result: "checking" }),
+      memory: memory(l <= r ? [
+        { index: l, role: "compare" },
+        { index: r, role: "compare" },
+      ] : []),
+      visual: arrayVisual("s"),
+      changed: { variables: ["l", "r"] },
+      actions: [
+        { type: "pointer_move", pointer: "L", to: l },
+        { type: "pointer_move", pointer: "R", to: r },
+      ],
+    });
+  }
+
+  b.step({
+    line: doneLine,
+    event: "program_end",
+    description: `Pointers met after ${comparisons} comparison${comparisons === 1 ? "" : "s"}. Every mirrored pair matched, so "${chars.join("")}" is a palindrome.`,
+    variables: vars({ l, r, comparisons, result: true }),
+    output: "Palindrome!",
+    memory: memory(),
+    visual: arrayVisual("s"),
+    changed: { output: true, variables: ["result"] },
+  });
+
+  return b.build();
+}
+
+function twoSumSortedTrace(values: number[], target: number, code: string): TraceDocument {
+  const sortedValues = values.every((value, index) => index === 0 || values[index - 1] <= value)
+    ? values
+    : [...values].sort((a, b) => a - b);
+  const b = new TraceBuilder({
+    title: "Two Sum (Sorted Pointers) — generated",
+    code,
+    topic: "two pointers",
+    difficulty: "beginner",
+    language: detectLanguage(code),
+    durationSeconds: 75,
+  });
+
+  const initLine = lineOf(code, /\b(l|left)\s*,\s*(r|right)\b|\b(left|l)\s*=|\b(right|r)\s*=/, 3);
+  const sumLine = lineOf(code, /(sum|total|s)\s*=.*\+/, 5);
+  const foundLine = lineOf(code, /(sum|total|s)\s*={2,3}\s*target/, 6);
+  const moveLeftLine = lineOf(code, /(l|left)\s*(\+=\s*1|\+\+|=\s*(l|left)\s*\+\s*1)/, 9);
+  const moveRightLine = lineOf(code, /(r|right)\s*(-=\s*1|--|=\s*(r|right)\s*-\s*1)/, 11);
+  const doneLine = lastLineOf(code, /(return\s+\[|print\s*\(|console\.(log|print)|println\s*\()/i) ?? code.split("\n").length;
+
+  let l = 0;
+  let r = sortedValues.length - 1;
+  let probes = 0;
+  const memory = (highlights: { index: number; role: string }[] = []) => [
+    arrayMemory("arr", "arr", sortedValues, highlights),
+  ];
+  const vars = (extra: Record<string, unknown>) => ({
+    target,
+    l,
+    r,
+    probes,
+    ...extra,
+  });
+
+  b.step({
+    line: 1,
+    event: "program_start",
+    description: sortedValues === values
+      ? "The array is sorted, so the left/right pointer strategy can eliminate whole ranges after each comparison."
+      : "Sort a copy first for the teaching trace, then use left/right pointers to eliminate whole ranges after each comparison.",
+    variables: vars({ sum: "—" }),
+    memory: memory(),
+    visual: arrayVisual("arr"),
+    changed: { variables: ["target"] },
+  });
+  b.step({
+    line: initLine,
+    event: "assignment",
+    description: `Start L at index 0 and R at index ${r}. The search window is [0..${r}].`,
+    variables: vars({ sum: "—" }),
+    memory: memory([
+      { index: l, role: "compare" },
+      { index: r, role: "compare" },
+    ]),
+    visual: arrayVisual("arr"),
+    changed: { variables: ["l", "r"] },
+  });
+
+  while (l < r) {
+    probes += 1;
+    const sum = sortedValues[l] + sortedValues[r];
+    b.step({
+      line: sumLine,
+      event: "comparison",
+      description: `Probe ${probes}: arr[${l}] + arr[${r}] = ${sortedValues[l]} + ${sortedValues[r]} = ${sum}; compare it with target ${target}.`,
+      variables: vars({ sum }),
+      memory: memory([
+        { index: l, role: sum === target ? "found" : "compare" },
+        { index: r, role: sum === target ? "found" : "compare" },
+      ]),
+      visual: arrayVisual("arr"),
+      changed: { variables: ["sum", "probes"] },
+      actions: [{ type: "compare", indices: [l, r], values: [sortedValues[l], sortedValues[r]], result: sum === target }],
+    });
+
+    if (sum === target) {
+      b.step({
+        line: foundLine,
+        event: "program_end",
+        description: `Found it: arr[${l}] + arr[${r}] equals target, so indices ${l} and ${r} are the answer in the sorted array.`,
+        variables: vars({ sum, result: `[${l}, ${r}]` }),
+        output: `[${l}, ${r}]`,
+        memory: memory([
+          { index: l, role: "found" },
+          { index: r, role: "found" },
+        ]),
+        visual: arrayVisual("arr"),
+        changed: { output: true, variables: ["result"] },
+        actions: [{ type: "compare", indices: [l, r], values: [sortedValues[l], sortedValues[r]], result: true }],
+      });
+      return b.build();
+    }
+
+    if (sum < target) {
+      const from = l;
+      l += 1;
+      b.step({
+        line: moveLeftLine,
+        event: "line_enter",
+        description: `${sum} is too small. Move L right from ${from} to ${l} to try a larger value; everything left of L is eliminated.`,
+        variables: vars({ sum }),
+        memory: memory([
+          { index: from, role: "out" },
+          { index: l, role: "compare" },
+          { index: r, role: "compare" },
+        ]),
+        visual: arrayVisual("arr"),
+        changed: { variables: ["l"] },
+        actions: [{ type: "pointer_move", pointer: "L", from, to: l, indices: [l, r], values: [sortedValues[l], sortedValues[r]] }],
+      });
+    } else {
+      const from = r;
+      r -= 1;
+      b.step({
+        line: moveRightLine,
+        event: "line_enter",
+        description: `${sum} is too large. Move R left from ${from} to ${r} to try a smaller value; everything right of R is eliminated.`,
+        variables: vars({ sum }),
+        memory: memory([
+          { index: l, role: "compare" },
+          { index: r, role: "compare" },
+          { index: from, role: "out" },
+        ]),
+        visual: arrayVisual("arr"),
+        changed: { variables: ["r"] },
+        actions: [{ type: "pointer_move", pointer: "R", from, to: r, indices: [l, r], values: [sortedValues[l], sortedValues[r]] }],
+      });
+    }
+  }
+
+  b.step({
+    line: doneLine,
+    event: "program_end",
+    description: "L and R crossed. Every possible pair was eliminated, so no two values reach the target.",
+    variables: vars({ sum: "—", result: "[]" }),
+    output: "[]",
+    memory: memory(),
+    visual: arrayVisual("arr"),
+    changed: { output: true, variables: ["result"] },
+  });
+  return b.build();
+}
+
+
 /**
  * Two Sum (hash map) trace — simulates the classic algorithm on OUR side:
  * walk the array, compute complement = target − value, and check the map.
@@ -779,10 +1111,20 @@ const KIND_INFO: Record<DetectionKind, { title: string; confidence: number; note
   "bubble-sort": { title: "Bubble Sort", confidence: 0.85, note: "Nested loop swapping adjacent out-of-order pairs." },
   "selection-sort": { title: "Selection Sort", confidence: 0.82, note: "Find the minimum in the unsorted suffix and place it at the front." },
   "insertion-sort": { title: "Insertion Sort", confidence: 0.82, note: "Grow a sorted prefix by inserting each new key into place." },
+  palindrome: {
+    title: "Palindrome Check",
+    confidence: 0.88,
+    note: "Two pointers compare mirrored characters and shrink the unchecked window.",
+  },
   "two-sum": {
     title: "Two Sum (Hash Map)",
     confidence: 0.9,
     note: "Hash map stores each value's index for O(1) complement lookups.",
+  },
+  "two-sum-sorted": {
+    title: "Two Sum (Sorted Pointers)",
+    confidence: 0.88,
+    note: "Sorted two-pointer search moves inward based on whether the sum is too small or too large.",
   },
   script: { title: "Story Script", confidence: 1, note: "Declarative commands turned into a trace." },
 };
@@ -819,12 +1161,16 @@ export function detectAndGenerate(code: string, options?: DetectionOptions): Det
   add("bubble-sort", SIG.bubbleSort(trimmed));
   add("selection-sort", SIG.selectionSort(trimmed));
   add("insertion-sort", SIG.insertionSort(trimmed));
+  add("palindrome", SIG.palindrome(trimmed));
+  add("two-sum-sorted", SIG.twoSumSorted(trimmed));
   add("two-sum", SIG.twoSumHash(trimmed));
 
-  // Prefer the most specific match first (recursion > hash map > sort > search > loop).
+  // Prefer the most specific match first (recursion > pointer patterns > hash map > sort > search > loop).
   const priority: DetectionKind[] = [
     "fibonacci-recursion",
     "factorial-recursion",
+    "palindrome",
+    "two-sum-sorted",
     "two-sum",
     "bubble-sort",
     "selection-sort",
@@ -905,6 +1251,13 @@ export function detectAndGenerate(code: string, options?: DetectionOptions): Det
       } else if (kind === "binary-search") {
         const target = extractCallArg(trimmed, "target|key|search") ?? values?.[Math.floor((values.length ?? 2) / 2)] ?? 7;
         trace = searchTrace(values ?? [1, 3, 5, 7, 9, 11], target, trimmed);
+      } else if (kind === "palindrome") {
+        trace = palindromeTrace(extractStringLiteral(trimmed) ?? "racecar", trimmed);
+      } else if (kind === "two-sum-sorted") {
+        const target =
+          extractTarget(trimmed) ??
+          (values && values.length >= 2 ? values[0] + values[1] : 9);
+        trace = twoSumSortedTrace(values ?? [2, 7, 11, 15], target, trimmed);
       } else if (kind === "two-sum") {
         const target =
           extractTarget(trimmed) ??

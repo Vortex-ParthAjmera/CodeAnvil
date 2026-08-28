@@ -83,6 +83,37 @@ for (let i = 0; i < n - 1; i++) {
 console.log(arr);`,
   },
   {
+    label: "Two sum",
+    language: "Python",
+    code: `arr = [2, 7, 11, 15]
+target = 9
+l = 0
+r = len(arr) - 1
+while l < r:
+    s = arr[l] + arr[r]
+    if s == target:
+        print(l, r)
+        break
+    elif s < target:
+        l += 1
+    else:
+        r -= 1`,
+  },
+  {
+    label: "Palindrome",
+    language: "Python",
+    code: `s = "racecar"
+l, r = 0, len(s) - 1
+while l < r:
+    if s[l] != s[r]:
+        print("Not a palindrome")
+        break
+    l += 1
+    r -= 1
+else:
+    print("Palindrome!")`,
+  },
+  {
     label: "Recursion",
     language: "Python",
     code: `def fact(n):
@@ -365,7 +396,7 @@ export function VisualizerScreen({ onNavigate }: { onNavigate: (route: Route) =>
           </div>
           <div className="ml-auto hidden items-center gap-4 xl:flex">
             <span className="flex items-center gap-1.5 text-[10px] text-verdant-300"><ShieldCheck size={13} /> static analysis only</span>
-            <span className="flex items-center gap-1.5 text-[10px] text-ink-400"><Sparkles size={13} className="text-arc-300" /> 14 language families</span>
+            <span className="flex items-center gap-1.5 text-[10px] text-ink-400"><Sparkles size={13} className="text-arc-300" /> {LANGUAGE_LABELS.length} language families</span>
           </div>
         </div>
       </header>
@@ -384,12 +415,12 @@ export function VisualizerScreen({ onNavigate }: { onNavigate: (route: Route) =>
         >
           <div className="flex flex-wrap items-center gap-1.5 border-b border-ink-800 px-3 py-2">
             <span className="mr-1 flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-[0.18em] text-ink-500"><Code2 size={12} /> Source</span>
-            {SAMPLES.slice(0, 4).map((sample) => (
+            {SAMPLES.slice(0, 5).map((sample) => (
               <button key={sample.label} type="button" onClick={() => loadSample(sample)} title={`${sample.label} · ${sample.language}`} className="rounded-md border border-ink-700 bg-ink-950 px-2 py-1 text-[10px] text-ink-400 transition-colors hover:border-ember-500/50 hover:text-ember-300">{sample.label}</button>
             ))}
             <div className="relative">
               <select aria-label="More samples" defaultValue="" onChange={(event) => { const sample = SAMPLES.find((item) => item.label === event.target.value); if (sample) loadSample(sample); event.target.value = ""; }} className="h-7 appearance-none rounded-md border border-ink-700 bg-ink-950 pl-2 pr-7 text-[10px] text-ink-400 outline-none hover:border-ink-600">
-                <option value="" disabled>More</option>{SAMPLES.slice(4).map((sample) => <option key={sample.label}>{sample.label}</option>)}
+                <option value="" disabled>More</option>{SAMPLES.slice(5).map((sample) => <option key={sample.label}>{sample.label}</option>)}
               </select><ChevronDown size={11} className="pointer-events-none absolute right-2 top-2 text-ink-500" />
             </div>
             <div className="relative">

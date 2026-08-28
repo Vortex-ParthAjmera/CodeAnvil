@@ -119,6 +119,45 @@ describe("detectAndGenerate — recognized patterns", () => {
     expect(res.language).toBe("javascript");
   });
 
+  it("detects palindrome pointer checks", () => {
+    const res = detectAndGenerate(`s = "racecar"
+l, r = 0, len(s) - 1
+while l < r:
+    if s[l] != s[r]:
+        print("Not a palindrome")
+        break
+    l += 1
+    r -= 1
+else:
+    print("Palindrome!")`);
+    expect(res.kind).toBe("palindrome");
+    expect(res.trace).toBeDefined();
+    expect(traceIsValid(res.trace!)).toBe(true);
+    expect(res.trace!.steps.some((step) => step.variables.result === true)).toBe(true);
+    expect(res.trace!.steps.some((step) => step.memory?.[0]?.id === "s")).toBe(true);
+  });
+
+  it("detects sorted two-sum pointer checks", () => {
+    const res = detectAndGenerate(`arr = [2, 7, 11, 15]
+target = 9
+l = 0
+r = len(arr) - 1
+while l < r:
+    s = arr[l] + arr[r]
+    if s == target:
+        print(l, r)
+        break
+    elif s < target:
+        l += 1
+    else:
+        r -= 1`);
+    expect(res.kind).toBe("two-sum-sorted");
+    expect(res.trace).toBeDefined();
+    expect(traceIsValid(res.trace!)).toBe(true);
+    expect(res.trace!.steps.some((step) => step.variables.l === 0 && step.variables.r === 1)).toBe(true);
+    expect(res.trace!.steps[res.trace!.steps.length - 1].output).toContain("[0, 1]");
+  });
+
   it("detects two-sum (hash map) from the exact pasted code", () => {
     const res = detectAndGenerate(`def two_sum(nums: list[int], target: int) -> list[int]:
     seen_numbers = {}

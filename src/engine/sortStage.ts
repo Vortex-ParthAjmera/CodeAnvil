@@ -30,6 +30,9 @@ export interface MergeSortSceneModel extends ArrayTraceModel {
   rightRange: [number, number] | null;
   leftValues: number[];
   rightValues: number[];
+  committedUntil: number | null;
+  leftCursor: number;
+  rightCursor: number;
   comparePair: [number, number] | null;
   compareValues: [number, number] | null;
   writingIndex: number | null;
@@ -485,6 +488,30 @@ function primaryMergeAction(step: TraceStep) {
   );
 }
 
+function deriveMergeCursors(leftValues: number[], rightValues: number[], committedValues: number[]) {
+  let leftCursor = 0;
+  let rightCursor = 0;
+
+  for (const value of committedValues) {
+    const leftValue = leftValues[leftCursor];
+    const rightValue = rightValues[rightCursor];
+    const canTakeLeft = leftCursor < leftValues.length;
+    const canTakeRight = rightCursor < rightValues.length;
+
+    if (canTakeLeft && (!canTakeRight || leftValue <= rightValue) && leftValue === value) {
+      leftCursor++;
+    } else if (canTakeRight && rightValue === value) {
+      rightCursor++;
+    } else if (canTakeLeft && leftValue === value) {
+      leftCursor++;
+    } else if (canTakeRight) {
+      rightCursor++;
+    }
+  }
+
+  return { leftCursor, rightCursor };
+}
+
 export function getMergeSortSceneModel(step: TraceStep): MergeSortSceneModel | null {
   const array = getArrayTraceModel(step);
   if (!array) return null;
@@ -522,6 +549,8 @@ export function getMergeSortSceneModel(step: TraceStep): MergeSortSceneModel | n
   const rightValues = numericArray(action?.rightValues);
   const fallbackLeftValues = leftRange ? array.values.slice(leftRange[0], leftRange[1] + 1) : [];
   const fallbackRightValues = rightRange ? array.values.slice(rightRange[0], rightRange[1] + 1) : [];
+  const resolvedLeftValues = leftValues.length ? leftValues : fallbackLeftValues;
+  const resolvedRightValues = rightValues.length ? rightValues : fallbackRightValues;
 
   let headline = step.description;
   let detail = "Merge Sort recursively splits the array into halves until single elements remain, then merges pairs back in sorted order by comparing front elements.";
@@ -547,14 +576,35 @@ export function getMergeSortSceneModel(step: TraceStep): MergeSortSceneModel | n
     detail = step.description;
   }
 
+  const committedEnd =
+    operation === "complete"
+      ? range[1]
+      : (operation === "write" || operation === "copy") && destinationIndex !== null
+        ? destinationIndex
+        : operation === "compare" && destinationIndex !== null
+          ? destinationIndex - 1
+          : null;
+  const committedUntil =
+    committedEnd !== null && committedEnd >= range[0]
+      ? Math.max(range[0], Math.min(range[1], committedEnd))
+      : null;
+  const committedValues =
+    committedUntil !== null
+      ? array.values.slice(range[0], committedUntil + 1)
+      : [];
+  const { leftCursor, rightCursor } = deriveMergeCursors(resolvedLeftValues, resolvedRightValues, committedValues);
+
   return {
     ...array,
     range,
     mid,
     leftRange,
     rightRange,
-    leftValues: leftValues.length ? leftValues : fallbackLeftValues,
-    rightValues: rightValues.length ? rightValues : fallbackRightValues,
+    leftValues: resolvedLeftValues,
+    rightValues: resolvedRightValues,
+    committedUntil,
+    leftCursor,
+    rightCursor,
     comparePair,
     compareValues,
     writingIndex,

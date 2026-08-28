@@ -59,6 +59,9 @@ describe("sort stage helpers", () => {
       compareValues: [8, 3],
       destinationIndex: 0,
       takeSide: "right",
+      committedUntil: null,
+      leftCursor: 0,
+      rightCursor: 0,
     });
 
     const writeModel = getMergeSortSceneModel(writeStep!);
@@ -67,6 +70,34 @@ describe("sort stage helpers", () => {
       writingIndex: 0,
       value: 3,
       writes: 1,
+      committedUntil: 0,
+      leftCursor: 0,
+      rightCursor: 1,
+    });
+  });
+
+  it("keeps merge output pending until slots are actually written", () => {
+    const trace = generateTrace("merge-sort", { array: [8, 3, 5, 1, 9, 2] });
+    const writeIntoMiddle = trace.steps.find((step) =>
+      step.actions?.some(
+        (action) =>
+          action.phase === "merge_write" &&
+          Array.isArray(action.range) &&
+          action.range[0] === 0 &&
+          action.range[1] === 2 &&
+          action.index === 1,
+      ),
+    );
+
+    expect(writeIntoMiddle).toBeDefined();
+    expect(getMergeSortSceneModel(writeIntoMiddle!)).toMatchObject({
+      operation: "write",
+      range: [0, 2],
+      value: 5,
+      destinationIndex: 1,
+      committedUntil: 1,
+      leftCursor: 1,
+      rightCursor: 1,
     });
   });
 

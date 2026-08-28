@@ -157,6 +157,21 @@ Tasks:
 - add generic storyboard fallback for unknown code
 - validate generated trace JSON before playback
 
+Current shipped subset:
+
+- language detection is live for 15 user-facing language families
+- heuristic DSA pattern matching is live for core loops, recursion, search, beginner sorts, palindrome, hash-map two-sum, and sorted two-sum
+- generated traces are validated before playback
+- unknown snippets fall back to a structural storyboard
+- the DSA Atlas now opens polished playback lab examples directly when a finished trace exists
+
+Remaining work:
+
+- Tree-sitter parser experiments
+- custom-code detection for merge, quick, and heap sort
+- local LLM explanation layer
+- sandboxed execution after isolation work
+
 Output:
 
 - paste-code pipeline that produces CodeAnvil trace data

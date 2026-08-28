@@ -106,6 +106,7 @@ Example actions:
 { "type": "visit_node", "node": "A" }
 { "type": "push", "target": "stack", "value": 7 }
 { "type": "pointer_move", "pointer": "left", "to": 3 }
+{ "type": "pointer_move", "pointer": "L", "from": 0, "to": 1, "indices": [1, 3] }
 ```
 
 Action rules:
@@ -180,6 +181,16 @@ Supported MVP types:
 - `grid`
 - `graph`
 - `call_stack`
+
+Current renderer dispatchers:
+
+- array stages render basic scans, comparisons, swaps, and pointer movement
+- binary search uses range, low, high, and mid state
+- sorting stages use algorithm-specific sort actions and memory highlights
+- recursion stages use `recursion_tree` payloads and call-stack state
+- grid stages use `grid` memory and visited/frontier/path roles
+- palindrome stages use an array memory item named `s` with `l` and `r` variables
+- sorted two-sum stages use an array memory item named `arr` with `l`, `r`, `sum`, and `target`
 
 Future types:
 

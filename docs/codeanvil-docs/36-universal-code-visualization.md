@@ -23,6 +23,26 @@ The quality tiers are:
 - Unknown code: generate a generic execution storyboard with line highlights, variable changes, call stack, memory snapshots, output, and simple visual actions.
 - Unsupported or unsafe code: explain why it cannot be visualized yet and offer a safer rewrite or closest supported example.
 
+## Current Implementation Status
+
+Live in the frontend today:
+
+- static language detection for Python, JavaScript, TypeScript, C, C++, Java, C#, Go, Rust, Kotlin, Swift, Ruby, PHP, Dart, and Story Script
+- heuristic pattern detection for sum array, max array, factorial loop, factorial recursion, fibonacci recursion, binary search, bubble sort, selection sort, insertion sort, palindrome pointer checks, two-sum hash-map checks, and sorted two-sum pointer checks
+- generated traces are validated before playback
+- unknown code falls back to a structural storyboard instead of executing user code
+- specialized Three.js dispatchers exist for binary search, sorting stages, recursion trees, BFS/DFS grids, palindrome string tapes, and sorted two-sum pointers
+- DSA Atlas rows with polished examples open the playback lab directly; unfinished rows seed the paste-code visualizer
+
+Not live yet:
+
+- Tree-sitter parser integration
+- local LLM explanations
+- sandboxed execution
+- custom-code detection for merge sort, quick sort, and heap sort
+
+Those sorting algorithms currently exist as curated playback lab examples, not universal paste-code matchers.
+
 ## Core Decision
 
 Do not generate raw Three.js code from user input.

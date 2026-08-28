@@ -464,6 +464,10 @@ export function DsaAtlasScreen({ onNavigate }: { onNavigate: (route: Route) => v
   }, [query, topic, difficulty, company, coreOnly]);
 
   function visualize(problem: DsaProblem) {
+    if (problem.exampleId) {
+      onNavigate({ name: "lab", exampleId: problem.exampleId });
+      return;
+    }
     sessionStorage.setItem(VISUALIZER_DRAFT_KEY, makeProblemStarter(problem));
     onNavigate({ name: "visualize" });
   }

@@ -17,4 +17,24 @@ describe("DSA catalog", () => {
       expect(makeProblemStarter(problem).length).toBeGreaterThan(30);
     }
   });
+
+  it("links completed atlas rows to polished playback examples", () => {
+    const expected = new Map([
+      ["Classic Binary Search", "binary-search"],
+      ["Bubble Sort", "bubble-sort"],
+      ["Merge Sort", "merge-sort"],
+      ["Quick Sort", "quick-sort"],
+      ["Heap Sort", "heap-sort"],
+      ["Valid Palindrome", "palindrome"],
+      ["Two Sum II", "two-sum"],
+      ["Factorial Recursion", "factorial-recursion"],
+      ["Fibonacci Recursion", "fibonacci-recursion"],
+    ]);
+
+    for (const [title, exampleId] of expected) {
+      const problem = DSA_PROBLEMS.find((item) => item.title === title);
+      expect(problem?.exampleId).toBe(exampleId);
+      expect(makeProblemStarter(problem!)).not.toContain("Paste or write");
+    }
+  });
 });

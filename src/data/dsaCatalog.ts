@@ -91,8 +91,8 @@ export const DSA_PROBLEMS: DsaProblem[] = [
     ["Maximum in Array", "beginner", "O(n)", "Track the largest value seen during a scan.", "max-array"],
   ]),
   ...group("Two Pointers", "Pointer convergence", [
-    ["Valid Palindrome", "beginner", "O(n)", "Compare normalized characters from both ends."],
-    ["Two Sum II", "intermediate", "O(n)", "Converge on a target in a sorted array."],
+    ["Valid Palindrome", "beginner", "O(n)", "Compare normalized characters from both ends.", "palindrome"],
+    ["Two Sum II", "intermediate", "O(n)", "Converge on a target in a sorted array.", "two-sum"],
     ["3Sum", "intermediate", "O(n²)", "Fix one value and solve a two-pointer pair search."],
     ["Container With Most Water", "intermediate", "O(n)", "Shrink the limiting wall while maximizing area."],
     ["Trapping Rain Water", "advanced", "O(n)", "Accumulate water using opposing boundary maxima."],
@@ -260,9 +260,9 @@ export const DSA_PROBLEMS: DsaProblem[] = [
     ["Bubble Sort", "beginner", "O(n²)", "Swap adjacent inversions until all values settle.", "bubble-sort"],
     ["Insertion Sort", "beginner", "O(n²)", "Insert each value into an already-sorted prefix."],
     ["Selection Sort", "beginner", "O(n²)", "Repeatedly select the next minimum."],
-    ["Merge Sort", "intermediate", "O(n log n)", "Sort halves recursively and merge their frontiers."],
-    ["Quick Sort", "intermediate", "O(n log n)*", "Partition values around pivots recursively."],
-    ["Heap Sort", "intermediate", "O(n log n)", "Heapify then extract extremes into final positions."],
+    ["Merge Sort", "intermediate", "O(n log n)", "Sort halves recursively and merge their frontiers.", "merge-sort"],
+    ["Quick Sort", "intermediate", "O(n log n)*", "Partition values around pivots recursively.", "quick-sort"],
+    ["Heap Sort", "intermediate", "O(n log n)", "Heapify then extract extremes into final positions.", "heap-sort"],
     ["Counting Sort", "intermediate", "O(n+k)", "Count bounded integer values before expanding them."],
     ["Radix Sort", "advanced", "O(d(n+k))", "Stable-sort numbers one digit at a time."],
     ["Sort a Nearly Sorted Array", "intermediate", "O(n log k)", "Use a small heap over the displacement window."],
@@ -399,6 +399,11 @@ export function makeProblemStarter(problem: DsaProblem): string {
   const safeName = problem.title.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/(^_|_$)/g, "");
   if (problem.exampleId === "binary-search") return `arr = [1, 3, 5, 7, 9, 11]\ntarget = 7\nlow, high = 0, len(arr) - 1\nwhile low <= high:\n    mid = (low + high) // 2\n    if arr[mid] == target:\n        print("Found at", mid)\n        break\n    elif arr[mid] < target:\n        low = mid + 1\n    else:\n        high = mid - 1`;
   if (problem.exampleId === "bubble-sort") return `arr = [5, 2, 8, 1]\nn = len(arr)\nfor i in range(n - 1):\n    for j in range(n - 1 - i):\n        if arr[j] > arr[j + 1]:\n            arr[j], arr[j + 1] = arr[j + 1], arr[j]\nprint(arr)`;
+  if (problem.exampleId === "merge-sort") return `arr = [8, 3, 5, 1, 9, 2]\ndef merge_sort(a):\n    if len(a) <= 1:\n        return a\n    mid = len(a) // 2\n    left = merge_sort(a[:mid])\n    right = merge_sort(a[mid:])\n    return merge(left, right)\nprint(merge_sort(arr))`;
+  if (problem.exampleId === "quick-sort") return `arr = [9, 3, 7, 1, 8, 2]\ndef partition(a, lo, hi):\n    pivot = a[hi]\n    i = lo\n    for j in range(lo, hi):\n        if a[j] < pivot:\n            a[i], a[j] = a[j], a[i]\n            i += 1\n    a[i], a[hi] = a[hi], a[i]\n    return i\nprint(arr)`;
+  if (problem.exampleId === "heap-sort") return `arr = [4, 10, 3, 5, 1]\ndef heapify(a, n, i):\n    largest = i\n    l, r = 2 * i + 1, 2 * i + 2\n    if l < n and a[l] > a[largest]:\n        largest = l\n    if r < n and a[r] > a[largest]:\n        largest = r\n    if largest != i:\n        a[i], a[largest] = a[largest], a[i]\nprint(arr)`;
+  if (problem.exampleId === "palindrome") return `s = "racecar"\nl, r = 0, len(s) - 1\nwhile l < r:\n    if s[l] != s[r]:\n        print("Not a palindrome")\n        break\n    l += 1\n    r -= 1\nelse:\n    print("Palindrome!")`;
+  if (problem.exampleId === "two-sum") return `arr = [2, 7, 11, 15]\ntarget = 9\nl = 0\nr = len(arr) - 1\nwhile l < r:\n    s = arr[l] + arr[r]\n    if s == target:\n        print(l, r)\n        break\n    elif s < target:\n        l += 1\n    else:\n        r -= 1`;
   if (problem.exampleId === "sum-array") return `arr = [4, 7, 1, 9]\ntotal = 0\nfor i in range(len(arr)):\n    total = total + arr[i]\nprint("Total:", total)`;
   if (problem.exampleId === "max-array") return `arr = [3, 8, 2, 9, 5]\nmax_val = arr[0]\nfor i in range(1, len(arr)):\n    if arr[i] > max_val:\n        max_val = arr[i]\nprint("Max:", max_val)`;
   if (problem.exampleId === "factorial-recursion") return `def fact(n):\n    if n <= 1:\n        return 1\n    return n * fact(n - 1)\n\nprint(fact(4))`;

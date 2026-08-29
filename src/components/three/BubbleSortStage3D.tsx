@@ -25,7 +25,7 @@ interface SortBar {
 const GAP = 1.22;
 const BAR_WIDTH = 0.72;
 const BAR_DEPTH = 0.68;
-const MAX_BAR_HEIGHT = 2.42;
+const MAX_BAR_HEIGHT = 2.16;
 
 function colorForBar(bar: SortBar, p: Theme3DPalette): string {
   if (bar.isSwap) return p.emberBright;
@@ -124,7 +124,7 @@ function AnimatedBar({ bar, p }: { bar: SortBar; p: Theme3DPalette }) {
         </mesh>
       )}
 
-      <Html position={[0, bar.height + 0.32, 0]} center style={{ pointerEvents: "none", WebkitFontSmoothing: "antialiased", textRendering: "geometricPrecision" }}>
+      <Html position={[0, bar.height + 0.22, 0]} center style={{ pointerEvents: "none", WebkitFontSmoothing: "antialiased", textRendering: "geometricPrecision" }}>
         <div
           data-bubble-stage="value"
           style={{ borderColor: isActive ? color : "rgba(255,255,255,0.18)" }}
@@ -161,8 +161,8 @@ function PairArc({
   bars: SortBar[];
   p: Theme3DPalette;
 }) {
-  const pair = model.activePair;
-  const pulse = usePulsedScale(1, 0.03, 3.8);
+  const pair = model.operation === "compare" ? model.comparePair : null;
+  const pulse = usePulsedScale(1, 0.018, 3.2);
   if (!pair) return null;
 
   const [left, right] = [...pair].sort((a, b) => a - b);
@@ -171,13 +171,13 @@ function PairArc({
   if (!leftBar || !rightBar) return null;
 
   const color = model.operation === "swap" ? p.emberBright : p.arcBright;
-  const high = Math.max(leftBar.height, rightBar.height) + 0.54;
+  const high = Math.max(leftBar.height, rightBar.height) + 0.34;
   const x1 = leftBar.x;
   const x2 = rightBar.x;
   const points = Array.from({ length: 18 }, (_, index) => {
     const t = index / 17;
     const x = THREE.MathUtils.lerp(x1, x2, t);
-    const y = high + Math.sin(Math.PI * t) * 0.38;
+    const y = high + Math.sin(Math.PI * t) * 0.24;
     const z = -0.08;
     return new THREE.Vector3(x, y, z);
   });
@@ -204,21 +204,20 @@ function SwapPaths({
   const rightBar = bars.find((bar) => bar.index === b);
   if (!leftBar || !rightBar) return null;
 
-  const top = Math.max(leftBar.height, rightBar.height) + 0.34;
   const makePath = (from: number, to: number, z: number) =>
     Array.from({ length: 14 }, (_, index) => {
       const t = index / 13;
       return new THREE.Vector3(
         THREE.MathUtils.lerp(from, to, t),
-        top + Math.sin(Math.PI * t) * 0.72,
+        0.28 + Math.sin(Math.PI * t) * 0.22,
         z,
       );
     });
 
   return (
     <group>
-      <Line points={makePath(leftBar.x, rightBar.x, 0.42)} color={p.emberBright} lineWidth={2.4} />
-      <Line points={makePath(rightBar.x, leftBar.x, -0.42)} color={p.arcBright} lineWidth={2.4} />
+      <Line points={makePath(leftBar.x, rightBar.x, 0.5)} color={p.emberBright} lineWidth={2.15} />
+      <Line points={makePath(rightBar.x, leftBar.x, -0.5)} color={p.arcBright} lineWidth={1.9} />
     </group>
   );
 }
@@ -387,7 +386,7 @@ export function BubbleSortStage3D({ step, steps }: { step: TraceStep; steps?: Tr
       <Canvas
         dpr={[1.25, 2]}
         data-testid="bubble-sort-stage-canvas"
-        camera={{ position: [0, 3.5, 8.35], fov: 40 }}
+        camera={{ position: [0, 3.45, 9], fov: 42 }}
         gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
         style={{ width: "100%", height: "100%", background: "transparent" }}
       >

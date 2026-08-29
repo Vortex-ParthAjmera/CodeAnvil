@@ -107,7 +107,7 @@ function QuickSortBar({ bar }: { bar: QuickBar }) {
       <Html position={[0, bar.height + 0.3, 0]} center style={{ pointerEvents: "none", WebkitFontSmoothing: "antialiased", textRendering: "geometricPrecision" }}>
         <div
           data-quick-stage="value"
-          className="min-w-8 rounded-md border bg-ink-950/95 px-2 py-1 text-center font-mono text-[13px] font-black leading-none text-ink-50 shadow-xl"
+          className="stage-value-card"
           style={{ borderColor: bar.edge, textShadow: "0 1px 2px rgb(0 0 0 / 0.8)" }}
         >
           {bar.value}
@@ -318,7 +318,7 @@ function Overlay({ model }: { model: QuickSortSceneModel }) {
           <p className="mt-1 text-[11px] font-black leading-tight text-ink-50 sm:text-xs">{model.headline}</p>
         </div>
 
-        <div className="hidden max-w-[16rem] flex-wrap justify-end gap-1 min-[560px]:flex sm:max-w-[21rem]">
+        <div className="stage-hud-secondary max-w-[16rem] flex-wrap justify-end gap-1 sm:max-w-[21rem]">
           {stats.map(([label, value]) => (
             <div key={label} className="rounded border border-ink-700/65 bg-ink-950/72 px-1.5 py-1 text-center shadow-lg backdrop-blur-sm">
               <span className="block font-mono text-[8px] font-black uppercase tracking-widest text-ink-500">{label}</span>
@@ -332,7 +332,7 @@ function Overlay({ model }: { model: QuickSortSceneModel }) {
         <p className="max-w-[24rem] rounded-md border border-arc-400/25 bg-ink-950/68 px-2 py-1.5 text-[10px] leading-snug text-ink-300 shadow-lg backdrop-blur-sm">
           {model.detail}
         </p>
-        <div className="ml-auto hidden flex-wrap justify-end gap-1 min-[760px]:flex">
+        <div className="stage-hud-legend ml-auto flex-wrap justify-end gap-1">
           <span className="rounded border border-ember-400/35 bg-ink-950/72 px-1.5 py-1 font-mono text-[9px] font-bold uppercase text-ember-200 backdrop-blur">orange pivot</span>
           <span className="rounded border border-arc-400/35 bg-ink-950/72 px-1.5 py-1 font-mono text-[9px] font-bold uppercase text-arc-200 backdrop-blur">blue scan</span>
           <span className="rounded border border-verdant-400/35 bg-ink-950/72 px-1.5 py-1 font-mono text-[9px] font-bold uppercase text-verdant-200 backdrop-blur">green done</span>
@@ -350,7 +350,7 @@ export function QuickSortStage3D({ step, steps }: { step: TraceStep; steps?: Tra
   if (!model) return null;
 
   return (
-    <div className="codeanvil-canvas-fill relative h-full w-full overflow-hidden rounded-md">
+    <div className="codeanvil-canvas-fill codeanvil-stage-frame relative h-full w-full overflow-hidden rounded-md">
       <Canvas
         data-testid="quick-sort-stage-canvas"
         dpr={[1.25, 2]}

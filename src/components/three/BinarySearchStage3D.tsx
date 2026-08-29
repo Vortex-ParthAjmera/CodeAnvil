@@ -91,7 +91,7 @@ function ArrayCell({
       <Html position={[0, 0.02, 0.4]} center style={{ pointerEvents: "none", WebkitFontSmoothing: "antialiased", textRendering: "geometricPrecision" }}>
         <div
           data-binary-stage="value"
-          className="min-w-8 rounded-md border bg-ink-950/95 px-2 py-1 text-center font-mono text-[13px] font-black leading-none text-ink-50 shadow-xl"
+          className="stage-value-card"
           style={{ borderColor: color, opacity: cell.isDiscarded ? 0.56 : 1 }}
         >
           {cell.value}
@@ -256,7 +256,7 @@ function Overlay({ model }: { model: BinarySearchSceneModel }) {
           <p className="mt-1 text-[11px] font-black leading-tight text-ink-50 sm:text-xs">{model.headline}</p>
         </div>
 
-        <div className="hidden max-w-[16rem] flex-wrap justify-end gap-1 min-[560px]:flex sm:max-w-[21rem]">
+        <div className="stage-hud-secondary max-w-[16rem] flex-wrap justify-end gap-1 sm:max-w-[21rem]">
           {stats.map(([label, value]) => (
             <div key={label} className="rounded border border-ink-700/65 bg-ink-950/72 px-1.5 py-1 text-center shadow-lg backdrop-blur-sm">
               <span className="block font-mono text-[8px] font-black uppercase tracking-widest text-ink-500">{label}</span>
@@ -270,7 +270,7 @@ function Overlay({ model }: { model: BinarySearchSceneModel }) {
         <p className="max-w-[24rem] rounded-md border border-arc-400/25 bg-ink-950/68 px-2 py-1.5 text-[10px] leading-snug text-ink-300 shadow-lg backdrop-blur-sm">
           {model.detail}
         </p>
-        <div className="ml-auto hidden flex-wrap justify-end gap-1 min-[760px]:flex">
+        <div className="stage-hud-legend ml-auto flex-wrap justify-end gap-1">
           <span className="rounded border border-arc-400/35 bg-ink-950/72 px-1.5 py-1 font-mono text-[9px] font-bold uppercase text-arc-200 backdrop-blur">blue window</span>
           <span className="rounded border border-ember-400/35 bg-ink-950/72 px-1.5 py-1 font-mono text-[9px] font-bold uppercase text-ember-200 backdrop-blur">orange mid</span>
           <span className="rounded border border-verdant-400/35 bg-ink-950/72 px-1.5 py-1 font-mono text-[9px] font-bold uppercase text-verdant-200 backdrop-blur">green found</span>
@@ -288,7 +288,7 @@ export function BinarySearchStage3D({ step, steps }: { step: TraceStep; steps?: 
   if (!model) return null;
 
   return (
-    <div className="codeanvil-canvas-fill relative h-full w-full overflow-hidden rounded-md @container">
+    <div className="codeanvil-canvas-fill codeanvil-stage-frame relative h-full w-full overflow-hidden rounded-md">
       <Canvas
         data-testid="binary-search-stage-canvas"
         dpr={[1.25, 2]}

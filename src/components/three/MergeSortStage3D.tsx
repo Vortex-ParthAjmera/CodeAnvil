@@ -183,7 +183,7 @@ function MergeTile({
         <Html position={[0, tile.height + 0.24, 0]} center style={textCardStyle()}>
           <div
             data-merge-stage="tile-value"
-            className="min-w-7 rounded-md border bg-ink-950/96 px-1.5 py-0.5 text-center font-mono text-[12px] font-black leading-none text-ink-50 shadow-xl"
+            className="stage-value-card"
             style={{ borderColor: tile.edge }}
           >
             {tile.value}
@@ -267,7 +267,7 @@ function TransferTile({
         <Edges color="#f8fbff" threshold={16} />
       </mesh>
       <Html position={[0, 0.48, 0]} center style={textCardStyle()}>
-        <div data-merge-stage="transfer-value" className="rounded-md border border-verdant-300 bg-ink-950/96 px-1.5 py-0.5 font-mono text-[12px] font-black leading-none text-verdant-100 shadow-xl">
+        <div data-merge-stage="transfer-value" className="stage-value-card text-verdant-100">
           {value}
         </div>
       </Html>
@@ -502,7 +502,7 @@ function Overlay({ model }: { model: MergeSortSceneModel }) {
           <p className="mt-1 text-[11px] font-black leading-tight text-ink-50 sm:text-xs">{model.headline}</p>
         </div>
 
-        <div className="hidden max-w-[18rem] flex-wrap justify-end gap-1 min-[520px]:flex sm:max-w-[24rem]">
+        <div className="stage-hud-secondary max-w-[18rem] flex-wrap justify-end gap-1 sm:max-w-[24rem]">
           {stats.map(([label, value]) => (
             <div key={label} className="rounded border border-ink-700/65 bg-ink-950/76 px-1.5 py-1 text-center shadow-lg backdrop-blur-sm">
               <span className="block font-mono text-[8px] font-black uppercase tracking-widest text-ink-500">{label}</span>
@@ -516,7 +516,7 @@ function Overlay({ model }: { model: MergeSortSceneModel }) {
         <p className="max-w-[30rem] rounded-md border border-arc-400/25 bg-ink-950/74 px-2.5 py-1.5 text-[10px] leading-snug text-ink-200 shadow-lg backdrop-blur-sm sm:text-[11px]">
           {model.detail}
         </p>
-        <div className="ml-auto hidden flex-wrap justify-end gap-1 min-[760px]:flex">
+        <div className="stage-hud-legend ml-auto flex-wrap justify-end gap-1">
           <span className="rounded border border-arc-400/35 bg-ink-950/76 px-1.5 py-1 font-mono text-[9px] font-bold uppercase text-arc-200 backdrop-blur">left run</span>
           <span className="rounded border border-ember-400/35 bg-ink-950/76 px-1.5 py-1 font-mono text-[9px] font-bold uppercase text-ember-200 backdrop-blur">right run</span>
           <span className="rounded border border-verdant-400/35 bg-ink-950/76 px-1.5 py-1 font-mono text-[9px] font-bold uppercase text-verdant-200 backdrop-blur">output write</span>
@@ -535,7 +535,7 @@ export function MergeSortStage3D({ step, steps }: { step: TraceStep; steps?: Tra
   if (!model) return null;
 
   return (
-    <div className="codeanvil-canvas-fill relative h-full w-full overflow-hidden rounded-md">
+    <div className="codeanvil-canvas-fill codeanvil-stage-frame relative h-full w-full overflow-hidden rounded-md">
       <Canvas
         data-testid="merge-sort-stage-canvas"
         dpr={[1.5, 2]}

@@ -85,13 +85,13 @@ function writeView3dPref(id: string, is3d: boolean): void {
 }
 
 /* Per-panel size weights (2–9) for the workspace layout, persisted locally. */
-const PANEL_SIZES_KEY = "codeanvil.panel-sizes.v1";
+const PANEL_SIZES_KEY = "codeanvil.panel-sizes.v3";
 const PANEL_SIZE_IDS = ["code", "stage", "inspector"] as const;
 type PanelSizeKey = (typeof PANEL_SIZE_IDS)[number];
 const DEFAULT_PANEL_SIZES: Record<PanelSizeKey, number> = {
-  code: 5,
-  stage: 5,
-  inspector: 4,
+  code: 3,
+  stage: 9,
+  inspector: 2,
 };
 
 function readPanelSizes(): Record<PanelSizeKey, number> {
@@ -446,7 +446,7 @@ export function PlaybackLab({
       >
         <div
           className={cn(
-            "flex min-h-40 min-w-0 flex-col bg-ink-900 lg:min-h-0 lg:min-w-[17rem]",
+            "flex min-h-40 min-w-0 flex-col bg-ink-900 lg:min-h-0 lg:min-w-[14rem]",
             panelFocusClass("code", focusedPanel),
           )}
           data-panel="code"
@@ -557,7 +557,7 @@ export function PlaybackLab({
         )}
         <div
           className={cn(
-            "relative isolate flex min-h-[17rem] min-w-0 flex-col overflow-hidden bg-ink-900 lg:min-h-0 lg:min-w-[19rem]",
+            "relative isolate flex min-h-[19rem] min-w-0 flex-col overflow-hidden bg-ink-900 lg:min-h-0 lg:min-w-[24rem] xl:min-w-[32rem]",
             panelFocusClass("stage", focusedPanel),
           )}
           data-panel="stage"
@@ -650,7 +650,7 @@ export function PlaybackLab({
         </div>
         <div
           className={cn(
-            "flex min-h-48 min-w-0 flex-col bg-ink-900 lg:min-h-0 lg:min-w-[15rem]",
+            "flex min-h-48 min-w-0 flex-col bg-ink-900 lg:min-h-0 lg:min-w-[12rem]",
             panelFocusClass("inspector", focusedPanel),
           )}
           data-panel="inspector"

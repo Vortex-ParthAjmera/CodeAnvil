@@ -76,6 +76,49 @@ body {
   height: 100% !important;
 }
 
+.codeanvil-stage-frame {
+  container-type: inline-size;
+}
+
+.stage-value-card {
+  min-width: 1.75rem;
+  border: 1px solid;
+  border-radius: 0.375rem;
+  background: color-mix(in srgb, var(--color-ink-950) 96%, black);
+  padding: 0.25rem 0.45rem;
+  color: var(--color-ink-100);
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0;
+  box-shadow: 0 8px 18px rgb(0 0 0 / 0.34);
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: geometricPrecision;
+  contain: paint;
+}
+
+.stage-hud-secondary,
+.stage-hud-legend {
+  display: none;
+}
+
+@container (min-width: 42rem) {
+  .stage-hud-secondary {
+    display: flex;
+  }
+}
+
+@container (min-width: 52rem) {
+  .stage-hud-legend {
+    display: flex;
+  }
+}
+
 /* Thin dark scrollbars */
 * {
   scrollbar-width: thin;

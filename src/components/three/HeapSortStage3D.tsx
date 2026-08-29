@@ -25,6 +25,7 @@ interface HeapBar {
   edge: string;
   active: boolean;
   sorted: boolean;
+  showValue: boolean;
 }
 
 function xForIndex(index: number, count: number): number {
@@ -33,6 +34,15 @@ function xForIndex(index: number, count: number): number {
 
 function heightFor(value: number, maxValue: number): number {
   return Math.max(0.22, (value / Math.max(maxValue, 1)) * MAX_BAR_HEIGHT);
+}
+
+function identityForValues(values: number[]): string[] {
+  const seen = new Map<number, number>();
+  return values.map((value) => {
+    const count = seen.get(value) ?? 0;
+    seen.set(value, count + 1);
+    return String(value) + ":" + String(count);
+  });
 }
 
 function heapPosition(index: number): THREE.Vector3 {
@@ -93,37 +103,45 @@ function HeapArrayBar({ bar }: { bar: HeapBar }) {
         />
         <Edges color={bar.edge} threshold={18} />
       </mesh>
-      <Html position={[0, bar.height + 0.28, 0]} center style={{ pointerEvents: "none" }}>
-        <div
-          className="min-w-7 rounded-md border bg-ink-950/94 px-1.5 py-1 text-center font-mono text-xs font-black leading-none text-ink-50 shadow-xl backdrop-blur"
-          style={{ borderColor: bar.edge, textShadow: "0 1px 2px rgb(0 0 0 / 0.8)" }}
-        >
-          {bar.value}
-        </div>
-      </Html>
-      <Html position={[0, -0.34, 0.04]} center style={{ pointerEvents: "none" }}>
-        <div className="rounded border border-ink-700/80 bg-ink-950/90 px-1.5 py-0.5 font-mono text-[9px] font-bold leading-none text-ink-300">
-          {bar.index}
-        </div>
-      </Html>
+      {bar.showValue && (
+        <Html position={[0, bar.height + 0.28, 0]} center style={{ pointerEvents: "none" }}>
+          <div
+            data-heap-stage="value"
+            className="stage-value-card"
+            style={{ borderColor: bar.edge }}
+          >
+            {bar.value}
+          </div>
+        </Html>
+      )}
     </group>
   );
 }
 
 function HeapNode({ index, value, model, p }: { index: number; value: number; model: HeapSortSceneModel; p: Theme3DPalette }) {
   const group = useRef<THREE.Group>(null);
+  const mounted = useRef(false);
   const pos = heapPosition(index);
   const color = colorForIndex(model, index, p);
   const active = model.parentIndex === index || model.candidateIndex === index || !!model.comparePair?.includes(index) || !!model.swapPair?.includes(index);
 
-  useFrame(({ clock }) => {
+  useLayoutEffect(() => {
+    if (!group.current || mounted.current) return;
+    group.current.position.copy(pos);
+    mounted.current = true;
+  }, [pos]);
+
+  useFrame(({ clock }, delta) => {
     if (!group.current) return;
+    const t = 1 - Math.pow(0.0007, delta);
     const pulse = active ? Math.sin(clock.elapsedTime * 5.4 + index) * 0.035 : 0;
-    group.current.position.y = pos.y + pulse;
+    group.current.position.x = THREE.MathUtils.lerp(group.current.position.x, pos.x, t);
+    group.current.position.y = THREE.MathUtils.lerp(group.current.position.y, pos.y + pulse, t);
+    group.current.position.z = THREE.MathUtils.lerp(group.current.position.z, pos.z, t);
   });
 
   return (
-    <group ref={group} position={pos}>
+    <group ref={group}>
       <mesh>
         <sphereGeometry args={[active ? 0.27 : 0.23, 28, 18]} />
         <meshStandardMaterial
@@ -136,8 +154,9 @@ function HeapNode({ index, value, model, p }: { index: number; value: number; mo
       </mesh>
       <Html position={[0, 0, 0.27]} center style={{ pointerEvents: "none" }}>
         <div
-          className="min-w-7 rounded-md border bg-ink-950/94 px-1.5 py-1 text-center font-mono text-xs font-black leading-none text-ink-50 shadow-xl backdrop-blur"
-          style={{ borderColor: active ? "#f8fbff" : color, textShadow: "0 1px 2px rgb(0 0 0 / 0.8)" }}
+          data-heap-stage="value"
+          className="stage-value-card"
+          style={{ borderColor: active ? "#f8fbff" : color }}
         >
           {value}
         </div>
@@ -148,6 +167,7 @@ function HeapNode({ index, value, model, p }: { index: number; value: number; mo
 
 function HeapTree({ model, p }: { model: HeapSortSceneModel; p: Theme3DPalette }) {
   const nodes = model.values.slice(0, model.heapSize);
+  const identities = identityForValues(model.values);
   return (
     <group>
       {nodes.map((_, index) => {
@@ -163,7 +183,7 @@ function HeapTree({ model, p }: { model: HeapSortSceneModel; p: Theme3DPalette }
         );
       })}
       {nodes.map((value, index) => (
-        <HeapNode key={`${index}-${value}`} index={index} value={value} model={model} p={p} />
+        <HeapNode key={identities[index]} index={index} value={value} model={model} p={p} />
       ))}
     </group>
   );
@@ -225,6 +245,7 @@ function MotionLines({ model, p }: { model: HeapSortSceneModel; p: Theme3DPalett
 function Scene({ model, p }: { model: HeapSortSceneModel; p: Theme3DPalette }) {
   const scene = useRef<THREE.Group>(null);
   const maxValue = Math.max(...model.values, 1);
+  const identities = useMemo(() => identityForValues(model.values), [model.values]);
   const sorted = new Set(model.sortedIndices);
   const bars = useMemo<HeapBar[]>(
     () =>
@@ -232,7 +253,7 @@ function Scene({ model, p }: { model: HeapSortSceneModel; p: Theme3DPalette }) {
         const active = model.parentIndex === index || model.candidateIndex === index || model.extractIndex === index || !!model.swapPair?.includes(index) || !!model.comparePair?.includes(index);
         const color = colorForIndex(model, index, p);
         return {
-          id: `${index}-${value}`,
+          id: identities[index],
           index,
           value,
           x: xForIndex(index, model.values.length),
@@ -241,9 +262,10 @@ function Scene({ model, p }: { model: HeapSortSceneModel; p: Theme3DPalette }) {
           edge: active || sorted.has(index) ? "#f8fbff" : color,
           active,
           sorted: sorted.has(index) || model.operation === "complete",
+          showValue: index >= model.heapSize || model.operation === "complete",
         };
       }),
-    [maxValue, model, p, sorted],
+    [identities, maxValue, model, p, sorted],
   );
 
   useFrame(({ clock }) => {
@@ -316,7 +338,7 @@ function Overlay({ model }: { model: HeapSortSceneModel }) {
           <p className="mt-1 text-[11px] font-black leading-tight text-ink-50 sm:text-xs">{model.headline}</p>
         </div>
 
-        <div className="flex max-w-[16rem] flex-wrap justify-end gap-1 sm:max-w-[21rem]">
+        <div className="stage-hud-secondary max-w-[16rem] flex-wrap justify-end gap-1 sm:max-w-[21rem]">
           {stats.map(([label, value]) => (
             <div key={label} className="rounded border border-ink-700/65 bg-ink-950/72 px-1.5 py-1 text-center shadow-lg backdrop-blur-sm">
               <span className="block font-mono text-[8px] font-black uppercase tracking-widest text-ink-500">{label}</span>
@@ -326,11 +348,11 @@ function Overlay({ model }: { model: HeapSortSceneModel }) {
         </div>
       </div>
 
-      <div className="pointer-events-none absolute bottom-2 left-28 right-2 z-10 flex items-end justify-between gap-2 sm:bottom-3 sm:left-36 sm:right-3">
+      <div className="pointer-events-none absolute bottom-16 left-3 right-3 z-10 flex items-end justify-between gap-2 sm:left-4 sm:right-4">
         <p className="max-w-[24rem] rounded-md border border-arc-400/25 bg-ink-950/68 px-2 py-1.5 text-[10px] leading-snug text-ink-300 shadow-lg backdrop-blur-sm">
           {model.detail}
         </p>
-        <div className="ml-auto flex flex-wrap justify-end gap-1">
+        <div className="stage-hud-legend ml-auto flex-wrap justify-end gap-1">
           <span className="rounded border border-arc-400/35 bg-ink-950/72 px-1.5 py-1 font-mono text-[9px] font-bold uppercase text-arc-200 backdrop-blur">blue heap</span>
           <span className="rounded border border-ember-400/35 bg-ink-950/72 px-1.5 py-1 font-mono text-[9px] font-bold uppercase text-ember-200 backdrop-blur">orange sift</span>
           <span className="rounded border border-verdant-400/35 bg-ink-950/72 px-1.5 py-1 font-mono text-[9px] font-bold uppercase text-verdant-200 backdrop-blur">green sorted</span>
@@ -348,7 +370,7 @@ export function HeapSortStage3D({ step, steps }: { step: TraceStep; steps?: Trac
   if (!model) return null;
 
   return (
-    <div className="codeanvil-canvas-fill relative h-full w-full overflow-hidden rounded-md">
+    <div className="codeanvil-canvas-fill codeanvil-stage-frame relative h-full w-full overflow-hidden rounded-md">
       <Canvas
         data-testid="heap-sort-stage-canvas"
         dpr={[1.25, 2]}

@@ -32,6 +32,7 @@ export function buildBinarySearchTrace(): TraceDocument {
   const vars = (extra: Record<string, unknown>) => ({
     arr: "[1, 3, 5, 7, 9, 11]",
     target: 7,
+    probes: 0,
     ...extra,
   });
 
@@ -79,12 +80,12 @@ export function buildBinarySearchTrace(): TraceDocument {
     actions: [{ type: "assignment", target: "high", value: 5 }],
   });
 
-  const loopCheck = (low: number, high: number) => {
+  const loopCheck = (low: number, high: number, probes: number) => {
     b.step({
       line: 5,
       event: "loop_iteration",
       description: `Check low <= high → ${low} <= ${high} is true. Search range: indices [${low}..${high}].`,
-      variables: vars({ target: 7, low, high }),
+      variables: vars({ target: 7, low, high, probes }),
       memory: [arr()],
       visual: arrayVisual("arr"),
       changed: { variables: [] },
@@ -92,13 +93,13 @@ export function buildBinarySearchTrace(): TraceDocument {
     });
   };
 
-  const midStep = (low: number, high: number) => {
+  const midStep = (low: number, high: number, probes: number) => {
     const mid = Math.floor((low + high) / 2);
     b.step({
       line: 6,
       event: "assignment",
       description: `mid = (${low} + ${high}) // 2 = ${mid}. Probe arr[${mid}] = ${VALUES[mid]}.`,
-      variables: vars({ target: 7, low, high, mid }),
+      variables: vars({ target: 7, low, high, mid, probes }),
       memory: [arrWithMid(mid)],
       visual: arrayVisual("arr"),
       changed: { variables: ["mid"] },
@@ -106,7 +107,7 @@ export function buildBinarySearchTrace(): TraceDocument {
     });
   };
 
-  const compareStep = (low: number, high: number, mid: number, kind: "found" | "right" | "left") => {
+  const compareStep = (low: number, high: number, mid: number, probes: number, kind: "found" | "right" | "left") => {
     const val = VALUES[mid];
     const description =
       kind === "found"
@@ -118,7 +119,7 @@ export function buildBinarySearchTrace(): TraceDocument {
       line: 7,
       event: "comparison",
       description,
-      variables: vars({ target: 7, low, high, mid }),
+      variables: vars({ target: 7, low, high, mid, probes }),
       memory: [arrWithMid(mid)],
       visual: arrayVisual("arr"),
       changed: { variables: [] },
@@ -126,12 +127,12 @@ export function buildBinarySearchTrace(): TraceDocument {
     });
   };
 
-  const adjustStep = (line: 10 | 12, low: number, high: number, mid: number, description: string) => {
+  const adjustStep = (line: 10 | 12, low: number, high: number, mid: number, probes: number, description: string) => {
     b.step({
       line,
       event: "assignment",
       description,
-      variables: vars({ target: 7, low, high, mid }),
+      variables: vars({ target: 7, low, high, mid, probes }),
       memory: [arr()],
       visual: arrayVisual("arr"),
       changed: { variables: line === 10 ? ["low"] : ["high"] },
@@ -146,27 +147,27 @@ export function buildBinarySearchTrace(): TraceDocument {
   };
 
   // Iteration 1: low=0, high=5, mid=2 (arr[2] = 5)
-  loopCheck(0, 5);
-  midStep(0, 5);
-  compareStep(0, 5, 2, "right");
-  adjustStep(10, 3, 5, 2, "5 < 7, so low = mid + 1 = 3. Discard the left half, search the right.");
+  loopCheck(0, 5, 0);
+  midStep(0, 5, 1);
+  compareStep(0, 5, 2, 1, "right");
+  adjustStep(10, 3, 5, 2, 1, "5 < 7, so low = mid + 1 = 3. Discard the left half, search the right.");
 
   // Iteration 2: low=3, high=5, mid=4 (arr[4] = 9)
-  loopCheck(3, 5);
-  midStep(3, 5);
-  compareStep(3, 5, 4, "left");
-  adjustStep(12, 3, 3, 4, "9 > 7, so high = mid - 1 = 3. Discard the right half, search the left.");
+  loopCheck(3, 5, 1);
+  midStep(3, 5, 2);
+  compareStep(3, 5, 4, 2, "left");
+  adjustStep(12, 3, 3, 4, 2, "9 > 7, so high = mid - 1 = 3. Discard the right half, search the left.");
 
   // Iteration 3: low=3, high=3, mid=3 (arr[3] = 7) — found
-  loopCheck(3, 3);
-  midStep(3, 3);
-  compareStep(3, 3, 3, "found");
+  loopCheck(3, 3, 2);
+  midStep(3, 3, 3);
+  compareStep(3, 3, 3, 3, "found");
 
   b.step({
     line: 8,
     event: "output_write",
     description: 'print("Found at index", mid) writes: Found at index 3',
-    variables: vars({ target: 7, low: 3, high: 3, mid: 3 }),
+    variables: vars({ target: 7, low: 3, high: 3, mid: 3, probes: 3 }),
     output: "Found at index 3",
     memory: [arrWithMid(3)],
     visual: arrayVisual("arr"),
@@ -178,7 +179,7 @@ export function buildBinarySearchTrace(): TraceDocument {
     line: 9,
     event: "line_enter",
     description: "break — exit the loop; the search is complete.",
-    variables: vars({ target: 7, low: 3, high: 3, mid: 3 }),
+    variables: vars({ target: 7, low: 3, high: 3, mid: 3, probes: 3 }),
     output: "Found at index 3",
     memory: [arrWithMid(3)],
     visual: arrayVisual("arr"),
@@ -188,7 +189,7 @@ export function buildBinarySearchTrace(): TraceDocument {
     line: 9,
     event: "program_end",
     description: "Program finished. target 7 found at index 3 in 3 probes.",
-    variables: vars({ target: 7, low: 3, high: 3, mid: 3 }),
+    variables: vars({ target: 7, low: 3, high: 3, mid: 3, probes: 3 }),
     output: "Found at index 3",
     memory: [arrWithMid(3)],
     visual: arrayVisual("arr"),

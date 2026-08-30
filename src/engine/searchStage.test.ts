@@ -11,7 +11,7 @@ describe("binary search stage helpers", () => {
     expect(isBinarySearchTraceStep(trace.steps[0])).toBe(true);
   });
 
-  it("extracts the mid probe, active range, and compare label", () => {
+  it("extracts the mid probe, active range, compare label, and probe count", () => {
     const trace = buildBinarySearchTrace();
     const probe = trace.steps.find((step) => step.description.includes("mid = (0 + 5)"));
 
@@ -22,9 +22,34 @@ describe("binary search stage helpers", () => {
       low: 0,
       high: 5,
       mid: 2,
+      probes: 1,
       compareLabel: "5 < 7",
     });
     expect(model?.cells.filter((cell) => cell.inRange).map((cell) => cell.index)).toEqual([0, 1, 2, 3, 4, 5]);
+  });
+
+  it("keeps the target setup step on the specialized binary-search stage", () => {
+    const trace = buildBinarySearchTrace();
+    const model = getBinarySearchSceneModel(trace.steps[1]);
+
+    expect(model).toMatchObject({
+      operation: "target",
+      target: 7,
+      rangeLabel: "[all]",
+    });
+  });
+
+  it("marks the found comparison before output is written", () => {
+    const trace = buildBinarySearchTrace();
+    const found = trace.steps.find((step) => step.event === "comparison" && step.description.includes("== target"));
+
+    expect(found).toBeDefined();
+    const model = getBinarySearchSceneModel(found!);
+    expect(model).toMatchObject({
+      operation: "found",
+      foundIndex: 3,
+      probes: 3,
+    });
   });
 
   it("detects discarded halves from generated traces", () => {

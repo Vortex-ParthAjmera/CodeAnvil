@@ -87,8 +87,12 @@ export function isBinarySearchTraceStep(step: TraceStep): boolean {
     valuesAreSorted &&
     description.includes("sorted") &&
     (description.includes("list") || description.includes("array") || description.includes("search"));
+  const hasTargetSetupText =
+    valuesAreSorted &&
+    description.includes("searching for") &&
+    description.includes("value");
 
-  return hasTarget && !hasPointerPair && (hasBounds || hasBinarySearchText || hasSortedSetupText);
+  return hasTarget && !hasPointerPair && (hasBounds || hasBinarySearchText || hasSortedSetupText || hasTargetSetupText);
 }
 
 export function getBinarySearchSceneModel(step: TraceStep): BinarySearchSceneModel | null {
@@ -105,7 +109,8 @@ export function getBinarySearchSceneModel(step: TraceStep): BinarySearchSceneMod
   const description = textOf(step);
   const outputIndex = foundIndexFromOutput(step.output);
   const targetIndex = target === null ? null : values.findIndex((value) => value === target);
-  const foundIndex = outputIndex ?? (step.event === "program_end" && step.output ? targetIndex : null);
+  const foundComparison = step.event === "comparison" && (description.includes("found") || description.includes("== target"));
+  const foundIndex = outputIndex ?? (foundComparison && mid !== null ? mid : step.event === "program_end" && step.output ? targetIndex : null);
   const rangeLow = low ?? 0;
   const rangeHigh = high ?? values.length - 1;
   const rangeValid = rangeLow <= rangeHigh;
@@ -183,19 +188,24 @@ export function getBinarySearchSceneModel(step: TraceStep): BinarySearchSceneMod
         ? `mid splits the active window. arr[${mid}] = ${midValue}.`
         : step.description;
   } else if (operation === "compare") {
-    headline = midValue !== null && target !== null ? `${midValue} vs ${target}` : "Compare mid with target";
+    headline =
+      midValue !== null && target !== null
+        ? midValue < target
+          ? `${midValue} < ${target}: keep RIGHT`
+          : `${midValue} > ${target}: keep LEFT`
+        : "Compare mid with target";
     detail =
       midValue !== null && target !== null && midValue < target
-        ? `${midValue} < ${target} — target must be to the RIGHT. Discard the left half.`
+        ? `${midValue} < ${target} — the target can only be to the RIGHT, so the left half is removed.`
         : midValue !== null && target !== null
-          ? `${midValue} > ${target} — target must be to the LEFT. Discard the right half.`
+          ? `${midValue} > ${target} — the target can only be to the LEFT, so the right half is removed.`
           : step.description;
   } else if (operation === "discard-left") {
-    headline = "Discard the left half";
-    detail = `${midValue ?? "?"} < ${target} — values before index ${low} are too small. New window: ${rangeLabel}.`;
+    headline = `Keep indices ${rangeLabel}`;
+    detail = `${midValue ?? "?"} < ${target} — every value before index ${low} is too small, so the search moves right.`;
   } else if (operation === "discard-right") {
-    headline = "Discard the right half";
-    detail = `${midValue ?? "?"} > ${target} — values after index ${high} are too large. New window: ${rangeLabel}.`;
+    headline = `Keep indices ${rangeLabel}`;
+    detail = `${midValue ?? "?"} > ${target} — every value after index ${high} is too large, so the search moves left.`;
   } else if (operation === "found") {
     headline = foundIndex !== null && foundIndex >= 0 ? `Found ${target} at index ${foundIndex}!` : "Target found";
     detail = midValue !== null && target !== null ? `arr[${foundIndex ?? mid}] = ${midValue} = ${target}. Search complete in ${probes ?? 0} probes.` : step.description;

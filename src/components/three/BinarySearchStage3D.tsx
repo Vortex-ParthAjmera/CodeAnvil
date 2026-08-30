@@ -33,8 +33,23 @@ function xForIndex(index: number, count: number): number {
 function colorForCell(cell: BinarySearchCell, model: BinarySearchSceneModel, p: Theme3DPalette): string {
   if (model.foundIndex === cell.index) return p.verdant;
   if (cell.isMid) return p.emberBright;
+  if (cell.isTarget && model.operation === "target") return p.verdantDeep;
   if (cell.inRange) return p.arc;
   return p.barRange;
+}
+
+function midValueFor(model: BinarySearchSceneModel): number | null {
+  if (model.mid === null || model.mid < 0 || model.mid >= model.values.length) return null;
+  const value = model.values[model.mid];
+  return Number.isFinite(value) ? value : null;
+}
+
+function decisionFor(model: BinarySearchSceneModel): "left" | "right" | "found" | null {
+  if (!["compare", "discard-left", "discard-right", "found", "complete"].includes(model.operation)) return null;
+  const midValue = midValueFor(model);
+  if (midValue === null || model.target === null || model.mid === null) return null;
+  if (midValue === model.target || model.foundIndex === model.mid) return "found";
+  return midValue < model.target ? "right" : "left";
 }
 
 function ArrayCell({
@@ -55,21 +70,24 @@ function ArrayCell({
   const color = colorForCell(cell, model, p);
   const width = cellWidthForCount(count);
   const isHot = cell.isMid || model.foundIndex === cell.index;
+  const isDiscarded = cell.isDiscarded && model.foundIndex !== cell.index;
 
   useLayoutEffect(() => {
     if (!group.current || mounted.current) return;
-    group.current.position.set(x, cell.isDiscarded ? -0.12 : 0, 0);
+    group.current.position.set(x, isDiscarded ? -0.2 : 0, 0);
     mounted.current = true;
   }, [cell.isDiscarded, x]);
 
   useFrame(({ clock }, delta) => {
     if (!group.current || !mesh.current) return;
     const t = 1 - Math.pow(0.0007, delta);
-    const lift = cell.isMid ? 0.22 + Math.sin(clock.elapsedTime * 5.2) * 0.035 : model.foundIndex === cell.index ? 0.18 : 0;
-    const y = cell.isDiscarded ? -0.18 : lift;
+    const lift = cell.isMid ? 0.25 + Math.sin(clock.elapsedTime * 5.2) * 0.03 : model.foundIndex === cell.index ? 0.22 : 0;
+    const y = isDiscarded ? -0.28 : lift;
+    const z = isDiscarded ? (cell.discardedSide === "left" ? -0.18 : 0.18) : 0;
     group.current.position.x = THREE.MathUtils.lerp(group.current.position.x, x, t);
     group.current.position.y = THREE.MathUtils.lerp(group.current.position.y, y, t);
-    const scale = isHot ? 1.08 : cell.inRange ? 1 : 0.88;
+    group.current.position.z = THREE.MathUtils.lerp(group.current.position.z, z, t);
+    const scale = isHot ? 1.1 : cell.inRange ? 1 : 0.76;
     mesh.current.scale.setScalar(THREE.MathUtils.lerp(mesh.current.scale.x, scale, t));
   });
 
@@ -78,23 +96,32 @@ function ArrayCell({
       <mesh ref={mesh}>
         <boxGeometry args={[width, 0.54, 0.62]} />
         <meshStandardMaterial
-          color={cell.isDiscarded ? p.emptyCell : p.emptyCell}
+          color={isDiscarded ? p.barRange : p.emptyCell}
           emissive={color}
-          emissiveIntensity={isHot ? 0.72 : cell.inRange ? 0.28 : 0.08}
+          emissiveIntensity={isHot ? 0.82 : cell.inRange ? 0.32 : 0.05}
           metalness={0.42}
           roughness={0.34}
           transparent
-          opacity={cell.isDiscarded ? 0.42 : 0.96}
+          opacity={isDiscarded ? 0.28 : 0.96}
         />
         <Edges color={color} threshold={18} />
       </mesh>
-      <Html position={[0, 0.02, 0.4]} center style={{ pointerEvents: "none", WebkitFontSmoothing: "antialiased", textRendering: "geometricPrecision" }}>
+      <Html position={[0, 0.04, 0.42]} center style={{ pointerEvents: "none", WebkitFontSmoothing: "antialiased", textRendering: "geometricPrecision" }}>
         <div
           data-binary-stage="value"
           className="stage-value-card"
-          style={{ borderColor: color, opacity: cell.isDiscarded ? 0.56 : 1 }}
+          style={{ borderColor: color, opacity: isDiscarded ? 0.48 : 1 }}
         >
           {cell.value}
+        </div>
+      </Html>
+      <Html position={[0, -0.5, 0.34]} center style={{ pointerEvents: "none", WebkitFontSmoothing: "antialiased", textRendering: "geometricPrecision" }}>
+        <div
+          data-binary-stage="index"
+          className="rounded border border-ink-700/70 bg-ink-950/82 px-1.5 py-0.5 font-mono text-[9px] font-black leading-none text-ink-400 shadow-md"
+          style={{ opacity: isDiscarded ? 0.42 : 0.86 }}
+        >
+          i={cell.index}
         </div>
       </Html>
     </group>
@@ -123,19 +150,21 @@ function BoundFlag({
   index,
   count,
   color,
+  side,
 }: {
   index: number | null;
   count: number;
   color: string;
+  side: "left" | "right";
 }) {
   if (index === null || index < 0 || index >= count) return null;
-  const x = xForIndex(index, count);
+  const x = xForIndex(index, count) + (side === "left" ? -0.11 : 0.11);
   return (
-    <group position={[x, -1.04, 0.02]}>
-      <Line points={[[0, 0.12, 0], [0, 0.56, 0]]} color={color} lineWidth={2.2} />
+    <group position={[x, -1.02, 0.02]}>
+      <Line points={[[0, 0.12, 0], [0, 0.62, 0]]} color={color} lineWidth={2.4} />
       <mesh position={[0, 0.03, 0.08]}>
-        <boxGeometry args={[0.22, 0.08, 0.18]} />
-        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.72} />
+        <boxGeometry args={[0.24, 0.08, 0.18]} />
+        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={0.78} />
       </mesh>
     </group>
   );
@@ -170,13 +199,101 @@ function MidProbe({ model, p }: { model: BinarySearchSceneModel; p: Theme3DPalet
 
 function TargetBeacon({ model, p }: { model: BinarySearchSceneModel; p: Theme3DPalette }) {
   const targetIndex = model.target === null ? -1 : model.values.findIndex((value) => value === model.target);
-  const x = targetIndex >= 0 ? xForIndex(targetIndex, model.values.length) : 0;
+  if (targetIndex < 0) return null;
+  const x = xForIndex(targetIndex, model.values.length);
   return (
-    <group position={[x, 1.62, 0]}>
-      <mesh>
-        <torusGeometry args={[0.34, 0.025, 10, 46]} />
-        <meshStandardMaterial color={p.verdant} emissive={p.verdant} emissiveIntensity={0.85} />
+    <group position={[x, 1.48, 0.02]}>
+      <Line points={[[0, -0.5, 0], [0, -0.12, 0]]} color={p.verdant} lineWidth={2} />
+      <mesh rotation={[Math.PI / 2, 0, 0]}>
+        <torusGeometry args={[0.32, 0.026, 10, 48]} />
+        <meshStandardMaterial color={p.verdant} emissive={p.verdant} emissiveIntensity={0.9} />
       </mesh>
+      <Html position={[0, 0.42, 0]} center style={{ pointerEvents: "none", WebkitFontSmoothing: "antialiased", textRendering: "geometricPrecision" }}>
+        <div data-binary-stage="target" className="rounded border border-verdant-400/60 bg-ink-950/88 px-2 py-1 font-mono text-[10px] font-black uppercase leading-none text-verdant-100 shadow-lg">
+          target {model.target}
+        </div>
+      </Html>
+    </group>
+  );
+}
+
+function DecisionBeam({ model, p }: { model: BinarySearchSceneModel; p: Theme3DPalette }) {
+  const decision = decisionFor(model);
+  if (!decision || model.mid === null || model.mid < 0 || model.mid >= model.values.length) return null;
+
+  const count = model.values.length;
+  const start = xForIndex(model.mid, count);
+  const color = decision === "found" ? p.verdant : decision === "right" ? p.arcBright : p.emberBright;
+
+  if (decision === "found") {
+    return (
+      <group position={[start, 0.9, 0.24]}>
+        <mesh rotation={[Math.PI / 2, 0, 0]}>
+          <torusGeometry args={[0.44, 0.032, 12, 56]} />
+          <meshStandardMaterial color={color} emissive={color} emissiveIntensity={1.1} />
+        </mesh>
+        <Html position={[0, 0.5, 0]} center style={{ pointerEvents: "none", WebkitFontSmoothing: "antialiased", textRendering: "geometricPrecision" }}>
+          <div data-binary-stage="decision" className="rounded border border-verdant-400/70 bg-ink-950/90 px-2 py-1 font-mono text-[10px] font-black uppercase leading-none text-verdant-100 shadow-lg">
+            found
+          </div>
+        </Html>
+      </group>
+    );
+  }
+
+  const low = model.low ?? 0;
+  const high = model.high ?? count - 1;
+  const endIndex = decision === "right" ? Math.min(high, model.mid + 1) : Math.max(low, model.mid - 1);
+  const end = xForIndex(endIndex, count);
+  const middle = (start + end) / 2;
+  const label = decision === "right" ? "keep right half" : "keep left half";
+  const coneRotation = decision === "right" ? -Math.PI / 2 : Math.PI / 2;
+
+  return (
+    <group>
+      <Line
+        points={[
+          [start, 0.66, 0.22],
+          [middle, 1.02, 0.22],
+          [end, 0.66, 0.22],
+        ]}
+        color={color}
+        lineWidth={3.1}
+      />
+      <mesh position={[end, 0.66, 0.22]} rotation={[0, 0, coneRotation]}>
+        <coneGeometry args={[0.11, 0.28, 24]} />
+        <meshStandardMaterial color={color} emissive={color} emissiveIntensity={1} />
+      </mesh>
+      <Html position={[middle, 1.17, 0.24]} center style={{ pointerEvents: "none", WebkitFontSmoothing: "antialiased", textRendering: "geometricPrecision" }}>
+        <div data-binary-stage="decision" className="rounded border bg-ink-950/90 px-2 py-1 font-mono text-[10px] font-black uppercase leading-none shadow-lg" style={{ borderColor: color, color }}>
+          {label}
+        </div>
+      </Html>
+    </group>
+  );
+}
+
+function DiscardBands({ model, p }: { model: BinarySearchSceneModel; p: Theme3DPalette }) {
+  const spans: Array<{ start: number; end: number; color: string }> = [];
+  const left = model.cells.filter((cell) => cell.discardedSide === "left").map((cell) => cell.index);
+  const right = model.cells.filter((cell) => cell.discardedSide === "right").map((cell) => cell.index);
+  if (left.length > 0) spans.push({ start: Math.min(...left), end: Math.max(...left), color: p.arcDeep });
+  if (right.length > 0) spans.push({ start: Math.min(...right), end: Math.max(...right), color: p.ember });
+
+  return (
+    <group>
+      {spans.map((span) => {
+        const leftX = xForIndex(span.start, model.values.length);
+        const rightX = xForIndex(span.end, model.values.length);
+        const center = (leftX + rightX) / 2;
+        const width = Math.abs(rightX - leftX) + cellWidthForCount(model.values.length) + 0.2;
+        return (
+          <mesh key={`${span.start}-${span.end}`} position={[center, 0.02, -0.36]}>
+            <boxGeometry args={[width, 0.72, 0.08]} />
+            <meshStandardMaterial color={p.barRange} emissive={span.color} emissiveIntensity={0.2} transparent opacity={0.24} />
+          </mesh>
+        );
+      })}
     </group>
   );
 }
@@ -191,13 +308,15 @@ function Scene({ model, p }: { model: BinarySearchSceneModel; p: Theme3DPalette 
       <pointLight position={[0, 3.4, 3.4]} intensity={42 * p.lighting.accent} distance={12} color={p.arcBright} />
       <pointLight position={[3, 2.2, 2.4]} intensity={26 * p.lighting.accent} distance={10} color={p.verdant} />
 
-      <group position={[0, -0.54, 0]}>
+      <group position={[0, -0.06, 0]}>
         <TargetBeacon model={model} p={p} />
         <RangeWindow model={model} p={p} />
+        <DiscardBands model={model} p={p} />
+        <DecisionBeam model={model} p={p} />
         <MidProbe model={model} p={p} />
-        <BoundFlag index={model.low} count={model.values.length} color={p.arcBright} />
-        <BoundFlag index={model.high} count={model.values.length} color={p.emberBright} />
-        <mesh position={[0, -0.2, -0.35]}>
+        <BoundFlag index={model.low} count={model.values.length} color={p.arcBright} side="left" />
+        <BoundFlag index={model.high} count={model.values.length} color={p.emberBright} side="right" />
+        <mesh position={[0, -0.22, -0.35]}>
           <boxGeometry args={[stageWidth, 0.08, 1.34]} />
           <meshStandardMaterial color={p.emptyCell} transparent opacity={0.66} roughness={0.46} metalness={0.24} />
         </mesh>
@@ -207,7 +326,7 @@ function Scene({ model, p }: { model: BinarySearchSceneModel; p: Theme3DPalette 
       </group>
 
       <InfiniteGrid
-        position={[0, -2.05, -0.2]}
+        position={[0, -1.72, -0.2]}
         cellSize={0.5}
         cellThickness={0.55}
         cellColor={p.gridCell}
@@ -292,7 +411,7 @@ export function BinarySearchStage3D({ step, steps }: { step: TraceStep; steps?: 
       <Canvas
         data-testid="binary-search-stage-canvas"
         dpr={[1.25, 2]}
-        camera={{ position: [0, 2.16, 7.35], fov: 38 }}
+        camera={{ position: [0, 2.42, 7.75], fov: 40 }}
         gl={{ antialias: true, alpha: true, powerPreference: "high-performance" }}
         style={{ width: "100%", height: "100%", background: "transparent" }}
       >

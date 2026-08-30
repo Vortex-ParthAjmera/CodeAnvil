@@ -20,6 +20,7 @@ import {
 } from "../lib/progress";
 import { CORE_50, problemId } from "../data/roadmap";
 import { DSA_PROBLEMS } from "../data/dsaCatalog";
+import { TOTAL_ALGORITHM_BUTTONS, TOTAL_READY_ALGORITHM_BUTTONS } from "../data/algorithmLibrary";
 import {
   loadArenaModes,
   loadProgress,
@@ -30,6 +31,7 @@ import {
 import type { Route } from "../router";
 import { Badge, Button, Card } from "../components/ui";
 import { TiltCard } from "../components/TiltCard";
+import { AlgorithmLibraryShelf } from "../components/AlgorithmLibraryShelf";
 import { AnimatedHeading, CountUp, FadeIn } from "../components/motionfx";
 import { initialsOf, useSession } from "../lib/auth";
 import { cn } from "../lib/cn";
@@ -114,7 +116,7 @@ export function Dashboard({
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="mx-auto max-w-5xl px-6 py-8">
+      <div className="mx-auto max-w-[1480px] px-6 py-8">
         {/* Hero */}
         <div className="relative mb-8 overflow-hidden rounded-xl border border-ink-700 bg-gradient-to-br from-ink-900 via-ink-850 to-ink-950 p-6">
           {/* floating depth orbs */}
@@ -133,9 +135,9 @@ export function Dashboard({
               className="mb-2 text-2xl font-bold tracking-tight text-ink-100"
             />
             <p className="max-w-xl text-sm leading-relaxed text-ink-300">
-              Nine hand-forged examples, a 3D execution stage, a live DSA arena,
-              story missions, and timed duels — all local-first, nothing ever
-              executes user code.
+              {TOTAL_READY_ALGORITHM_BUTTONS} live animation buttons, {TOTAL_ALGORITHM_BUTTONS} planned DSA entries,
+              a 3D execution stage, story missions, and timed duels — all local-first,
+              nothing ever executes user code.
             </p>
           </div>
         </div>
@@ -145,9 +147,9 @@ export function Dashboard({
           {[
             {
               icon: Play,
-              label: "Examples",
-              value: <CountUp value={EXAMPLES.length} />,
-              hint: `${totalSteps} curated steps`,
+              label: "Live animations",
+              value: <CountUp value={TOTAL_READY_ALGORITHM_BUTTONS} />,
+              hint: `${TOTAL_ALGORITHM_BUTTONS} planned buttons - ${totalSteps} curated steps`,
             },
             {
               icon: Flame,
@@ -202,65 +204,11 @@ export function Dashboard({
         </div>
 
         <div className="grid gap-6 lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]">
-          {/* Examples */}
+          {/* Algorithm library */}
           <section>
-            <h2 className="mb-3 text-sm font-semibold text-ink-200">
-              Start playing
-            </h2>
-            <div className="space-y-2.5">
-              {EXAMPLES.map((ex) => {
-                const rec = progress.find((p) => p.exampleId === ex.id);
-                return (
-                  <TiltCard key={ex.id} intensity={4}>
-                  <Card
-                    className="flex items-center gap-4 p-4 transition-colors hover:border-ink-600"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="truncate text-sm font-semibold text-ink-100">
-                          {ex.title}
-                        </h3>
-                        <Badge tone="amber">{ex.topic}</Badge>
-                        <Badge
-                          tone={ex.difficulty === "beginner" ? "green" : "blue"}
-                        >
-                          {ex.difficulty}
-                        </Badge>
-                      </div>
-                      <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-ink-400">
-                        {ex.blurb}
-                      </p>
-                      {rec && rec.answered > 0 && (
-                        <p className="mt-1.5 flex items-center gap-1.5 text-[10px] text-ink-500">
-                          <span className="inline-block h-1.5 w-24 overflow-hidden rounded-full bg-ink-700">
-                            <span
-                              className={cn(
-                                "block h-full rounded-full",
-                                rec.bestAccuracy >= 80
-                                  ? "bg-verdant-400"
-                                  : rec.bestAccuracy >= 50
-                                    ? "bg-ember-400"
-                                    : "bg-rose-400",
-                              )}
-                              style={{ width: `${rec.bestAccuracy}%` }}
-                            />
-                          </span>
-                          best {rec.bestAccuracy}% · {rec.answered} prompt
-                          {rec.answered === 1 ? "" : "s"}
-                        </p>
-                      )}
-                    </div>
-                    <Button
-                      variant="primary"
-                      onClick={() => onNavigate({ name: "lab", exampleId: ex.id })}
-                    >
-                      <Play size={14} /> Open
-                    </Button>
-                  </Card>
-                  </TiltCard>
-                );
-              })}
-            </div>
+            <AlgorithmLibraryShelf
+              onOpenExample={(id) => onNavigate({ name: "lab", exampleId: id })}
+            />
           </section>
 
           {/* Right column */}

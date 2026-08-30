@@ -47,6 +47,7 @@ import { PracticeDock } from "../components/PracticeDock";
 import { Timeline } from "../components/Timeline";
 import { PanelSplitter } from "../components/PanelSplitter";
 import { VisualStage } from "../components/VisualStage";
+import { AlgorithmLibraryShelf } from "../components/AlgorithmLibraryShelf";
 import { Badge } from "../components/ui";
 import { AnimatedHeading } from "../components/motionfx";
 import { cn } from "../lib/cn";
@@ -394,24 +395,13 @@ export function PlaybackLab({
           </div>
         </div>
 
-        {/* Example selector */}
-        <div className="mt-3 flex gap-1.5 overflow-x-auto pb-0.5">
-          {EXAMPLES.map((ex) => (
-            <button
-              key={ex.id}
-              type="button"
-              onClick={() => selectExample(ex.id)}
-              className={cn(
-                "shrink-0 rounded-md border px-2.5 py-1 text-xs font-medium transition-colors",
-                ex.id === example.id
-                  ? "border-ember-500/60 bg-ember-500/15 text-ember-300"
-                  : "border-ink-700 bg-ink-800 text-ink-300 hover:border-ink-600 hover:text-ink-100",
-              )}
-            >
-              {ex.title}
-            </button>
-          ))}
-        </div>
+        {/* Algorithm selector */}
+        <AlgorithmLibraryShelf
+          compact
+          activeExampleId={example.id}
+          onOpenExample={selectExample}
+          className="mt-3"
+        />
       </header>
 
       {/* Panel size sliders — resize source / stage / inspector to fit any screen */}

@@ -84,22 +84,132 @@ const STATUS_BAR: Record<ProblemStatus, string> = {
   mastered: "#f59e0b",
 };
 
+type AtlasRoute = Extract<Route, { name: "atlas" }>;
+
+function slugify(value: string): string {
+  return value.toLowerCase().replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+}
+
+function structureHref(id: string): string {
+  return "#/atlas/structure/" + encodeURIComponent(id);
+}
+
+function topicHref(topic: string): string {
+  return "#/atlas/topic/" + encodeURIComponent(slugify(topic));
+}
+
+function topicFromSlug(slug: string | undefined): string | null {
+  if (!slug) return null;
+  return DSA_TOPICS.find((topic) => slugify(topic) === slug) ?? null;
+}
+
+const STRUCTURE_TOPIC_MATCH: Record<string, string[]> = {
+  matrix: ["Graphs", "Backtracking", "Dynamic Programming"],
+  graph: ["Graphs", "Advanced Graphs"],
+  "adjacency-list": ["Graphs", "Advanced Graphs"],
+  "adjacency-matrix": ["Graphs", "Advanced Graphs"],
+  stack: ["Stack & Queue"],
+  queue: ["Stack & Queue", "Graphs"],
+  deque: ["Sliding Window", "Stack & Queue"],
+  "hash-table": ["Arrays & Hashing", "Frequency & Counting"],
+  "hash-set": ["Arrays & Hashing", "Frequency & Counting"],
+  heap: ["Heap & Priority Queue", "Sorting"],
+  "binary-tree": ["Trees & BST"],
+  bst: ["Trees & BST", "Binary Search"],
+  trie: ["Trees & BST", "Backtracking"],
+  "singly-linked-list": ["Linked Lists"],
+  "doubly-linked-list": ["Linked Lists"],
+  "lru-cache": ["Linked Lists", "Arrays & Hashing"],
+};
+
+const STRUCTURE_STARTERS: Record<string, string> = {
+  matrix: [
+    "grid = [",
+    "    [1, 1, 0, 0],",
+    "    [0, 1, 1, 0],",
+    "    [0, 0, 1, 1],",
+    "]",
+    "rows, cols = len(grid), len(grid[0])",
+    "for r in range(rows):",
+    "    for c in range(cols):",
+    "        if grid[r][c] == 1:",
+    "            print(\"visit\", r, c)",
+  ].join("\n"),
+  graph: [
+    "graph = {0: [1, 2], 1: [3], 2: [3], 3: []}",
+    "seen = set()",
+    "queue = [0]",
+    "while queue:",
+    "    node = queue.pop(0)",
+    "    if node in seen:",
+    "        continue",
+    "    seen.add(node)",
+    "    print(\"visit\", node)",
+    "    queue.extend(graph[node])",
+  ].join("\n"),
+  stack: [
+    "stack = []",
+    "for value in [3, 7, 2]:",
+    "    stack.append(value)",
+    "    print(\"push\", value, stack)",
+    "while stack:",
+    "    print(\"pop\", stack.pop())",
+  ].join("\n"),
+  queue: [
+    "queue = []",
+    "for value in [3, 7, 2]:",
+    "    queue.append(value)",
+    "    print(\"enqueue\", value, queue)",
+    "while queue:",
+    "    print(\"dequeue\", queue.pop(0))",
+  ].join("\n"),
+};
+
+function starterForStructure(structure: DataStructureGuide): string {
+  return STRUCTURE_STARTERS[structure.id] ?? [
+    "# " + structure.name,
+    "# Operations: " + structure.operations.join(", "),
+    "items = [4, 7, 1, 9]",
+    "for item in items:",
+    "    print(item)",
+  ].join("\n");
+}
+
+function relatedProblemsForStructure(structure: DataStructureGuide): DsaProblem[] {
+  const topics = STRUCTURE_TOPIC_MATCH[structure.id] ?? [];
+  const terms = structure.name.toLowerCase().split(/[^a-z0-9]+/).filter((term) => term.length > 2);
+  return DSA_PROBLEMS.filter((problem) => {
+    if (topics.includes(problem.topic)) return true;
+    const haystack = (problem.title + " " + problem.summary + " " + problem.pattern).toLowerCase();
+    return terms.some((term) => haystack.includes(term));
+  }).slice(0, 18);
+}
+
+function starterFromProblems(problems: DsaProblem[], fallbackTitle: string): string {
+  const seeded = problems.find((problem) => problem.exampleId) ?? problems[0];
+  if (seeded) return makeProblemStarter(seeded);
+  return ["# " + fallbackTitle, "items = [4, 7, 1, 9]", "for item in items:", "    print(item)"].join("\n");
+}
+
 function StructureCard({
   structure,
   selected,
-  onSelect,
+  onPreview,
 }: {
   structure: DataStructureGuide;
   selected: boolean;
-  onSelect: () => void;
+  onPreview: () => void;
 }) {
   const Icon = FAMILY_ICONS[structure.family];
   return (
-    <button
-      type="button"
-      onClick={onSelect}
+    <a
+      href={structureHref(structure.id)}
+      target="_blank"
+      rel="noreferrer"
+      onMouseEnter={onPreview}
+      onFocus={onPreview}
       className={cn(
-        "group w-full rounded-xl border p-4 text-left transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ember-400",
+        "group block w-full rounded-xl border p-4 text-left transition-all focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ember-400",
         selected
           ? "border-ember-500/60 bg-ember-500/10 shadow-[0_0_28px_rgba(245,158,11,0.12)]"
           : "border-ink-700 bg-ink-900 hover:-translate-y-0.5 hover:border-ink-600",
@@ -115,9 +225,9 @@ function StructureCard({
       <p className="mt-1.5 line-clamp-2 text-xs leading-relaxed text-ink-400">{structure.summary}</p>
       <div className="mt-3 flex items-center justify-between border-t border-ink-800 pt-3 font-mono text-[10px] text-ink-500">
         <span>search {structure.search}</span>
-        <ArrowRight size={12} className={cn("transition-transform group-hover:translate-x-0.5", selected && "text-ember-300")} />
+        <span className={cn("inline-flex items-center gap-1 text-ink-400 transition-colors group-hover:text-ember-300", selected && "text-ember-300")}>Open <ExternalLink size={11} /></span>
       </div>
-    </button>
+    </a>
   );
 }
 
@@ -334,6 +444,328 @@ function PatternLab() {
   );
 }
 
+function openProblemWorkspace(problem: DsaProblem, onNavigate: (route: Route) => void) {
+  if (problem.exampleId) {
+    onNavigate({ name: "lab", exampleId: problem.exampleId });
+    return;
+  }
+  sessionStorage.setItem(VISUALIZER_DRAFT_KEY, makeProblemStarter(problem));
+  onNavigate({ name: "visualize" });
+}
+
+function openDraftInVisualizer(draft: string, onNavigate: (route: Route) => void) {
+  sessionStorage.setItem(VISUALIZER_DRAFT_KEY, draft);
+  onNavigate({ name: "visualize" });
+}
+
+function TopicLaunchRail() {
+  const featuredStructures = DATA_STRUCTURES.filter((structure) =>
+    ["matrix", "graph", "stack", "queue", "hash-table", "heap", "binary-tree", "trie"].includes(structure.id),
+  );
+
+  return (
+    <section className="mb-5 rounded-xl border border-ink-700 bg-ink-900/80 p-3">
+      <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold text-ink-100">Focused workspaces</p>
+          <p className="text-[11px] text-ink-500">Open a topic in its own tab, then study examples or feed custom code.</p>
+        </div>
+        <span className="font-mono text-[9px] uppercase tracking-widest text-ink-500">opens new tab</span>
+      </div>
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {featuredStructures.map((structure) => {
+          const Icon = FAMILY_ICONS[structure.family];
+          return (
+            <a
+              key={structure.id}
+              href={structureHref(structure.id)}
+              target="_blank"
+              rel="noreferrer"
+              className="flex min-w-[150px] items-center gap-2 rounded-lg border border-ink-700 bg-ink-950/70 px-3 py-2 text-left transition-colors hover:border-ember-500/50 hover:bg-ember-500/10"
+            >
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-ink-700 text-arc-300">
+                <Icon size={13} />
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-xs font-semibold text-ink-100">{structure.name}</span>
+                <span className="block truncate font-mono text-[9px] uppercase tracking-wider text-ink-500">{structure.family}</span>
+              </span>
+              <ExternalLink size={12} className="shrink-0 text-ink-500" />
+            </a>
+          );
+        })}
+        {DSA_TOPICS.map((topic) => (
+          <a
+            key={topic}
+            href={topicHref(topic)}
+            target="_blank"
+            rel="noreferrer"
+            className="flex min-w-[150px] items-center justify-between gap-2 rounded-lg border border-ink-700 bg-ink-950/60 px-3 py-2 text-xs font-semibold text-ink-200 transition-colors hover:border-arc-500/50 hover:bg-arc-500/10 hover:text-arc-200"
+          >
+            <span className="truncate">{topic}</span>
+            <ExternalLink size={12} className="shrink-0 text-ink-500" />
+          </a>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function CustomFeedPanel({
+  title,
+  starter,
+  problems,
+  onNavigate,
+}: {
+  title: string;
+  starter: string;
+  problems: DsaProblem[];
+  onNavigate: (route: Route) => void;
+}) {
+  const [draft, setDraft] = useState(starter);
+  const samples = problems.slice(0, 6);
+
+  useEffect(() => {
+    setDraft(starter);
+  }, [starter]);
+
+  return (
+    <Card className="overflow-hidden p-0">
+      <div className="flex items-center justify-between border-b border-ink-700 px-4 py-3">
+        <div>
+          <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-ember-400">custom feed</p>
+          <h3 className="text-sm font-semibold text-ink-100">Try your own {title} code</h3>
+        </div>
+        <Button variant="primary" className="h-8 px-2.5 text-xs" onClick={() => openDraftInVisualizer(draft, onNavigate)}>
+          <Play size={12} /> Visualize
+        </Button>
+      </div>
+      {samples.length > 0 && (
+        <div className="flex gap-2 overflow-x-auto border-b border-ink-800 px-4 py-2">
+          {samples.map((problem) => (
+            <button
+              key={problem.id}
+              type="button"
+              onClick={() => setDraft(makeProblemStarter(problem))}
+              className="shrink-0 rounded-md border border-ink-700 bg-ink-950 px-2.5 py-1.5 text-[10px] font-semibold text-ink-300 transition-colors hover:border-ember-500/50 hover:text-ember-300"
+            >
+              {problem.title}
+            </button>
+          ))}
+        </div>
+      )}
+      <textarea
+        value={draft}
+        onChange={(event) => setDraft(event.target.value)}
+        spellCheck={false}
+        className="h-64 w-full resize-y bg-ink-950/80 p-4 font-mono text-xs leading-relaxed text-ink-100 outline-none placeholder:text-ink-600 focus:bg-ink-950"
+        aria-label="Custom code feed"
+      />
+    </Card>
+  );
+}
+
+function WorkspaceProblemList({
+  problems,
+  onNavigate,
+}: {
+  problems: DsaProblem[];
+  onNavigate: (route: Route) => void;
+}) {
+  if (problems.length === 0) {
+    return (
+      <Card className="p-6 text-center text-sm text-ink-400">
+        No catalog examples are mapped here yet.
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="overflow-hidden p-0">
+      <div className="flex items-center justify-between border-b border-ink-700 bg-ink-950/70 px-4 py-3">
+        <div>
+          <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-arc-300">examples</p>
+          <h3 className="text-sm font-semibold text-ink-100">Problems to analyze</h3>
+        </div>
+        <span className="font-mono text-[10px] text-ink-500">{problems.length} mapped</span>
+      </div>
+      {problems.map((problem) => (
+        <ProblemRow key={problem.id} problem={problem} onVisualize={() => openProblemWorkspace(problem, onNavigate)} />
+      ))}
+    </Card>
+  );
+}
+
+function WorkspaceMissing({ label, onNavigate }: { label: string; onNavigate: (route: Route) => void }) {
+  return (
+    <div className="h-full overflow-y-auto">
+      <div className="mx-auto flex min-h-full max-w-3xl flex-col items-center justify-center px-4 py-10 text-center">
+        <Card className="p-8">
+          <Search size={24} className="mx-auto text-ink-600" />
+          <h2 className="mt-4 text-xl font-semibold text-ink-100">Atlas workspace not found</h2>
+          <p className="mt-2 text-sm leading-relaxed text-ink-400">{label} does not match a data structure or topic in the current catalog.</p>
+          <Button className="mt-5" onClick={() => onNavigate({ name: "atlas" })}>
+            <ArrowRight size={13} className="rotate-180" /> Back to Atlas
+          </Button>
+        </Card>
+      </div>
+    </div>
+  );
+}
+
+function StructureWorkspace({ structureId, onNavigate }: { structureId: string; onNavigate: (route: Route) => void }) {
+  const structure = DATA_STRUCTURES.find((item) => item.id === structureId);
+  if (!structure) return <WorkspaceMissing label={structureId} onNavigate={onNavigate} />;
+
+  const Icon = FAMILY_ICONS[structure.family];
+  const related = relatedProblemsForStructure(structure);
+  const starter = starterForStructure(structure);
+
+  return (
+    <div className="h-full overflow-y-auto">
+      <div className="mx-auto max-w-[1480px] px-4 py-6 sm:px-6 lg:px-8">
+        <header className="relative overflow-hidden rounded-2xl border border-ink-700 bg-ink-900 px-5 py-6 sm:px-7">
+          <div className="atlas-grid pointer-events-none absolute inset-0 opacity-40" />
+          <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <a href="#/atlas" onClick={(event) => { event.preventDefault(); onNavigate({ name: "atlas" }); }} className="mb-4 inline-flex items-center gap-1.5 text-xs font-semibold text-ink-400 transition-colors hover:text-ember-300">
+                <ArrowRight size={13} className="rotate-180" /> Atlas index
+              </a>
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-ember-500/40 bg-ember-500/15 text-ember-300"><Icon size={16} /></span>
+                <Badge tone="amber">{structure.family}</Badge>
+                <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">focused workspace</span>
+              </div>
+              <h1 className="text-3xl font-semibold text-ink-100 sm:text-4xl">{structure.name}</h1>
+              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-ink-300">{structure.summary}</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="primary" onClick={() => openDraftInVisualizer(starter, onNavigate)}>
+                <Play size={13} /> Visualize custom feed
+              </Button>
+              <a href={structureHref(structure.id)} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center gap-1.5 rounded-md border border-ink-700 bg-ink-800 px-3 py-2 text-sm font-medium text-ink-100 transition-colors hover:border-ink-600 hover:bg-ink-700">
+                <ExternalLink size={13} /> New window
+              </a>
+            </div>
+          </div>
+        </header>
+
+        <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)]">
+          <Card className="flex min-h-[560px] flex-col overflow-hidden p-0">
+            <div className="flex items-center justify-between border-b border-ink-700 px-4 py-3">
+              <div>
+                <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-ember-400">visual anatomy</p>
+                <h2 className="text-lg font-semibold text-ink-100">{structure.name} workspace</h2>
+              </div>
+              <Badge tone="blue">drag to orbit</Badge>
+            </div>
+            <HudFrame label={structure.name} right="drag to orbit" sweep={false} ambient={false} className="min-h-[420px] flex-1">
+              <ErrorBoundary label="atlas workspace 3D">
+                <StructureStage3D structure={structure} />
+              </ErrorBoundary>
+            </HudFrame>
+          </Card>
+
+          <div className="space-y-5">
+            <Card className="p-4">
+              <p className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-ink-500">operation cost</p>
+              <div className="grid grid-cols-4 gap-px overflow-hidden rounded-lg border border-ink-700 bg-ink-700">
+                {[["access", structure.access], ["search", structure.search], ["insert", structure.insert], ["delete", structure.remove]].map(([label, value]) => (
+                  <div key={label} className="bg-ink-950 px-2 py-3 text-center">
+                    <p className="font-mono text-xs font-semibold text-arc-300">{value}</p>
+                    <p className="mt-1 text-[8px] uppercase tracking-widest text-ink-500">{label}</p>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 flex flex-wrap gap-1.5">
+                {structure.operations.map((operation) => <Badge key={operation} tone="neutral">{operation}</Badge>)}
+              </div>
+            </Card>
+            <CustomFeedPanel title={structure.name} starter={starter} problems={related} onNavigate={onNavigate} />
+          </div>
+        </div>
+
+        <div className="mt-5">
+          <WorkspaceProblemList problems={related} onNavigate={onNavigate} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TopicWorkspace({ topicSlug, onNavigate }: { topicSlug: string; onNavigate: (route: Route) => void }) {
+  const topic = topicFromSlug(topicSlug);
+  if (!topic) return <WorkspaceMissing label={topicSlug} onNavigate={onNavigate} />;
+
+  const problems = DSA_PROBLEMS.filter((problem) => problem.topic === topic);
+  const pattern = PATTERNS.find((item) => item.topics.includes(topic));
+  const starter = starterFromProblems(problems, topic);
+  const counts = {
+    beginner: problems.filter((problem) => problem.difficulty === "beginner").length,
+    intermediate: problems.filter((problem) => problem.difficulty === "intermediate").length,
+    advanced: problems.filter((problem) => problem.difficulty === "advanced").length,
+  };
+
+  return (
+    <div className="h-full overflow-y-auto">
+      <div className="mx-auto max-w-[1480px] px-4 py-6 sm:px-6 lg:px-8">
+        <header className="relative overflow-hidden rounded-2xl border border-ink-700 bg-ink-900 px-5 py-6 sm:px-7">
+          <div className="atlas-grid pointer-events-none absolute inset-0 opacity-40" />
+          <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <a href="#/atlas" onClick={(event) => { event.preventDefault(); onNavigate({ name: "atlas" }); }} className="mb-4 inline-flex items-center gap-1.5 text-xs font-semibold text-ink-400 transition-colors hover:text-ember-300">
+                <ArrowRight size={13} className="rotate-180" /> Atlas index
+              </a>
+              <div className="mb-3 flex flex-wrap items-center gap-2">
+                <Badge tone="blue">problem topic</Badge>
+                <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-500">focused workspace</span>
+              </div>
+              <h1 className="text-3xl font-semibold text-ink-100 sm:text-4xl">{topic}</h1>
+              <p className="mt-3 max-w-2xl text-sm leading-relaxed text-ink-300">
+                Study the pattern shape, open polished examples, or feed your own implementation into the visualizer.
+              </p>
+            </div>
+            <div className="grid grid-cols-3 gap-px overflow-hidden rounded-xl border border-ink-700 bg-ink-700 lg:w-[360px]">
+              {[[counts.beginner, "beginner"], [counts.intermediate, "middle"], [counts.advanced, "advanced"]].map(([value, label]) => (
+                <div key={label} className="bg-ink-950/80 px-4 py-3 text-center">
+                  <p className="font-mono text-xl font-semibold text-ink-100">{value}</p>
+                  <p className="text-[9px] uppercase tracking-[0.18em] text-ink-500">{label}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </header>
+
+        <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,0.95fr)_minmax(360px,1.05fr)]">
+          <Card className="flex min-h-[520px] flex-col overflow-hidden p-0">
+            <div className="flex items-center justify-between border-b border-ink-700 px-4 py-3">
+              <div>
+                <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-arc-300">pattern lens</p>
+                <h2 className="text-lg font-semibold text-ink-100">{pattern?.name ?? topic}</h2>
+              </div>
+              {pattern && <Badge tone="blue">{pattern.complexity}</Badge>}
+            </div>
+            {pattern ? (
+              <HudFrame label={pattern.name} right="looping demo" sweep={false} className="min-h-[420px] flex-1">
+                <PatternDemo pattern={pattern} />
+              </HudFrame>
+            ) : (
+              <div className="flex flex-1 items-center justify-center p-8 text-center text-sm text-ink-400">
+                Pattern demo is not mapped yet. Use the examples and custom feed panel to visualize code.
+              </div>
+            )}
+          </Card>
+          <CustomFeedPanel title={topic} starter={starter} problems={problems} onNavigate={onNavigate} />
+        </div>
+
+        <div className="mt-5">
+          <WorkspaceProblemList problems={problems} onNavigate={onNavigate} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function ProgressView() {
   const progress = useSyncExternalStore(subscribe, getSnapshot);
   const stats = progressStats();
@@ -441,7 +873,7 @@ function ProgressView() {
   );
 }
 
-export function DsaAtlasScreen({ onNavigate }: { onNavigate: (route: Route) => void }) {
+function DsaAtlasIndex({ onNavigate }: { onNavigate: (route: Route) => void }) {
   const [view, setView] = useState<View>("structures");
   const [selected, setSelected] = useState<DataStructureGuide>(DATA_STRUCTURES[0]);
   const [query, setQuery] = useState("");
@@ -486,7 +918,7 @@ export function DsaAtlasScreen({ onNavigate }: { onNavigate: (route: Route) => v
               <AnimatedHeading
                 text="Every pattern needs a shape."
                 gradientLast
-                className="max-w-3xl text-3xl font-semibold tracking-[-0.035em] text-ink-100 sm:text-4xl"
+                className="max-w-3xl text-3xl font-semibold text-ink-100 sm:text-4xl"
               />
               <p className="mt-3 max-w-2xl text-sm leading-relaxed text-ink-300">
                 A searchable field guide to core data structures and {DSA_PROBLEMS.length} interview-grade problems, organized by the patterns that solve them.
@@ -510,19 +942,23 @@ export function DsaAtlasScreen({ onNavigate }: { onNavigate: (route: Route) => v
           <button type="button" onClick={() => setView("patterns")} className={cn("rounded-md px-4 py-2 text-xs font-semibold transition-colors", view === "patterns" ? "bg-ember-400 text-ink-950" : "text-ink-400 hover:text-ink-100")}>Patterns <span className="ml-1 opacity-65">{PATTERNS.length}</span></button>
         </div>
 
+        <TopicLaunchRail />
+
         {view === "structures" ? (
           <div className="grid gap-5 xl:grid-cols-[minmax(0,1.25fr)_minmax(400px,0.75fr)]">
             <section className="grid content-start gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {DATA_STRUCTURES.map((structure) => <StructureCard key={structure.id} structure={structure} selected={selected.id === structure.id} onSelect={() => setSelected(structure)} />)}
+              {DATA_STRUCTURES.map((structure) => <StructureCard key={structure.id} structure={structure} selected={selected.id === structure.id} onPreview={() => setSelected(structure)} />)}
             </section>
             <aside className="xl:sticky xl:top-6 xl:h-[calc(100vh-3rem)]">
               <Card className="flex h-full min-h-[560px] flex-col overflow-hidden p-0">
-                <div className="flex items-center justify-between border-b border-ink-700 px-4 py-3">
-                  <div>
-                    <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-ember-400">3D anatomy</p>
-                    <h2 className="text-lg font-semibold text-ink-100">{selected.name}</h2>
+                <div className="flex items-center justify-between gap-3 border-b border-ink-700 px-4 py-3">
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-ember-400">hover preview</p>
+                    <h2 className="truncate text-lg font-semibold text-ink-100">{selected.name}</h2>
                   </div>
-                  <Badge tone="blue">drag to orbit</Badge>
+                  <a href={structureHref(selected.id)} target="_blank" rel="noreferrer" className="inline-flex shrink-0 items-center gap-1 rounded-md border border-ink-700 bg-ink-950 px-2.5 py-1.5 text-[10px] font-semibold text-ink-300 transition-colors hover:border-ember-500/50 hover:text-ember-300">
+                    Open <ExternalLink size={11} />
+                  </a>
                 </div>
                 <HudFrame
                   label={selected.name}
@@ -632,3 +1068,20 @@ export function DsaAtlasScreen({ onNavigate }: { onNavigate: (route: Route) => v
     </div>
   );
 }
+
+export function DsaAtlasScreen({
+  route,
+  onNavigate,
+}: {
+  route: AtlasRoute;
+  onNavigate: (route: Route) => void;
+}) {
+  if (route.section === "structure" && route.itemId) {
+    return <StructureWorkspace structureId={route.itemId} onNavigate={onNavigate} />;
+  }
+  if (route.section === "topic" && route.itemId) {
+    return <TopicWorkspace topicSlug={route.itemId} onNavigate={onNavigate} />;
+  }
+  return <DsaAtlasIndex onNavigate={onNavigate} />;
+}
+

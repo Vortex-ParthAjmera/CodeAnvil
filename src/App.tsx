@@ -195,7 +195,7 @@ export default function App() {
                 {route.name === "dashboard" && <Dashboard onNavigate={nav} />}
                 {route.name === "lab" && <PlaybackLab route={route} onNavigate={nav} />}
                 {route.name === "saved" && <SavedSessions onNavigate={nav} />}
-                {route.name === "atlas" && <DsaAtlasScreen onNavigate={nav} />}
+                {route.name === "atlas" && <DsaAtlasScreen route={route} onNavigate={nav} />}
                 {route.name === "roadmap" && <RoadmapScreen onNavigate={nav} />}
                 {route.name === "arena" && <ArenaScreen />}
                 {route.name === "visualize" && <VisualizerScreen onNavigate={nav} />}

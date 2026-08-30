@@ -4,7 +4,7 @@ export type Route =
   | { name: "dashboard" }
   | { name: "lab"; exampleId?: string; stepIndex?: number }
   | { name: "saved" }
-  | { name: "atlas" }
+  | { name: "atlas"; section?: "structure" | "topic"; itemId?: string }
   | { name: "roadmap" }
   | { name: "arena" }
   | { name: "visualize" }
@@ -27,7 +27,12 @@ export function parseHash(): Route {
   }
   if (seg === "auth") return { name: "auth" };
   if (seg === "saved") return { name: "saved" };
-  if (seg === "atlas") return { name: "atlas" };
+  if (seg === "atlas") {
+    if ((id === "structure" || id === "topic") && step) {
+      return { name: "atlas", section: id, itemId: decodeURIComponent(step) };
+    }
+    return { name: "atlas" };
+  }
   if (seg === "roadmap") return { name: "roadmap" };
   if (seg === "dashboard") return { name: "dashboard" };
   if (seg === "arena") return { name: "arena" };
@@ -48,7 +53,9 @@ export function navigate(route: Route): void {
   } else if (route.name === "saved") {
     location.hash = "#/saved";
   } else if (route.name === "atlas") {
-    location.hash = "#/atlas";
+    location.hash = route.section && route.itemId
+      ? `#/atlas/${route.section}/${encodeURIComponent(route.itemId)}`
+      : "#/atlas";
   } else if (route.name === "roadmap") {
     location.hash = "#/roadmap";
   } else if (route.name === "dashboard") {

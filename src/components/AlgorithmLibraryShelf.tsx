@@ -193,7 +193,7 @@ export function AlgorithmLibraryShelf({
         </div>
       </div>
 
-      <div className={cn("grid gap-2", compact ? "grid-cols-2 sm:grid-cols-4 xl:grid-cols-7" : "grid-cols-2 md:grid-cols-3 xl:grid-cols-4")}>
+      <div className={cn("grid gap-2", compact ? "max-h-28 grid-cols-2 overflow-y-auto pr-1 sm:grid-cols-4 xl:grid-cols-7" : "grid-cols-2 md:grid-cols-3 xl:grid-cols-4")}>
         {ALGORITHM_SECTIONS.map((candidate) => {
           const selected = candidate.id === section.id;
           const readyCount = countReadyAlgorithmButtons(candidate);
@@ -231,7 +231,7 @@ export function AlgorithmLibraryShelf({
             {selectedReady}/{selectedTotal} playable
           </span>
         </div>
-        <div className={cn("grid gap-2", compact ? "max-h-52 overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-3" : "sm:grid-cols-2 2xl:grid-cols-3")}>
+        <div className={cn("grid gap-2", compact ? "max-h-44 overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-3" : "sm:grid-cols-2 2xl:grid-cols-3")}>
           {section.items.map((entry) => (
             <AlgorithmButton
               key={entry.title}

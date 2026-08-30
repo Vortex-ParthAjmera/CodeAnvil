@@ -13,20 +13,69 @@ const REQUIRED_SECTIONS = [
   "Sorting",
   "Recursion & Backtracking",
   "Strings",
+  "Advanced String Algorithms",
   "Linked Lists",
   "Stacks & Queues",
   "Trees",
+  "Advanced Trees",
   "Graphs",
+  "Advanced Graph Algorithms",
   "Dynamic Programming",
+  "Advanced DP Patterns",
+  "DP Optimizations",
   "Greedy",
   "Heaps / Priority Queue",
   "Bit Manipulation",
-  "Math",
+  "Math / Number Theory",
+  "Matrix Specific",
+  "Advanced Data Structures",
+  "Computational Geometry",
+  "Game Theory",
+  "Randomized Algorithms",
+  "Hashing Variants",
+  "Streaming / Probabilistic",
+  "Parallel & Distributed",
+  "Approximation Algorithms",
+  "Misc Classics",
 ];
+
+const REQUESTED_SPOT_CHECKS = [
+  "Johnson's Algorithm (All-Pairs Shortest Path)",
+  "Dinic's Algorithm (Max Flow)",
+  "Aho-Corasick Algorithm (multi-pattern search)",
+  "Digit DP",
+  "Matrix Exponentiation (Fast Fibonacci)",
+  "Convex Hull (Graham Scan, Jarvis March)",
+  "Alpha-Beta Pruning",
+  "Reservoir Sampling",
+  "LFU Cache",
+  "Spiral Matrix Traversal",
+  "External Sorting (larger than memory)",
+  "Manber-Myers Algorithm (suffix array construction)",
+  "Boruvka's Algorithm (MST)",
+  "Miller-Rabin Primality Test",
+  "Count-Min Sketch",
+  "Wavelet Tree",
+  "Consensus Algorithms (Paxos, Raft)",
+  "Vertex Cover Approximation",
+];
+
+function allAlgorithmTitles(): string[] {
+  return ALGORITHM_SECTIONS.flatMap((section) => section.items.map((item) => item.title));
+}
 
 describe("algorithm library", () => {
   it("keeps the requested DSA sections in order", () => {
     expect(ALGORITHM_SECTIONS.map((section) => section.title)).toEqual(REQUIRED_SECTIONS);
+  });
+
+  it("contains the expanded advanced algorithm backlog", () => {
+    const titles = allAlgorithmTitles();
+
+    for (const title of REQUESTED_SPOT_CHECKS) {
+      expect(titles).toContain(title);
+    }
+    expect(TOTAL_ALGORITHM_BUTTONS).toBeGreaterThan(240);
   });
 
   it("only marks real playback examples as live", () => {
@@ -43,6 +92,5 @@ describe("algorithm library", () => {
     const unlistedExamples = EXAMPLES.map((example) => example.id).filter((id) => !liveIds.has(id));
 
     expect(unlistedExamples).toEqual([]);
-    expect(TOTAL_ALGORITHM_BUTTONS).toBeGreaterThan(120);
   });
 });

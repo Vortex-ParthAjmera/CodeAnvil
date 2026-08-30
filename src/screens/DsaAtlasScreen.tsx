@@ -464,15 +464,11 @@ function TopicLaunchRail() {
   );
 
   return (
-    <section className="mb-5 rounded-xl border border-ink-700 bg-ink-900/80 p-3">
-      <div className="mb-3 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-xs font-semibold text-ink-100">Focused workspaces</p>
-          <p className="text-[11px] text-ink-500">Open a topic in its own tab, then study examples or feed custom code.</p>
-        </div>
-        <span className="font-mono text-[9px] uppercase tracking-widest text-ink-500">opens new tab</span>
-      </div>
-      <div className="flex gap-2 overflow-x-auto pb-1">
+    <nav className="mb-5 space-y-2" aria-label="Atlas focused workspaces">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="mr-1 font-mono text-[9px] uppercase tracking-widest text-ink-500">
+          open workspace
+        </span>
         {featuredStructures.map((structure) => {
           const Icon = FAMILY_ICONS[structure.family];
           return (
@@ -481,33 +477,30 @@ function TopicLaunchRail() {
               href={structureHref(structure.id)}
               target="_blank"
               rel="noreferrer"
-              className="flex min-w-[150px] items-center gap-2 rounded-lg border border-ink-700 bg-ink-950/70 px-3 py-2 text-left transition-colors hover:border-ember-500/50 hover:bg-ember-500/10"
+              className="inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold text-ink-300 transition-colors hover:bg-ember-500/10 hover:text-ember-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ember-400"
             >
-              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-ink-700 text-arc-300">
-                <Icon size={13} />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-xs font-semibold text-ink-100">{structure.name}</span>
-                <span className="block truncate font-mono text-[9px] uppercase tracking-wider text-ink-500">{structure.family}</span>
-              </span>
-              <ExternalLink size={12} className="shrink-0 text-ink-500" />
+              <Icon size={12} className="text-arc-300" />
+              <span>{structure.name}</span>
+              <ExternalLink size={10} className="text-ink-600" />
             </a>
           );
         })}
+      </div>
+      <div className="flex flex-wrap gap-x-3 gap-y-1.5 text-xs">
         {DSA_TOPICS.map((topic) => (
           <a
             key={topic}
             href={topicHref(topic)}
             target="_blank"
             rel="noreferrer"
-            className="flex min-w-[150px] items-center justify-between gap-2 rounded-lg border border-ink-700 bg-ink-950/60 px-3 py-2 text-xs font-semibold text-ink-200 transition-colors hover:border-arc-500/50 hover:bg-arc-500/10 hover:text-arc-200"
+            className="inline-flex items-center gap-1 text-ink-500 transition-colors hover:text-arc-300 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-arc-400"
           >
-            <span className="truncate">{topic}</span>
-            <ExternalLink size={12} className="shrink-0 text-ink-500" />
+            <span>{topic}</span>
+            <ExternalLink size={10} />
           </a>
         ))}
       </div>
-    </section>
+    </nav>
   );
 }
 

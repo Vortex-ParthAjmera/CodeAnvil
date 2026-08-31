@@ -15,6 +15,14 @@ export interface AlgorithmSection {
   items: AlgorithmItem[];
 }
 
+export interface AlgorithmExampleMatch {
+  sectionId: string;
+  sectionTitle: string;
+  itemTitle: string;
+  variantLabel: string;
+  displayTitle: string;
+}
+
 function item(title: string, exampleId?: string): AlgorithmItem {
   return { title, variants: [{ label: exampleId ? "Play" : "Queued", exampleId }] };
 }
@@ -520,13 +528,30 @@ export function countReadyAlgorithmButtons(section: AlgorithmSection): number {
   );
 }
 
-export function findSectionIdForExample(exampleId: string): string | undefined {
+export function findAlgorithmForExample(exampleId: string): AlgorithmExampleMatch | undefined {
   for (const section of ALGORITHM_SECTIONS) {
     for (const entry of section.items) {
-      if (entry.variants.some((variant) => variant.exampleId === exampleId)) return section.id;
+      for (const variant of entry.variants) {
+        if (variant.exampleId !== exampleId) continue;
+        const displayTitle =
+          entry.variants.length > 1 && variant.label !== "Play"
+            ? `${entry.title} - ${variant.label}`
+            : entry.title;
+        return {
+          sectionId: section.id,
+          sectionTitle: section.title,
+          itemTitle: entry.title,
+          variantLabel: variant.label,
+          displayTitle,
+        };
+      }
     }
   }
   return undefined;
+}
+
+export function findSectionIdForExample(exampleId: string): string | undefined {
+  return findAlgorithmForExample(exampleId)?.sectionId;
 }
 
 export function readyAlgorithmExampleIds(): string[] {

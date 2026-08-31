@@ -4,6 +4,7 @@ import {
   ALGORITHM_SECTIONS,
   TOTAL_ALGORITHM_BUTTONS,
   TOTAL_READY_ALGORITHM_BUTTONS,
+  findAlgorithmForExample,
   readyAlgorithmExampleIds,
 } from "./algorithmLibrary";
 
@@ -76,6 +77,19 @@ describe("algorithm library", () => {
       expect(titles).toContain(title);
     }
     expect(TOTAL_ALGORITHM_BUTTONS).toBeGreaterThan(240);
+  });
+
+  it("finds the active algorithm label for minimized lab summaries", () => {
+    expect(findAlgorithmForExample("binary-search")).toMatchObject({
+      sectionTitle: "Searching",
+      displayTitle: "Binary Search",
+      variantLabel: "Play",
+    });
+    expect(findAlgorithmForExample("factorial-recursion")).toMatchObject({
+      sectionTitle: "Recursion & Backtracking",
+      displayTitle: "Factorial - Recursion",
+      variantLabel: "Recursion",
+    });
   });
 
   it("only marks real playback examples as live", () => {

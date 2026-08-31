@@ -87,6 +87,7 @@ function writeView3dPref(id: string, is3d: boolean): void {
 
 /* Per-panel size weights (2–9) for the workspace layout, persisted locally. */
 const PANEL_SIZES_KEY = "codeanvil.panel-sizes.v3";
+const LAB_LIBRARY_COLLAPSED_KEY = "codeanvil.lab-library-collapsed.v1";
 const PANEL_SIZE_IDS = ["code", "stage", "inspector"] as const;
 type PanelSizeKey = (typeof PANEL_SIZE_IDS)[number];
 const DEFAULT_PANEL_SIZES: Record<PanelSizeKey, number> = {
@@ -94,6 +95,17 @@ const DEFAULT_PANEL_SIZES: Record<PanelSizeKey, number> = {
   stage: 9,
   inspector: 2,
 };
+
+function readLabLibraryCollapsed(): boolean {
+  try {
+    const raw = localStorage.getItem(LAB_LIBRARY_COLLAPSED_KEY);
+    if (raw === null) return true;
+    const parsed = JSON.parse(raw) as unknown;
+    return typeof parsed === "boolean" ? parsed : true;
+  } catch {
+    return true;
+  }
+}
 
 function readPanelSizes(): Record<PanelSizeKey, number> {
   try {
@@ -179,6 +191,7 @@ export function PlaybackLab({
   const [lang, setLang] = useState<VariantLanguage>("python");
   const [focusedPanel, setFocusedPanel] = useState<FocusPanel>("all");
   const [panelSizes, setPanelSizes] = useState(readPanelSizes);
+  const [libraryCollapsed, setLibraryCollapsed] = useState(readLabLibraryCollapsed);
   const appliedResume = useRef<string | null>(null);
   const workspaceRef = useRef<HTMLDivElement>(null);
 
@@ -217,6 +230,15 @@ export function PlaybackLab({
       /* ignore */
     }
   }, [panelSizes]);
+
+  // Keep the big selector out of the way after the user chooses a preference.
+  useEffect(() => {
+    try {
+      localStorage.setItem(LAB_LIBRARY_COLLAPSED_KEY, JSON.stringify(libraryCollapsed));
+    } catch {
+      /* ignore */
+    }
+  }, [libraryCollapsed]);
 
   const effectiveId = exampleId ?? route.exampleId ?? EXAMPLES[0].id;
   const baseExample = getExample(effectiveId) ?? EXAMPLES[0];
@@ -359,9 +381,9 @@ export function PlaybackLab({
   }, [togglePlay, stepForward, stepBack]);
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full min-h-0 flex-col overflow-y-auto">
       {/* Header */}
-      <header className="border-b border-ink-700 bg-ink-900 px-4 py-3">
+      <header className="shrink-0 border-b border-ink-700 bg-ink-900 px-4 py-3">
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -398,14 +420,17 @@ export function PlaybackLab({
         {/* Algorithm selector */}
         <AlgorithmLibraryShelf
           compact
+          collapsible
+          collapsed={libraryCollapsed}
           activeExampleId={example.id}
+          onCollapsedChange={setLibraryCollapsed}
           onOpenExample={selectExample}
           className="mt-3"
         />
       </header>
 
       {/* Panel size sliders — resize source / stage / inspector to fit any screen */}
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 border-b border-ink-800 bg-ink-900/70 px-3 py-1.5">
+      <div className="shrink-0 flex flex-wrap items-center gap-x-4 gap-y-1.5 border-b border-ink-800 bg-ink-900/70 px-3 py-1.5">
         <span className="flex items-center gap-1.5 text-[9px] font-semibold uppercase tracking-widest text-ink-500">
           <MoveHorizontal size={11} /> Panel size
         </span>
@@ -432,7 +457,7 @@ export function PlaybackLab({
       <div
         ref={workspaceRef}
         data-workspace
-        className="flex min-h-0 flex-1 flex-col overflow-y-auto bg-ink-700 lg:flex-row"
+        className="flex min-h-[32rem] flex-1 flex-col overflow-y-auto bg-ink-700 lg:min-h-[28rem] lg:flex-row"
       >
         <div
           className={cn(

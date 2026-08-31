@@ -113,6 +113,21 @@ body {
   }
 }
 
+.min-array-equation,
+.min-array-line-badge {
+  display: none;
+}
+
+@container (min-width: 34rem) {
+  .min-array-equation {
+    display: flex;
+  }
+
+  .min-array-line-badge {
+    display: contents;
+  }
+}
+
 @container (min-width: 52rem) {
   .stage-hud-legend {
     display: flex;

@@ -85,6 +85,11 @@ describe("algorithm library", () => {
       displayTitle: "Binary Search",
       variantLabel: "Play",
     });
+    expect(findAlgorithmForExample("min-array")).toMatchObject({
+      sectionTitle: "Arrays & Basics",
+      displayTitle: "Min in Array",
+      variantLabel: "Play",
+    });
     expect(findAlgorithmForExample("factorial-recursion")).toMatchObject({
       sectionTitle: "Recursion & Backtracking",
       displayTitle: "Factorial - Recursion",

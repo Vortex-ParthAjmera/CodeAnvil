@@ -5,6 +5,7 @@ import { buildFactorialRecursionTrace, FACTORIAL_RECURSION_CODE } from "./traces
 import { buildFibonacciRecursionTrace, FIBONACCI_RECURSION_CODE } from "./traces/fibonacci-recursion";
 import { buildSumArrayTrace, SUM_ARRAY_CODE } from "./traces/sum-array";
 import { buildMaxArrayTrace, MAX_ARRAY_CODE } from "./traces/max-array";
+import { buildMinArrayTrace, MIN_ARRAY_CODE } from "./traces/min-array";
 import { buildBubbleSortTrace, BUBBLE_SORT_CODE } from "./traces/bubble-sort";
 import {
   buildBfsGridTrace,
@@ -77,6 +78,15 @@ export const EXAMPLES: Example[] = [
     difficulty: "beginner",
     blurb: "Scan a list keeping the running maximum. Watch max_val update only when a larger value appears.",
     trace: buildMaxArrayTrace(),
+  },
+  {
+    id: "min-array",
+    slug: "min-array",
+    title: "Min in Array",
+    topic: "arrays",
+    difficulty: "beginner",
+    blurb: "A scanner tests every value against one persistent candidate. Watch the minimum marker transfer only when a smaller value earns it.",
+    trace: buildMinArrayTrace(),
   },
   {
     id: "bubble-sort",
@@ -168,6 +178,7 @@ export const EXAMPLE_CODE_BY_ID: Record<string, string> = {
   "fibonacci-recursion": FIBONACCI_RECURSION_CODE,
   "binary-search": BINARY_SEARCH_CODE,
   "max-array": MAX_ARRAY_CODE,
+  "min-array": MIN_ARRAY_CODE,
   "bubble-sort": BUBBLE_SORT_CODE,
   "bfs-grid": BFS_GRID_CODE,
   "dfs-grid": DFS_GRID_CODE,
@@ -183,6 +194,7 @@ export const EXAMPLE_CODE_BY_ID: Record<string, string> = {
 export const PLAYABLE_KIND_BY_EXAMPLE: Record<string, PlayableKind> = {
   "sum-array": "sum-array",
   "max-array": "max-array",
+  "min-array": "min-array",
   "factorial-loop": "factorial-loop",
   "factorial-recursion": "factorial-recursion",
   "fibonacci-recursion": "fibonacci-recursion",

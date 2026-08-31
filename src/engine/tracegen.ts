@@ -28,11 +28,13 @@ import {
   gridVisual,
   TraceBuilder,
 } from "../data/traces/builders";
+import { buildMinArrayTrace } from "../data/traces/min-array";
 
 
 export type PlayableKind =
   | "sum-array"
   | "max-array"
+  | "min-array"
   | "factorial-loop"
   | "factorial-recursion"
   | "fibonacci-recursion"
@@ -1636,6 +1638,8 @@ export function codeFor(kind: PlayableKind, config: PlayableConfig): string {
       return `arr = [${arr.join(", ")}]\ntotal = 0\nfor i in range(len(arr)):\n    total = total + arr[i]\nprint("Total:", total)`;
     case "max-array":
       return `arr = [${arr.join(", ")}]\nmax_val = arr[0]\nfor i in range(1, len(arr)):\n    if arr[i] > max_val:\n        max_val = arr[i]\nprint("Max:", max_val)`;
+    case "min-array":
+      return `arr = [${arr.join(", ")}]\nmin_val = arr[0]\nmin_idx = 0\nfor i in range(1, len(arr)):\n    if arr[i] < min_val:\n        min_val = arr[i]\n        min_idx = i\nprint("Min:", min_val)`;
     case "factorial-loop":
       return `result = 1\nfor i in range(1, ${n} + 1):\n    result = result * i\nprint("Factorial:", result)`;
     case "factorial-recursion":
@@ -1681,6 +1685,11 @@ export function generateTrace(
       return sumArrayTrace(values, source);
     case "max-array":
       return maxArrayTrace(values, source);
+    case "min-array": {
+      const minValues = config.array ?? [7, 4, 9, 1, 5];
+      const minSource = code ?? codeFor(kind, { ...config, array: minValues });
+      return buildMinArrayTrace(minValues, minSource, detectLanguage(minSource));
+    }
     case "factorial-loop":
       return factorialLoopTrace(Math.min(config.n ?? 5, 12), source);
     case "factorial-recursion": {
@@ -1791,6 +1800,7 @@ export interface InputField {
 export const PLAYABLE_INPUTS: Partial<Record<PlayableKind, InputField[]>> = {
   "sum-array": [{ key: "array", label: "Numbers", default: [4, 7, 1, 9], help: "Comma-separated integers" }],
   "max-array": [{ key: "array", label: "Numbers", default: [3, 8, 2, 9, 5], help: "Comma-separated integers" }],
+  "min-array": [{ key: "array", label: "Numbers", default: [7, 4, 9, 1, 5], help: "Comma-separated integers" }],
   "factorial-loop": [{ key: "n", label: "n", default: 5, help: "Compute n!" }],
   "factorial-recursion": [{ key: "n", label: "n", default: 4, help: "fact(n) — max 8" }],
   "fibonacci-recursion": [{ key: "n", label: "n", default: 5, help: "fib(n) — max 9" }],

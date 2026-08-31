@@ -120,6 +120,7 @@ describe("inorder recorder", () => {
 describe("generateTrace", () => {
   const cases = [
     ["sum-array", { array: [1, 2, 3] }],
+    ["min-array", { array: [3, 1, 2] }],
     ["merge-sort", { array: [5, 3, 8] }],
     ["quick-sort", { array: [5, 3, 8] }],
     ["heap-sort", { array: [5, 3, 8] }],

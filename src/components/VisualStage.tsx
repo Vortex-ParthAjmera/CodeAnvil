@@ -28,7 +28,7 @@ function cellRoleClass(role: string | undefined): string {
       "border-ember-400 bg-ember-500/20 text-ember-300 shadow-[0_0_18px_rgba(245,158,11,0.4)] scale-105",
     role === "reading" && "border-arc-500 bg-arc-500/15 text-arc-300",
     role === "compare" && "border-arc-500 bg-arc-500/15 text-arc-300",
-    role === "max" &&
+    (role === "max" || role === "min") &&
       "border-verdant-400 bg-verdant-500/15 text-verdant-300 shadow-[0_0_14px_rgba(16,185,129,0.35)]",
     role === "sorted" &&
       "border-verdant-500/50 bg-verdant-500/10 text-verdant-300/80",
@@ -207,7 +207,7 @@ function ArrayStage({ item, step }: { item: MemoryItem; step?: TraceStep }) {
                     "mr-1 inline-block h-2 w-2 rounded-full",
                     r === "mid" || r === "swap" || r === "key"
                       ? "bg-ember-400"
-                      : r === "max" || r === "sorted"
+                      : r === "max" || r === "min" || r === "sorted"
                         ? "bg-verdant-400"
                         : "bg-arc-400",
                   )}

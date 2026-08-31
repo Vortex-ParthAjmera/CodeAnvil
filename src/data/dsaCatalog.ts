@@ -89,6 +89,7 @@ export const DSA_PROBLEMS: DsaProblem[] = [
     ["Maximum Product Subarray", "intermediate", "O(n)", "Track both minimum and maximum products through signs."],
     ["Sum of Array", "beginner", "O(n)", "Accumulate every value in a single pass.", "sum-array"],
     ["Maximum in Array", "beginner", "O(n)", "Track the largest value seen during a scan.", "max-array"],
+    ["Minimum in Array", "beginner", "O(n)", "Keep the smallest candidate seen during one complete scan.", "min-array"],
   ]),
   ...group("Two Pointers", "Pointer convergence", [
     ["Valid Palindrome", "beginner", "O(n)", "Compare normalized characters from both ends.", "palindrome"],
@@ -406,6 +407,7 @@ export function makeProblemStarter(problem: DsaProblem): string {
   if (problem.exampleId === "two-sum") return `arr = [2, 7, 11, 15]\ntarget = 9\nl = 0\nr = len(arr) - 1\nwhile l < r:\n    s = arr[l] + arr[r]\n    if s == target:\n        print(l, r)\n        break\n    elif s < target:\n        l += 1\n    else:\n        r -= 1`;
   if (problem.exampleId === "sum-array") return `arr = [4, 7, 1, 9]\ntotal = 0\nfor i in range(len(arr)):\n    total = total + arr[i]\nprint("Total:", total)`;
   if (problem.exampleId === "max-array") return `arr = [3, 8, 2, 9, 5]\nmax_val = arr[0]\nfor i in range(1, len(arr)):\n    if arr[i] > max_val:\n        max_val = arr[i]\nprint("Max:", max_val)`;
+  if (problem.exampleId === "min-array") return `arr = [7, 4, 9, 1, 5]\nmin_val = arr[0]\nmin_idx = 0\nfor i in range(1, len(arr)):\n    if arr[i] < min_val:\n        min_val = arr[i]\n        min_idx = i\nprint("Min:", min_val)`;
   if (problem.exampleId === "factorial-recursion") return `def fact(n):\n    if n <= 1:\n        return 1\n    return n * fact(n - 1)\n\nprint(fact(4))`;
   if (problem.exampleId === "fibonacci-recursion") return `def fib(n):\n    if n <= 1:\n        return n\n    return fib(n - 1) + fib(n - 2)\n\nprint(fib(5))`;
   return `# ${problem.title}\n# Pattern: ${problem.pattern}\n# Target complexity: ${problem.complexity}\n\ndef ${safeName}(input_data):\n    # Paste or write your ${problem.topic.toLowerCase()} solution here.\n    result = input_data\n    return result\n\nprint(${safeName}([4, 7, 1, 9]))`;

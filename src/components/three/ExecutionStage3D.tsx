@@ -9,12 +9,14 @@ import { FactorialRecursionStage3D } from "./FactorialRecursionStage3D";
 import { GridSearchStage3D } from "./GridSearchStage3D";
 import { StringTapeStage3D, isStringTapeTraceStep } from "./StringTapeStage3D";
 import { TwoSumStage3D, isTwoSumTraceStep } from "./TwoSumStage3D";
+import { MinArrayStage3D } from "./MinArrayStage3D";
 import { ThreeStage } from "./ThreeStage";
 import type { BarDescriptor } from "./ThreeBars";
 import { selectRendererForStep } from "../../engine/traceActions";
 import { isFactorialRecursionStep } from "../../engine/recursionStage";
 import { isGridSearchTraceStep } from "../../engine/gridStage";
 import { isBinarySearchTraceStep } from "../../engine/searchStage";
+import { isMinArrayTraceStep } from "../../engine/minArrayStage";
 import { isBubbleSortTraceStep, isHeapSortTraceStep, isMergeSortTraceStep, isQuickSortTraceStep } from "../../engine/sortStage";
 
 function isArrayHighlight(
@@ -39,6 +41,10 @@ export function ExecutionStage3D({ step, steps }: { step: TraceStep; steps?: Tra
 
   if (dispatch.kind === "array" && isTwoSumTraceStep(step)) {
     return <TwoSumStage3D step={step} steps={steps} />;
+  }
+
+  if (dispatch.kind === "array" && isMinArrayTraceStep(step)) {
+    return <MinArrayStage3D step={step} steps={steps} />;
   }
 
   if (dispatch.kind === "array" && isBinarySearchTraceStep(step)) {

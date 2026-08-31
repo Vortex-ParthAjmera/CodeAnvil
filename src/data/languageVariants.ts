@@ -33,6 +33,26 @@ for (let i = 1; i < arr.length; i++) {
 }
 console.log("Max:", max);`,
   },
+  "min-array": {
+    python: `arr = [7, 4, 9, 1, 5]
+min_val = arr[0]
+min_idx = 0
+for i in range(1, len(arr)):
+    if arr[i] < min_val:
+        min_val = arr[i]
+        min_idx = i
+print("Min:", min_val)`,
+    javascript: `const arr = [7, 4, 9, 1, 5];
+let minVal = arr[0];
+let minIndex = 0;
+for (let i = 1; i < arr.length; i++) {
+  if (arr[i] < minVal) {
+    minVal = arr[i];
+    minIndex = i;
+  }
+}
+console.log("Min:", minVal);`,
+  },
   "factorial-loop": {
     python: `result = 1
 for i in range(1, 6):

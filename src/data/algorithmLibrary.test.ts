@@ -90,6 +90,16 @@ describe("algorithm library", () => {
       displayTitle: "Min in Array",
       variantLabel: "Play",
     });
+    expect(findAlgorithmForExample("reverse-array")).toMatchObject({
+      sectionTitle: "Arrays & Basics",
+      displayTitle: "Reverse an Array",
+      variantLabel: "Play",
+    });
+    expect(findAlgorithmForExample("kadane")).toMatchObject({
+      sectionTitle: "Arrays & Basics",
+      displayTitle: "Kadane's Algorithm (Max Subarray Sum)",
+      variantLabel: "Play",
+    });
     expect(findAlgorithmForExample("factorial-recursion")).toMatchObject({
       sectionTitle: "Recursion & Backtracking",
       displayTitle: "Factorial - Recursion",

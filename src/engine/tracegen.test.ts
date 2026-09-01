@@ -121,6 +121,8 @@ describe("generateTrace", () => {
   const cases = [
     ["sum-array", { array: [1, 2, 3] }],
     ["min-array", { array: [3, 1, 2] }],
+    ["reverse-array", { array: [3, 1, 2] }],
+    ["kadane", { array: [-2, 1, -3, 4] }],
     ["merge-sort", { array: [5, 3, 8] }],
     ["quick-sort", { array: [5, 3, 8] }],
     ["heap-sort", { array: [5, 3, 8] }],

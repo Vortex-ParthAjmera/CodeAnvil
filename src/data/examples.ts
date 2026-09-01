@@ -6,6 +6,8 @@ import { buildFibonacciRecursionTrace, FIBONACCI_RECURSION_CODE } from "./traces
 import { buildSumArrayTrace, SUM_ARRAY_CODE } from "./traces/sum-array";
 import { buildMaxArrayTrace, MAX_ARRAY_CODE } from "./traces/max-array";
 import { buildMinArrayTrace, MIN_ARRAY_CODE } from "./traces/min-array";
+import { buildReverseArrayTrace, REVERSE_ARRAY_CODE } from "./traces/reverse-array";
+import { buildKadaneTrace, KADANE_CODE } from "./traces/kadane";
 import { buildBubbleSortTrace, BUBBLE_SORT_CODE } from "./traces/bubble-sort";
 import {
   buildBfsGridTrace,
@@ -87,6 +89,24 @@ export const EXAMPLES: Example[] = [
     difficulty: "beginner",
     blurb: "A scanner tests every value against one persistent candidate. Watch the minimum marker transfer only when a smaller value earns it.",
     trace: buildMinArrayTrace(),
+  },
+  {
+    id: "reverse-array",
+    slug: "reverse-array",
+    title: "Reverse an Array",
+    topic: "arrays",
+    difficulty: "beginner",
+    blurb: "Two pointers swap mirrored positions from the outside inward. Follow the same value tokens as they cross and lock into place.",
+    trace: buildReverseArrayTrace(),
+  },
+  {
+    id: "kadane",
+    slug: "kadane",
+    title: "Kadane's Algorithm",
+    topic: "arrays",
+    difficulty: "intermediate",
+    blurb: "Choose between restarting and extending at every value while current and best subarray rails evolve independently.",
+    trace: buildKadaneTrace(),
   },
   {
     id: "bubble-sort",
@@ -179,6 +199,8 @@ export const EXAMPLE_CODE_BY_ID: Record<string, string> = {
   "binary-search": BINARY_SEARCH_CODE,
   "max-array": MAX_ARRAY_CODE,
   "min-array": MIN_ARRAY_CODE,
+  "reverse-array": REVERSE_ARRAY_CODE,
+  kadane: KADANE_CODE,
   "bubble-sort": BUBBLE_SORT_CODE,
   "bfs-grid": BFS_GRID_CODE,
   "dfs-grid": DFS_GRID_CODE,
@@ -195,6 +217,8 @@ export const PLAYABLE_KIND_BY_EXAMPLE: Record<string, PlayableKind> = {
   "sum-array": "sum-array",
   "max-array": "max-array",
   "min-array": "min-array",
+  "reverse-array": "reverse-array",
+  kadane: "kadane",
   "factorial-loop": "factorial-loop",
   "factorial-recursion": "factorial-recursion",
   "fibonacci-recursion": "fibonacci-recursion",

@@ -85,11 +85,12 @@ export const DSA_PROBLEMS: DsaProblem[] = [
     ["Missing Number", "beginner", "O(n)", "Recover one missing value from a bounded range."],
     ["Find All Duplicates", "intermediate", "O(n)", "Use indices as markers to reveal repeated values."],
     ["Subarray Sum Equals K", "intermediate", "O(n)", "Count target-sum subarrays with prefix frequencies."],
-    ["Maximum Subarray", "intermediate", "O(n)", "Track the strongest contiguous sum ending at each index."],
+    ["Maximum Subarray", "intermediate", "O(n)", "Track the strongest contiguous sum ending at each index.", "kadane"],
     ["Maximum Product Subarray", "intermediate", "O(n)", "Track both minimum and maximum products through signs."],
     ["Sum of Array", "beginner", "O(n)", "Accumulate every value in a single pass.", "sum-array"],
     ["Maximum in Array", "beginner", "O(n)", "Track the largest value seen during a scan.", "max-array"],
     ["Minimum in Array", "beginner", "O(n)", "Keep the smallest candidate seen during one complete scan.", "min-array"],
+    ["Reverse an Array", "beginner", "O(n)", "Swap mirrored positions with two pointers moving inward.", "reverse-array"],
   ]),
   ...group("Two Pointers", "Pointer convergence", [
     ["Valid Palindrome", "beginner", "O(n)", "Compare normalized characters from both ends.", "palindrome"],
@@ -408,6 +409,8 @@ export function makeProblemStarter(problem: DsaProblem): string {
   if (problem.exampleId === "sum-array") return `arr = [4, 7, 1, 9]\ntotal = 0\nfor i in range(len(arr)):\n    total = total + arr[i]\nprint("Total:", total)`;
   if (problem.exampleId === "max-array") return `arr = [3, 8, 2, 9, 5]\nmax_val = arr[0]\nfor i in range(1, len(arr)):\n    if arr[i] > max_val:\n        max_val = arr[i]\nprint("Max:", max_val)`;
   if (problem.exampleId === "min-array") return `arr = [7, 4, 9, 1, 5]\nmin_val = arr[0]\nmin_idx = 0\nfor i in range(1, len(arr)):\n    if arr[i] < min_val:\n        min_val = arr[i]\n        min_idx = i\nprint("Min:", min_val)`;
+  if (problem.exampleId === "kadane") return `arr = [-2, 1, -3, 4, -1, 2, 1, -5, 4]\ncurrent_sum = arr[0]\nbest_sum = arr[0]\ncurrent_start = 0\nbest_start = best_end = 0\nfor i in range(1, len(arr)):\n    if arr[i] > current_sum + arr[i]:\n        current_sum = arr[i]\n        current_start = i\n    else:\n        current_sum += arr[i]\n    if current_sum > best_sum:\n        best_sum = current_sum\n        best_start, best_end = current_start, i\nprint(best_sum)`;
+  if (problem.exampleId === "reverse-array") return `arr = [9, 3, 7, 1, 5, 2]\nleft = 0\nright = len(arr) - 1\nwhile left < right:\n    arr[left], arr[right] = arr[right], arr[left]\n    left += 1\n    right -= 1\nprint("Reversed:", arr)`;
   if (problem.exampleId === "factorial-recursion") return `def fact(n):\n    if n <= 1:\n        return 1\n    return n * fact(n - 1)\n\nprint(fact(4))`;
   if (problem.exampleId === "fibonacci-recursion") return `def fib(n):\n    if n <= 1:\n        return n\n    return fib(n - 1) + fib(n - 2)\n\nprint(fib(5))`;
   return `# ${problem.title}\n# Pattern: ${problem.pattern}\n# Target complexity: ${problem.complexity}\n\ndef ${safeName}(input_data):\n    # Paste or write your ${problem.topic.toLowerCase()} solution here.\n    result = input_data\n    return result\n\nprint(${safeName}([4, 7, 1, 9]))`;

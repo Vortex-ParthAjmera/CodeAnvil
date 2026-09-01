@@ -53,6 +53,60 @@ for (let i = 1; i < arr.length; i++) {
 }
 console.log("Min:", minVal);`,
   },
+  "reverse-array": {
+    python: `arr = [9, 3, 7, 1, 5, 2]
+left = 0
+right = len(arr) - 1
+while left < right:
+    arr[left], arr[right] = arr[right], arr[left]
+    left += 1
+    right -= 1
+print("Reversed:", arr)`,
+    javascript: `const arr = [9, 3, 7, 1, 5, 2];
+let left = 0;
+let right = arr.length - 1;
+while (left < right) {
+  [arr[left], arr[right]] = [arr[right], arr[left]];
+  left += 1;
+  right -= 1;
+}
+console.log("Reversed:", arr);`,
+  },
+  kadane: {
+    python: `arr = [-2, 1, -3, 4, -1, 2, 1, -5, 4]
+current_sum = arr[0]
+best_sum = arr[0]
+current_start = 0
+best_start = best_end = 0
+for i in range(1, len(arr)):
+    if arr[i] > current_sum + arr[i]:
+        current_sum = arr[i]
+        current_start = i
+    else:
+        current_sum = current_sum + arr[i]
+    if current_sum > best_sum:
+        best_sum = current_sum
+        best_start, best_end = current_start, i
+print("Max subarray:", best_sum)`,
+    javascript: `const arr = [-2, 1, -3, 4, -1, 2, 1, -5, 4];
+let currentSum = arr[0];
+let bestSum = arr[0];
+let currentStart = 0;
+let bestStart = 0, bestEnd = 0;
+for (let i = 1; i < arr.length; i++) {
+  if (arr[i] > currentSum + arr[i]) {
+    currentSum = arr[i];
+    currentStart = i;
+  } else {
+    currentSum += arr[i];
+  }
+  if (currentSum > bestSum) {
+    bestSum = currentSum;
+    [bestStart, bestEnd] = [currentStart, i];
+  }
+}
+console.log(bestSum);`,
+  },
   "factorial-loop": {
     python: `result = 1
 for i in range(1, 6):

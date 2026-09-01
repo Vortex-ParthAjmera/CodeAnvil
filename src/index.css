@@ -114,16 +114,24 @@ body {
 }
 
 .min-array-equation,
-.min-array-line-badge {
+.min-array-line-badge,
+.reverse-array-equation,
+.reverse-array-line-badge,
+.kadane-equation,
+.kadane-line-badge {
   display: none;
 }
 
 @container (min-width: 34rem) {
-  .min-array-equation {
+  .min-array-equation,
+  .reverse-array-equation,
+  .kadane-equation {
     display: flex;
   }
 
-  .min-array-line-badge {
+  .min-array-line-badge,
+  .reverse-array-line-badge,
+  .kadane-line-badge {
     display: contents;
   }
 }

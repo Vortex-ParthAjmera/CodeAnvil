@@ -120,7 +120,9 @@ body {
 .kadane-equation,
 .kadane-line-badge,
 .hash-two-sum-equation,
-.hash-two-sum-line-badge {
+.hash-two-sum-line-badge,
+.three-sum-equation,
+.three-sum-line-badge {
   display: none;
 }
 
@@ -130,6 +132,16 @@ body {
 }
 
 .hash-two-sum-map-label-compact {
+  display: block;
+}
+
+.three-sum-shelf-label-full,
+.three-sum-rail-label-full,
+.three-sum-empty-shelf-label {
+  display: none;
+}
+
+.three-sum-rail-label-compact {
   display: block;
 }
 
@@ -143,17 +155,29 @@ body {
     display: none;
   }
 
+  .three-sum-shelf-label-full,
+  .three-sum-rail-label-full,
+  .three-sum-empty-shelf-label {
+    display: block;
+  }
+
+  .three-sum-rail-label-compact {
+    display: none;
+  }
+
   .min-array-equation,
   .reverse-array-equation,
   .kadane-equation,
-  .hash-two-sum-equation {
+  .hash-two-sum-equation,
+  .three-sum-equation {
     display: flex;
   }
 
   .min-array-line-badge,
   .reverse-array-line-badge,
   .kadane-line-badge,
-  .hash-two-sum-line-badge {
+  .hash-two-sum-line-badge,
+  .three-sum-line-badge {
     display: contents;
   }
 }

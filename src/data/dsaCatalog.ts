@@ -95,7 +95,7 @@ export const DSA_PROBLEMS: DsaProblem[] = [
   ...group("Two Pointers", "Pointer convergence", [
     ["Valid Palindrome", "beginner", "O(n)", "Compare normalized characters from both ends.", "palindrome"],
     ["Two Sum II", "intermediate", "O(n)", "Converge on a target in a sorted array.", "two-sum"],
-    ["3Sum", "intermediate", "O(n²)", "Fix one value and solve a two-pointer pair search."],
+    ["3Sum", "intermediate", "O(n²)", "Fix one value and solve a two-pointer pair search.", "three-sum"],
     ["Container With Most Water", "intermediate", "O(n)", "Shrink the limiting wall while maximizing area."],
     ["Trapping Rain Water", "advanced", "O(n)", "Accumulate water using opposing boundary maxima."],
     ["Remove Duplicates From Sorted Array", "beginner", "O(n)", "Compact unique values in place."],

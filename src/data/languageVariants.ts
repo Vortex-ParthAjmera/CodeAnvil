@@ -131,6 +131,54 @@ for (let i = 0; i < arr.length; i++) {
   seen.set(arr[i], i);
 }`,
   },
+  "three-sum": {
+    python: `arr = [-1, 0, 1, 2, -1, -4, -1]
+target = 0
+arr.sort()
+triplets = []
+for i in range(len(arr) - 2):
+    if i > 0 and arr[i] == arr[i - 1]:
+        continue
+    left, right = i + 1, len(arr) - 1
+    while left < right:
+        total = arr[i] + arr[left] + arr[right]
+        if total == target:
+            triplets.append([arr[i], arr[left], arr[right]])
+            left += 1
+            right -= 1
+            while left < right and arr[left] == arr[left - 1]:
+                left += 1
+            while left < right and arr[right] == arr[right + 1]:
+                right -= 1
+        elif total < target:
+            left += 1
+        else:
+            right -= 1
+print(triplets)`,
+    javascript: `const arr = [-1, 0, 1, 2, -1, -4, -1];
+const target = 0;
+arr.sort((a, b) => a - b);
+const triplets = [];
+for (let i = 0; i < arr.length - 2; i++) {
+  if (i > 0 && arr[i] === arr[i - 1]) continue;
+  let left = i + 1, right = arr.length - 1;
+  while (left < right) {
+    const total = arr[i] + arr[left] + arr[right];
+    if (total === target) {
+      triplets.push([arr[i], arr[left], arr[right]]);
+      left += 1;
+      right -= 1;
+      while (left < right && arr[left] === arr[left - 1]) left += 1;
+      while (left < right && arr[right] === arr[right + 1]) right -= 1;
+    } else if (total < target) {
+      left += 1;
+    } else {
+      right -= 1;
+    }
+  }
+}
+console.log(triplets);`,
+  },
   "factorial-loop": {
     python: `result = 1
 for i in range(1, 6):

@@ -47,7 +47,7 @@ export const ALGORITHM_SECTIONS: AlgorithmSection[] = [
       item("Kadane's Algorithm (Max Subarray Sum)", "kadane"),
       item("Two Sum (Unsorted / Hashing)", "two-sum-hash"),
       item("Two Sum (Sorted / Two Pointer)", "two-sum"),
-      item("Three Sum"),
+      item("Three Sum", "three-sum"),
       item("Four Sum"),
       item("Dutch National Flag (Sort 0s, 1s, 2s)"),
       item("Moore's Voting Algorithm (Majority Element)"),

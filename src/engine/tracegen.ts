@@ -32,6 +32,7 @@ import { buildMinArrayTrace } from "../data/traces/min-array";
 import { buildReverseArrayTrace } from "../data/traces/reverse-array";
 import { buildKadaneTrace } from "../data/traces/kadane";
 import { buildTwoSumHashTrace } from "../data/traces/two-sum-hash";
+import { buildThreeSumTrace } from "../data/traces/three-sum";
 
 
 export type PlayableKind =
@@ -41,6 +42,7 @@ export type PlayableKind =
   | "reverse-array"
   | "kadane"
   | "two-sum-hash"
+  | "three-sum"
   | "factorial-loop"
   | "factorial-recursion"
   | "fibonacci-recursion"
@@ -1637,7 +1639,7 @@ function gridTraceGen(kind: "bfs-grid" | "dfs-grid", maze: MazeSpec, code: strin
 export function codeFor(kind: PlayableKind, config: PlayableConfig): string {
   const arr = config.array ?? [5, 2, 8, 1];
   const n = config.n ?? 5;
-  const target = config.target ?? 7;
+  const target = config.target ?? (kind === "three-sum" ? 0 : 7);
   const text = config.text ?? "racecar";
   switch (kind) {
     case "sum-array":
@@ -1652,6 +1654,30 @@ export function codeFor(kind: PlayableKind, config: PlayableConfig): string {
       return `arr = [${arr.join(", ")}]\ncurrent_sum = arr[0]\nbest_sum = arr[0]\ncurrent_start = 0\nbest_start = best_end = 0\nfor i in range(1, len(arr)):\n    if arr[i] > current_sum + arr[i]:\n        current_sum = arr[i]\n        current_start = i\n    else:\n        current_sum = current_sum + arr[i]\n    if current_sum > best_sum:\n        best_sum = current_sum\n        best_start, best_end = current_start, i\nprint("Max subarray:", best_sum)`;
     case "two-sum-hash":
       return `arr = [${arr.join(", ")}]\ntarget = ${target}\nseen = {}\nfor i, value in enumerate(arr):\n    need = target - value\n    if need in seen:\n        print(seen[need], i)\n        break\n    seen[value] = i\nelse:\n    print("No pair")`;
+    case "three-sum":
+      return `arr = [${arr.join(", ")}]
+target = ${target}
+arr.sort()
+triplets = []
+for i in range(len(arr) - 2):
+    if i > 0 and arr[i] == arr[i - 1]:
+        continue
+    left, right = i + 1, len(arr) - 1
+    while left < right:
+        total = arr[i] + arr[left] + arr[right]
+        if total == target:
+            triplets.append([arr[i], arr[left], arr[right]])
+            left += 1
+            right -= 1
+            while left < right and arr[left] == arr[left - 1]:
+                left += 1
+            while left < right and arr[right] == arr[right + 1]:
+                right -= 1
+        elif total < target:
+            left += 1
+        else:
+            right -= 1
+print(triplets)`;
     case "factorial-loop":
       return `result = 1\nfor i in range(1, ${n} + 1):\n    result = result * i\nprint("Factorial:", result)`;
     case "factorial-recursion":
@@ -1717,6 +1743,12 @@ export function generateTrace(
       const hashTarget = config.target ?? 10;
       const hashSource = code ?? codeFor(kind, { ...config, array: hashValues, target: hashTarget });
       return buildTwoSumHashTrace(hashValues, hashTarget, hashSource, detectLanguage(hashSource));
+    }
+    case "three-sum": {
+      const threeSumValues = config.array ?? [-1, 0, 1, 2, -1, -4, -1];
+      const threeSumTarget = config.target ?? 0;
+      const threeSumSource = code ?? codeFor(kind, { ...config, array: threeSumValues, target: threeSumTarget });
+      return buildThreeSumTrace(threeSumValues, threeSumTarget, threeSumSource, detectLanguage(threeSumSource));
     }
     case "factorial-loop":
       return factorialLoopTrace(Math.min(config.n ?? 5, 12), source);
@@ -1834,6 +1866,10 @@ export const PLAYABLE_INPUTS: Partial<Record<PlayableKind, InputField[]>> = {
   "two-sum-hash": [
     { key: "array", label: "Unsorted numbers", default: [4, 7, 1, 8, 3, 6], help: "Order is preserved" },
     { key: "target", label: "Target", default: 10, help: "Pair sum to find" },
+  ],
+  "three-sum": [
+    { key: "array", label: "Numbers", default: [-1, 0, 1, 2, -1, -4, -1], help: "At least three integers" },
+    { key: "target", label: "Target", default: 0, help: "Triplet sum to find" },
   ],
   "factorial-loop": [{ key: "n", label: "n", default: 5, help: "Compute n!" }],
   "factorial-recursion": [{ key: "n", label: "n", default: 4, help: "fact(n) — max 8" }],

@@ -105,6 +105,11 @@ describe("algorithm library", () => {
       displayTitle: "Two Sum (Unsorted / Hashing)",
       variantLabel: "Play",
     });
+    expect(findAlgorithmForExample("three-sum")).toMatchObject({
+      sectionTitle: "Arrays & Basics",
+      displayTitle: "Three Sum",
+      variantLabel: "Play",
+    });
     expect(findAlgorithmForExample("factorial-recursion")).toMatchObject({
       sectionTitle: "Recursion & Backtracking",
       displayTitle: "Factorial - Recursion",

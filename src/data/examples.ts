@@ -9,6 +9,7 @@ import { buildMinArrayTrace, MIN_ARRAY_CODE } from "./traces/min-array";
 import { buildReverseArrayTrace, REVERSE_ARRAY_CODE } from "./traces/reverse-array";
 import { buildKadaneTrace, KADANE_CODE } from "./traces/kadane";
 import { buildTwoSumHashTrace, TWO_SUM_HASH_CODE } from "./traces/two-sum-hash";
+import { buildThreeSumTrace, THREE_SUM_CODE } from "./traces/three-sum";
 import { buildBubbleSortTrace, BUBBLE_SORT_CODE } from "./traces/bubble-sort";
 import {
   buildBfsGridTrace,
@@ -119,6 +120,15 @@ export const EXAMPLES: Example[] = [
     trace: buildTwoSumHashTrace(),
   },
   {
+    id: "three-sum",
+    slug: "three-sum",
+    title: "Three Sum",
+    topic: "arrays",
+    difficulty: "intermediate",
+    blurb: "Sort once, fix one anchor, and watch two pointers respond to every low, high, and exact sum while duplicate triplets are blocked.",
+    trace: buildThreeSumTrace(),
+  },
+  {
     id: "bubble-sort",
     slug: "bubble-sort",
     title: "Bubble Sort",
@@ -212,6 +222,7 @@ export const EXAMPLE_CODE_BY_ID: Record<string, string> = {
   "reverse-array": REVERSE_ARRAY_CODE,
   kadane: KADANE_CODE,
   "two-sum-hash": TWO_SUM_HASH_CODE,
+  "three-sum": THREE_SUM_CODE,
   "bubble-sort": BUBBLE_SORT_CODE,
   "bfs-grid": BFS_GRID_CODE,
   "dfs-grid": DFS_GRID_CODE,
@@ -231,6 +242,7 @@ export const PLAYABLE_KIND_BY_EXAMPLE: Record<string, PlayableKind> = {
   "reverse-array": "reverse-array",
   kadane: "kadane",
   "two-sum-hash": "two-sum-hash",
+  "three-sum": "three-sum",
   "factorial-loop": "factorial-loop",
   "factorial-recursion": "factorial-recursion",
   "fibonacci-recursion": "fibonacci-recursion",

@@ -10,6 +10,7 @@ import { GridSearchStage3D } from "./GridSearchStage3D";
 import { StringTapeStage3D, isStringTapeTraceStep } from "./StringTapeStage3D";
 import { TwoSumStage3D, isTwoSumTraceStep } from "./TwoSumStage3D";
 import { TwoSumHashStage3D } from "./TwoSumHashStage3D";
+import { ThreeSumStage3D } from "./ThreeSumStage3D";
 import { MinArrayStage3D } from "./MinArrayStage3D";
 import { ReverseArrayStage3D } from "./ReverseArrayStage3D";
 import { KadaneStage3D } from "./KadaneStage3D";
@@ -23,6 +24,7 @@ import { isMinArrayTraceStep } from "../../engine/minArrayStage";
 import { isReverseArrayTraceStep } from "../../engine/reverseArrayStage";
 import { isKadaneTraceStep } from "../../engine/kadaneStage";
 import { isTwoSumHashTraceStep } from "../../engine/twoSumHashStage";
+import { isThreeSumTraceStep } from "../../engine/threeSumStage";
 import { isBubbleSortTraceStep, isHeapSortTraceStep, isMergeSortTraceStep, isQuickSortTraceStep } from "../../engine/sortStage";
 
 function isArrayHighlight(
@@ -43,6 +45,10 @@ export function ExecutionStage3D({ step, steps }: { step: TraceStep; steps?: Tra
 
   if (dispatch.kind === "array" && isStringTapeTraceStep(step)) {
     return <StringTapeStage3D step={step} steps={steps} />;
+  }
+
+  if (dispatch.kind === "array" && isThreeSumTraceStep(step)) {
+    return <ThreeSumStage3D step={step} steps={steps} />;
   }
 
   if (dispatch.kind === "array" && isTwoSumHashTraceStep(step)) {

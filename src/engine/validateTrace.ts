@@ -117,6 +117,8 @@ export function validateTrace(trace: TraceDocument): TraceIssue[] {
         "function_call",
         "function_return",
         "loop_iteration",
+        "map_lookup",
+        "map_set",
         "merge_split",
         "output_write",
         "path_found",

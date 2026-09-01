@@ -18,6 +18,8 @@ const KNOWN_ACTIONS = new Set([
   "function_call",
   "function_return",
   "loop_iteration",
+  "map_lookup",
+  "map_set",
   "merge_split",
   "output_write",
   "path_found",
@@ -148,6 +150,24 @@ export function validateTraceAction(action: TraceAction, step: TraceStep): strin
     case "array_read": {
       if (!hasKey(action, "index")) {
         issues.push("array_read action needs an index.");
+      }
+      break;
+    }
+    case "map_lookup": {
+      if (!hasKey(action, "key")) {
+        issues.push("map_lookup action needs a key.");
+      }
+      if (typeof action.found !== "boolean") {
+        issues.push("map_lookup.found must be boolean.");
+      }
+      break;
+    }
+    case "map_set": {
+      if (!hasKey(action, "key")) {
+        issues.push("map_set action needs a key.");
+      }
+      if (!hasKey(action, "value")) {
+        issues.push("map_set action needs a value.");
       }
       break;
     }

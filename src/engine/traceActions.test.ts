@@ -30,6 +30,17 @@ describe("trace action schema", () => {
       "pointer_move action needs a destination.",
     );
   });
+
+  it("validates map lookup and map write payloads", () => {
+    expect(validateTraceAction({ type: "map_lookup", key: 7, found: true }, baseStep)).toEqual([]);
+    expect(validateTraceAction({ type: "map_set", key: 7, value: 1 }, baseStep)).toEqual([]);
+    expect(validateTraceAction({ type: "map_lookup", key: 7 }, baseStep)).toContain(
+      "map_lookup.found must be boolean.",
+    );
+    expect(validateTraceAction({ type: "map_set", key: 7 }, baseStep)).toContain(
+      "map_set action needs a value.",
+    );
+  });
 });
 
 describe("renderer dispatcher", () => {

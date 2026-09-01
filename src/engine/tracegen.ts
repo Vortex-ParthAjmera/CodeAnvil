@@ -31,6 +31,7 @@ import {
 import { buildMinArrayTrace } from "../data/traces/min-array";
 import { buildReverseArrayTrace } from "../data/traces/reverse-array";
 import { buildKadaneTrace } from "../data/traces/kadane";
+import { buildTwoSumHashTrace } from "../data/traces/two-sum-hash";
 
 
 export type PlayableKind =
@@ -39,6 +40,7 @@ export type PlayableKind =
   | "min-array"
   | "reverse-array"
   | "kadane"
+  | "two-sum-hash"
   | "factorial-loop"
   | "factorial-recursion"
   | "fibonacci-recursion"
@@ -1648,6 +1650,8 @@ export function codeFor(kind: PlayableKind, config: PlayableConfig): string {
       return `arr = [${arr.join(", ")}]\nleft = 0\nright = len(arr) - 1\nwhile left < right:\n    arr[left], arr[right] = arr[right], arr[left]\n    left += 1\n    right -= 1\nprint("Reversed:", arr)`;
     case "kadane":
       return `arr = [${arr.join(", ")}]\ncurrent_sum = arr[0]\nbest_sum = arr[0]\ncurrent_start = 0\nbest_start = best_end = 0\nfor i in range(1, len(arr)):\n    if arr[i] > current_sum + arr[i]:\n        current_sum = arr[i]\n        current_start = i\n    else:\n        current_sum = current_sum + arr[i]\n    if current_sum > best_sum:\n        best_sum = current_sum\n        best_start, best_end = current_start, i\nprint("Max subarray:", best_sum)`;
+    case "two-sum-hash":
+      return `arr = [${arr.join(", ")}]\ntarget = ${target}\nseen = {}\nfor i, value in enumerate(arr):\n    need = target - value\n    if need in seen:\n        print(seen[need], i)\n        break\n    seen[value] = i\nelse:\n    print("No pair")`;
     case "factorial-loop":
       return `result = 1\nfor i in range(1, ${n} + 1):\n    result = result * i\nprint("Factorial:", result)`;
     case "factorial-recursion":
@@ -1707,6 +1711,12 @@ export function generateTrace(
       const kadaneValues = config.array ?? [-2, 1, -3, 4, -1, 2, 1, -5, 4];
       const kadaneSource = code ?? codeFor(kind, { ...config, array: kadaneValues });
       return buildKadaneTrace(kadaneValues, kadaneSource, detectLanguage(kadaneSource));
+    }
+    case "two-sum-hash": {
+      const hashValues = config.array ?? [4, 7, 1, 8, 3, 6];
+      const hashTarget = config.target ?? 10;
+      const hashSource = code ?? codeFor(kind, { ...config, array: hashValues, target: hashTarget });
+      return buildTwoSumHashTrace(hashValues, hashTarget, hashSource, detectLanguage(hashSource));
     }
     case "factorial-loop":
       return factorialLoopTrace(Math.min(config.n ?? 5, 12), source);
@@ -1821,6 +1831,10 @@ export const PLAYABLE_INPUTS: Partial<Record<PlayableKind, InputField[]>> = {
   "min-array": [{ key: "array", label: "Numbers", default: [7, 4, 9, 1, 5], help: "Comma-separated integers" }],
   "reverse-array": [{ key: "array", label: "Numbers", default: [9, 3, 7, 1, 5, 2], help: "Comma-separated integers" }],
   "kadane": [{ key: "array", label: "Numbers", default: [-2, 1, -3, 4, -1, 2, 1, -5, 4], help: "Positive and negative integers" }],
+  "two-sum-hash": [
+    { key: "array", label: "Unsorted numbers", default: [4, 7, 1, 8, 3, 6], help: "Order is preserved" },
+    { key: "target", label: "Target", default: 10, help: "Pair sum to find" },
+  ],
   "factorial-loop": [{ key: "n", label: "n", default: 5, help: "Compute n!" }],
   "factorial-recursion": [{ key: "n", label: "n", default: 4, help: "fact(n) — max 8" }],
   "fibonacci-recursion": [{ key: "n", label: "n", default: 5, help: "fib(n) — max 9" }],

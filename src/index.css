@@ -118,20 +118,42 @@ body {
 .reverse-array-equation,
 .reverse-array-line-badge,
 .kadane-equation,
-.kadane-line-badge {
+.kadane-line-badge,
+.hash-two-sum-equation,
+.hash-two-sum-line-badge {
   display: none;
 }
 
+.hash-two-sum-gate-label,
+.hash-two-sum-map-label-full {
+  display: none;
+}
+
+.hash-two-sum-map-label-compact {
+  display: block;
+}
+
 @container (min-width: 34rem) {
+  .hash-two-sum-gate-label,
+  .hash-two-sum-map-label-full {
+    display: block;
+  }
+
+  .hash-two-sum-map-label-compact {
+    display: none;
+  }
+
   .min-array-equation,
   .reverse-array-equation,
-  .kadane-equation {
+  .kadane-equation,
+  .hash-two-sum-equation {
     display: flex;
   }
 
   .min-array-line-badge,
   .reverse-array-line-badge,
-  .kadane-line-badge {
+  .kadane-line-badge,
+  .hash-two-sum-line-badge {
     display: contents;
   }
 }

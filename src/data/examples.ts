@@ -8,6 +8,7 @@ import { buildMaxArrayTrace, MAX_ARRAY_CODE } from "./traces/max-array";
 import { buildMinArrayTrace, MIN_ARRAY_CODE } from "./traces/min-array";
 import { buildReverseArrayTrace, REVERSE_ARRAY_CODE } from "./traces/reverse-array";
 import { buildKadaneTrace, KADANE_CODE } from "./traces/kadane";
+import { buildTwoSumHashTrace, TWO_SUM_HASH_CODE } from "./traces/two-sum-hash";
 import { buildBubbleSortTrace, BUBBLE_SORT_CODE } from "./traces/bubble-sort";
 import {
   buildBfsGridTrace,
@@ -109,6 +110,15 @@ export const EXAMPLES: Example[] = [
     trace: buildKadaneTrace(),
   },
   {
+    id: "two-sum-hash",
+    slug: "two-sum-hash",
+    title: "Two Sum (Unsorted / Hashing)",
+    topic: "arrays",
+    difficulty: "beginner",
+    blurb: "Calculate a complement, query earlier values, and watch each miss enter the hash map until a real pair connects.",
+    trace: buildTwoSumHashTrace(),
+  },
+  {
     id: "bubble-sort",
     slug: "bubble-sort",
     title: "Bubble Sort",
@@ -201,6 +211,7 @@ export const EXAMPLE_CODE_BY_ID: Record<string, string> = {
   "min-array": MIN_ARRAY_CODE,
   "reverse-array": REVERSE_ARRAY_CODE,
   kadane: KADANE_CODE,
+  "two-sum-hash": TWO_SUM_HASH_CODE,
   "bubble-sort": BUBBLE_SORT_CODE,
   "bfs-grid": BFS_GRID_CODE,
   "dfs-grid": DFS_GRID_CODE,
@@ -219,6 +230,7 @@ export const PLAYABLE_KIND_BY_EXAMPLE: Record<string, PlayableKind> = {
   "min-array": "min-array",
   "reverse-array": "reverse-array",
   kadane: "kadane",
+  "two-sum-hash": "two-sum-hash",
   "factorial-loop": "factorial-loop",
   "factorial-recursion": "factorial-recursion",
   "fibonacci-recursion": "fibonacci-recursion",

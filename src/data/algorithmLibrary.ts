@@ -45,7 +45,7 @@ export const ALGORITHM_SECTIONS: AlgorithmSection[] = [
       item("Min in Array", "min-array"),
       item("Reverse an Array", "reverse-array"),
       item("Kadane's Algorithm (Max Subarray Sum)", "kadane"),
-      item("Two Sum (Unsorted / Hashing)"),
+      item("Two Sum (Unsorted / Hashing)", "two-sum-hash"),
       item("Two Sum (Sorted / Two Pointer)", "two-sum"),
       item("Three Sum"),
       item("Four Sum"),

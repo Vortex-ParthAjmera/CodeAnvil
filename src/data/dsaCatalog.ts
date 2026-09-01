@@ -74,7 +74,7 @@ function group(topic: string, pattern: string, seeds: ProblemSeed[]): DsaProblem
 
 export const DSA_PROBLEMS: DsaProblem[] = [
   ...group("Arrays & Hashing", "Scan / hash", [
-    ["Two Sum", "beginner", "O(n)", "Find two values whose sum reaches a target."],
+    ["Two Sum", "beginner", "O(n)", "Find two values whose sum reaches a target.", "two-sum-hash"],
     ["Contains Duplicate", "beginner", "O(n)", "Detect whether any value appears more than once."],
     ["Valid Anagram", "beginner", "O(n)", "Compare character frequencies between two strings."],
     ["Group Anagrams", "intermediate", "O(nk log k)", "Bucket words by a canonical character signature."],
@@ -405,6 +405,7 @@ export function makeProblemStarter(problem: DsaProblem): string {
   if (problem.exampleId === "quick-sort") return `arr = [9, 3, 7, 1, 8, 2]\ndef partition(a, lo, hi):\n    pivot = a[hi]\n    i = lo\n    for j in range(lo, hi):\n        if a[j] < pivot:\n            a[i], a[j] = a[j], a[i]\n            i += 1\n    a[i], a[hi] = a[hi], a[i]\n    return i\nprint(arr)`;
   if (problem.exampleId === "heap-sort") return `arr = [4, 10, 3, 5, 1]\ndef heapify(a, n, i):\n    largest = i\n    l, r = 2 * i + 1, 2 * i + 2\n    if l < n and a[l] > a[largest]:\n        largest = l\n    if r < n and a[r] > a[largest]:\n        largest = r\n    if largest != i:\n        a[i], a[largest] = a[largest], a[i]\nprint(arr)`;
   if (problem.exampleId === "palindrome") return `s = "racecar"\nl, r = 0, len(s) - 1\nwhile l < r:\n    if s[l] != s[r]:\n        print("Not a palindrome")\n        break\n    l += 1\n    r -= 1\nelse:\n    print("Palindrome!")`;
+  if (problem.exampleId === "two-sum-hash") return `arr = [4, 7, 1, 8, 3, 6]\ntarget = 10\nseen = {}\nfor i, value in enumerate(arr):\n    need = target - value\n    if need in seen:\n        print(seen[need], i)\n        break\n    seen[value] = i\nelse:\n    print("No pair")`;
   if (problem.exampleId === "two-sum") return `arr = [2, 7, 11, 15]\ntarget = 9\nl = 0\nr = len(arr) - 1\nwhile l < r:\n    s = arr[l] + arr[r]\n    if s == target:\n        print(l, r)\n        break\n    elif s < target:\n        l += 1\n    else:\n        r -= 1`;
   if (problem.exampleId === "sum-array") return `arr = [4, 7, 1, 9]\ntotal = 0\nfor i in range(len(arr)):\n    total = total + arr[i]\nprint("Total:", total)`;
   if (problem.exampleId === "max-array") return `arr = [3, 8, 2, 9, 5]\nmax_val = arr[0]\nfor i in range(1, len(arr)):\n    if arr[i] > max_val:\n        max_val = arr[i]\nprint("Max:", max_val)`;

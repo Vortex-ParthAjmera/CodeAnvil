@@ -107,6 +107,30 @@ for (let i = 1; i < arr.length; i++) {
 }
 console.log(bestSum);`,
   },
+  "two-sum-hash": {
+    python: `arr = [4, 7, 1, 8, 3, 6]
+target = 10
+seen = {}
+for i, value in enumerate(arr):
+    need = target - value
+    if need in seen:
+        print(seen[need], i)
+        break
+    seen[value] = i
+else:
+    print("No pair")`,
+    javascript: `const arr = [4, 7, 1, 8, 3, 6];
+const target = 10;
+const seen = new Map();
+for (let i = 0; i < arr.length; i++) {
+  const need = target - arr[i];
+  if (seen.has(need)) {
+    console.log(seen.get(need), i);
+    break;
+  }
+  seen.set(arr[i], i);
+}`,
+  },
   "factorial-loop": {
     python: `result = 1
 for i in range(1, 6):

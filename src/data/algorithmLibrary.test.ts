@@ -100,6 +100,11 @@ describe("algorithm library", () => {
       displayTitle: "Kadane's Algorithm (Max Subarray Sum)",
       variantLabel: "Play",
     });
+    expect(findAlgorithmForExample("two-sum-hash")).toMatchObject({
+      sectionTitle: "Arrays & Basics",
+      displayTitle: "Two Sum (Unsorted / Hashing)",
+      variantLabel: "Play",
+    });
     expect(findAlgorithmForExample("factorial-recursion")).toMatchObject({
       sectionTitle: "Recursion & Backtracking",
       displayTitle: "Factorial - Recursion",

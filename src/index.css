@@ -122,7 +122,11 @@ body {
 .hash-two-sum-equation,
 .hash-two-sum-line-badge,
 .three-sum-equation,
-.three-sum-line-badge {
+.three-sum-line-badge,
+.four-sum-equation,
+.four-sum-line-badge,
+.dnf-equation,
+.dnf-line-badge {
   display: none;
 }
 
@@ -137,11 +141,15 @@ body {
 
 .three-sum-shelf-label-full,
 .three-sum-rail-label-full,
-.three-sum-empty-shelf-label {
+.three-sum-empty-shelf-label,
+.four-sum-shelf-label-full,
+.four-sum-rail-label-full,
+.four-sum-empty-shelf-label {
   display: none;
 }
 
-.three-sum-rail-label-compact {
+.three-sum-rail-label-compact,
+.four-sum-rail-label-compact {
   display: block;
 }
 
@@ -157,11 +165,15 @@ body {
 
   .three-sum-shelf-label-full,
   .three-sum-rail-label-full,
-  .three-sum-empty-shelf-label {
+  .three-sum-empty-shelf-label,
+  .four-sum-shelf-label-full,
+  .four-sum-rail-label-full,
+  .four-sum-empty-shelf-label {
     display: block;
   }
 
-  .three-sum-rail-label-compact {
+  .three-sum-rail-label-compact,
+  .four-sum-rail-label-compact {
     display: none;
   }
 
@@ -169,7 +181,9 @@ body {
   .reverse-array-equation,
   .kadane-equation,
   .hash-two-sum-equation,
-  .three-sum-equation {
+  .three-sum-equation,
+  .four-sum-equation,
+  .dnf-equation {
     display: flex;
   }
 
@@ -177,7 +191,9 @@ body {
   .reverse-array-line-badge,
   .kadane-line-badge,
   .hash-two-sum-line-badge,
-  .three-sum-line-badge {
+  .three-sum-line-badge,
+  .four-sum-line-badge,
+  .dnf-line-badge {
     display: contents;
   }
 }

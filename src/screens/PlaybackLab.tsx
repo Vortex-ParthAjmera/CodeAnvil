@@ -384,7 +384,7 @@ export function PlaybackLab({
     <div className="flex h-full min-h-0 flex-col overflow-y-auto">
       {/* Header */}
       <header className="shrink-0 border-b border-ink-700 bg-ink-900 px-4 py-3">
-        <div className="flex items-center gap-3">
+        <div className="flex items-start gap-3">
           <button
             type="button"
             onClick={() => onNavigate({ name: "dashboard" })}
@@ -393,25 +393,25 @@ export function PlaybackLab({
           >
             <ArrowLeft size={18} />
           </button>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <AnimatedHeading
               text={example.title}
               className="truncate text-base font-semibold text-ink-100"
             />
-            <div className="mt-0.5 flex items-center gap-2">
+            <div className="mt-1 flex flex-wrap items-center gap-2">
               <Badge tone="amber">{example.topic}</Badge>
               <Badge tone="blue">{example.difficulty}</Badge>
               <Badge tone="neutral">{example.trace.language}</Badge>
               <Badge tone="neutral">prebuilt trace</Badge>
             </div>
           </div>
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex shrink-0 items-center gap-2">
             {savedFlash && (
               <span className="flex items-center gap-1 text-xs text-verdant-300">
                 <CheckCircle2 size={14} /> Session saved
               </span>
             )}
-            <Badge tone="neutral">
+            <Badge tone="neutral" className="whitespace-nowrap">
               <FileCode2 size={11} /> {example.trace.steps.length} steps
             </Badge>
           </div>

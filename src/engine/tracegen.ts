@@ -33,6 +33,8 @@ import { buildReverseArrayTrace } from "../data/traces/reverse-array";
 import { buildKadaneTrace } from "../data/traces/kadane";
 import { buildTwoSumHashTrace } from "../data/traces/two-sum-hash";
 import { buildThreeSumTrace } from "../data/traces/three-sum";
+import { buildFourSumTrace, FOUR_SUM_CODE, FOUR_SUM_DEFAULT } from "../data/traces/four-sum";
+import { buildDutchNationalFlagTrace, DUTCH_NATIONAL_FLAG_CODE, DUTCH_NATIONAL_FLAG_DEFAULT } from "../data/traces/dutch-national-flag";
 
 
 export type PlayableKind =
@@ -43,6 +45,8 @@ export type PlayableKind =
   | "kadane"
   | "two-sum-hash"
   | "three-sum"
+  | "four-sum"
+  | "dutch-national-flag"
   | "factorial-loop"
   | "factorial-recursion"
   | "fibonacci-recursion"
@@ -1637,9 +1641,14 @@ function gridTraceGen(kind: "bfs-grid" | "dfs-grid", maze: MazeSpec, code: strin
 /* ------------------------------------------------------------------ */
 
 export function codeFor(kind: PlayableKind, config: PlayableConfig): string {
-  const arr = config.array ?? [5, 2, 8, 1];
+  const requestedArray = config.array ?? [5, 2, 8, 1];
+  const arr = kind === "four-sum"
+    ? (config.array ?? FOUR_SUM_DEFAULT).slice(0, 10)
+    : kind === "dutch-national-flag"
+      ? (config.array ?? DUTCH_NATIONAL_FLAG_DEFAULT).slice(0, 12)
+      : requestedArray;
   const n = config.n ?? 5;
-  const target = config.target ?? (kind === "three-sum" ? 0 : 7);
+  const target = config.target ?? (kind === "three-sum" || kind === "four-sum" ? 0 : 7);
   const text = config.text ?? "racecar";
   switch (kind) {
     case "sum-array":
@@ -1678,6 +1687,15 @@ for i in range(len(arr) - 2):
         else:
             right -= 1
 print(triplets)`;
+    case "four-sum":
+      return FOUR_SUM_CODE
+        .replace(`arr = [${FOUR_SUM_DEFAULT.join(", ")}]`, `arr = [${arr.join(", ")}]`)
+        .replace("target = 0", `target = ${target}`);
+    case "dutch-national-flag":
+      return DUTCH_NATIONAL_FLAG_CODE.replace(
+        `arr = [${DUTCH_NATIONAL_FLAG_DEFAULT.join(", ")}]`,
+        `arr = [${arr.join(", ")}]`,
+      );
     case "factorial-loop":
       return `result = 1\nfor i in range(1, ${n} + 1):\n    result = result * i\nprint("Factorial:", result)`;
     case "factorial-recursion":
@@ -1749,6 +1767,17 @@ export function generateTrace(
       const threeSumTarget = config.target ?? 0;
       const threeSumSource = code ?? codeFor(kind, { ...config, array: threeSumValues, target: threeSumTarget });
       return buildThreeSumTrace(threeSumValues, threeSumTarget, threeSumSource, detectLanguage(threeSumSource));
+    }
+    case "four-sum": {
+      const fourSumValues = (config.array ?? FOUR_SUM_DEFAULT).slice(0, 10);
+      const fourSumTarget = config.target ?? 0;
+      const fourSumSource = code ?? codeFor(kind, { ...config, array: fourSumValues, target: fourSumTarget });
+      return buildFourSumTrace(fourSumValues, fourSumTarget, fourSumSource, detectLanguage(fourSumSource));
+    }
+    case "dutch-national-flag": {
+      const flagValues = (config.array ?? DUTCH_NATIONAL_FLAG_DEFAULT).slice(0, 12);
+      const flagSource = code ?? codeFor(kind, { ...config, array: flagValues });
+      return buildDutchNationalFlagTrace(flagValues, flagSource, detectLanguage(flagSource));
     }
     case "factorial-loop":
       return factorialLoopTrace(Math.min(config.n ?? 5, 12), source);
@@ -1870,6 +1899,13 @@ export const PLAYABLE_INPUTS: Partial<Record<PlayableKind, InputField[]>> = {
   "three-sum": [
     { key: "array", label: "Numbers", default: [-1, 0, 1, 2, -1, -4, -1], help: "At least three integers" },
     { key: "target", label: "Target", default: 0, help: "Triplet sum to find" },
+  ],
+  "four-sum": [
+    { key: "array", label: "Numbers", default: FOUR_SUM_DEFAULT, help: "Up to ten integers" },
+    { key: "target", label: "Target", default: 0, help: "Quadruplet sum to find" },
+  ],
+  "dutch-national-flag": [
+    { key: "array", label: "0 / 1 / 2 values", default: DUTCH_NATIONAL_FLAG_DEFAULT, help: "Only 0, 1, and 2; up to twelve values" },
   ],
   "factorial-loop": [{ key: "n", label: "n", default: 5, help: "Compute n!" }],
   "factorial-recursion": [{ key: "n", label: "n", default: 4, help: "fact(n) — max 8" }],

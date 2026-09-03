@@ -125,6 +125,8 @@ describe("generateTrace", () => {
     ["kadane", { array: [-2, 1, -3, 4] }],
     ["two-sum-hash", { array: [4, 7, 1, 3], target: 10 }],
     ["three-sum", { array: [-1, 0, 1, 2, -1, -4], target: 0 }],
+    ["four-sum", { array: [-2, -1, 0, 0, 1, 2], target: 0 }],
+    ["dutch-national-flag", { array: [2, 0, 1, 2, 0, 1] }],
     ["merge-sort", { array: [5, 3, 8] }],
     ["quick-sort", { array: [5, 3, 8] }],
     ["heap-sort", { array: [5, 3, 8] }],

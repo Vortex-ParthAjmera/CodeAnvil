@@ -5,6 +5,9 @@
  * line). Traces themselves are language-neutral and unchanged.
  */
 
+import { FOUR_SUM_CODE } from "./traces/four-sum";
+import { DUTCH_NATIONAL_FLAG_CODE } from "./traces/dutch-national-flag";
+
 export type VariantLanguage = "python" | "javascript";
 
 export const LANGUAGE_VARIANTS: Record<string, Record<VariantLanguage, string>> = {
@@ -178,6 +181,52 @@ for (let i = 0; i < arr.length - 2; i++) {
   }
 }
 console.log(triplets);`,
+  },
+  "four-sum": {
+    python: FOUR_SUM_CODE,
+    javascript: `const arr = [-1, 0, 1, 0, -2, 2, -1, 2];
+const target = 0;
+arr.sort((a, b) => a - b);
+const quadruplets = [];
+for (let first = 0; first < arr.length - 3; first++) {
+  if (first > 0 && arr[first] === arr[first - 1]) continue;
+  for (let second = first + 1; second < arr.length - 2; second++) {
+    if (second > first + 1 && arr[second] === arr[second - 1]) continue;
+    let left = second + 1, right = arr.length - 1;
+    while (left < right) {
+      const total = arr[first] + arr[second] + arr[left] + arr[right];
+      if (total === target) {
+        quadruplets.push([arr[first], arr[second], arr[left], arr[right]]);
+        left += 1; right -= 1;
+        while (left < right && arr[left] === arr[left - 1]) left += 1;
+        while (left < right && arr[right] === arr[right + 1]) right -= 1;
+      } else if (total < target) left += 1;
+      else right -= 1;
+    }
+  }
+}
+console.log(quadruplets);`,
+  },
+  "dutch-national-flag": {
+    python: DUTCH_NATIONAL_FLAG_CODE,
+    javascript: `const arr = [2, 0, 2, 1, 1, 0, 2, 0];
+if (arr.some((value) => ![0, 1, 2].includes(value))) throw new Error("Use only 0, 1, 2");
+let low = 0;
+let mid = 0;
+let high = arr.length - 1;
+while (mid <= high) {
+  if (arr[mid] === 0) {
+    [arr[low], arr[mid]] = [arr[mid], arr[low]];
+    low += 1;
+    mid += 1;
+  } else if (arr[mid] === 1) {
+    mid += 1;
+  } else {
+    [arr[mid], arr[high]] = [arr[high], arr[mid]];
+    high -= 1;
+  }
+}
+console.log(arr);`,
   },
   "factorial-loop": {
     python: `result = 1

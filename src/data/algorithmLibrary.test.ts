@@ -110,6 +110,16 @@ describe("algorithm library", () => {
       displayTitle: "Three Sum",
       variantLabel: "Play",
     });
+    expect(findAlgorithmForExample("four-sum")).toMatchObject({
+      sectionTitle: "Arrays & Basics",
+      displayTitle: "Four Sum",
+      variantLabel: "Play",
+    });
+    expect(findAlgorithmForExample("dutch-national-flag")).toMatchObject({
+      sectionTitle: "Arrays & Basics",
+      displayTitle: "Dutch National Flag (Sort 0s, 1s, 2s)",
+      variantLabel: "Play",
+    });
     expect(findAlgorithmForExample("factorial-recursion")).toMatchObject({
       sectionTitle: "Recursion & Backtracking",
       displayTitle: "Factorial - Recursion",

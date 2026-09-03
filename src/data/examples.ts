@@ -10,6 +10,8 @@ import { buildReverseArrayTrace, REVERSE_ARRAY_CODE } from "./traces/reverse-arr
 import { buildKadaneTrace, KADANE_CODE } from "./traces/kadane";
 import { buildTwoSumHashTrace, TWO_SUM_HASH_CODE } from "./traces/two-sum-hash";
 import { buildThreeSumTrace, THREE_SUM_CODE } from "./traces/three-sum";
+import { buildFourSumTrace, FOUR_SUM_CODE } from "./traces/four-sum";
+import { buildDutchNationalFlagTrace, DUTCH_NATIONAL_FLAG_CODE } from "./traces/dutch-national-flag";
 import { buildBubbleSortTrace, BUBBLE_SORT_CODE } from "./traces/bubble-sort";
 import {
   buildBfsGridTrace,
@@ -129,6 +131,24 @@ export const EXAMPLES: Example[] = [
     trace: buildThreeSumTrace(),
   },
   {
+    id: "four-sum",
+    slug: "four-sum",
+    title: "Four Sum",
+    topic: "arrays",
+    difficulty: "intermediate",
+    blurb: "Sort once, lock two anchors, and steer the remaining pair while duplicate guards keep every quadruplet unique.",
+    trace: buildFourSumTrace(),
+  },
+  {
+    id: "dutch-national-flag",
+    slug: "dutch-national-flag",
+    title: "Dutch National Flag",
+    topic: "arrays",
+    difficulty: "intermediate",
+    blurb: "Watch low, mid, and high grow four explicit invariants while 0s move left, 1s stay centered, and 2s move right.",
+    trace: buildDutchNationalFlagTrace(),
+  },
+  {
     id: "bubble-sort",
     slug: "bubble-sort",
     title: "Bubble Sort",
@@ -223,6 +243,8 @@ export const EXAMPLE_CODE_BY_ID: Record<string, string> = {
   kadane: KADANE_CODE,
   "two-sum-hash": TWO_SUM_HASH_CODE,
   "three-sum": THREE_SUM_CODE,
+  "four-sum": FOUR_SUM_CODE,
+  "dutch-national-flag": DUTCH_NATIONAL_FLAG_CODE,
   "bubble-sort": BUBBLE_SORT_CODE,
   "bfs-grid": BFS_GRID_CODE,
   "dfs-grid": DFS_GRID_CODE,
@@ -243,6 +265,8 @@ export const PLAYABLE_KIND_BY_EXAMPLE: Record<string, PlayableKind> = {
   kadane: "kadane",
   "two-sum-hash": "two-sum-hash",
   "three-sum": "three-sum",
+  "four-sum": "four-sum",
+  "dutch-national-flag": "dutch-national-flag",
   "factorial-loop": "factorial-loop",
   "factorial-recursion": "factorial-recursion",
   "fibonacci-recursion": "fibonacci-recursion",

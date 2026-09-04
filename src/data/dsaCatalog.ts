@@ -1,6 +1,8 @@
 import type { Difficulty } from "../types/trace";
 import { MAJORITY_VOTE_CODE } from "./traces/majority-vote";
 import { FIXED_WINDOW_CODE } from "./traces/sliding-window-fixed";
+import { VARIABLE_WINDOW_CODE } from "./traces/sliding-window-variable";
+import { PREFIX_SUM_CODE } from "./traces/prefix-sum";
 
 export interface DataStructureGuide {
   id: string;
@@ -115,7 +117,7 @@ export const DSA_PROBLEMS: DsaProblem[] = [
     ["Permutation in String", "intermediate", "O(n)", "Match fixed-size character-frequency windows."],
     ["Minimum Window Substring", "advanced", "O(n)", "Shrink the smallest window satisfying all requirements."],
     ["Sliding Window Maximum", "advanced", "O(n)", "Keep candidate maxima in a monotonic deque."],
-    ["Minimum Size Subarray Sum", "intermediate", "O(n)", "Shrink positive-number windows once the target is met."],
+    ["Minimum Size Subarray Sum", "intermediate", "O(n)", "Shrink positive-number windows once the target is met.", "sliding-window-variable"],
     ["Max Consecutive Ones III", "intermediate", "O(n)", "Find the longest window repairable with k flips."],
     ["Fruit Into Baskets", "intermediate", "O(n)", "Keep a window containing at most two distinct values."],
     ["Find All Anagrams in a String", "intermediate", "O(n)", "Report windows matching a target frequency map."],
@@ -301,7 +303,7 @@ export const DSA_PROBLEMS: DsaProblem[] = [
     ["Fibonacci Recursion", "intermediate", "O(2ⁿ)", "Expand two recursive subproblems per call.", "fibonacci-recursion"],
   ]),
   ...group("Range Queries", "Indexed aggregation", [
-    ["Range Sum Query Immutable", "beginner", "O(1) query", "Subtract two prefix sums for any interval."],
+    ["Range Sum Query Immutable", "beginner", "O(1) query", "Subtract two prefix sums for any interval.", "prefix-sum"],
     ["Range Sum Query Mutable", "intermediate", "O(log n)", "Use a Fenwick or segment tree for updates and sums."],
     ["Range Minimum Query", "intermediate", "O(log n)", "Aggregate minimum values over segment tree nodes."],
     ["Lazy Range Addition", "advanced", "O(log n)", "Defer uniform segment updates until descendants are needed."],
@@ -405,6 +407,8 @@ export function makeProblemStarter(problem: DsaProblem): string {
   const safeName = problem.title.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/(^_|_$)/g, "");
   if (problem.exampleId === "majority-vote") return MAJORITY_VOTE_CODE;
   if (problem.exampleId === "sliding-window-fixed") return FIXED_WINDOW_CODE;
+  if (problem.exampleId === "sliding-window-variable") return VARIABLE_WINDOW_CODE;
+  if (problem.exampleId === "prefix-sum") return PREFIX_SUM_CODE;
   if (problem.exampleId === "binary-search") return `arr = [1, 3, 5, 7, 9, 11]\ntarget = 7\nlow, high = 0, len(arr) - 1\nwhile low <= high:\n    mid = (low + high) // 2\n    if arr[mid] == target:\n        print("Found at", mid)\n        break\n    elif arr[mid] < target:\n        low = mid + 1\n    else:\n        high = mid - 1`;
   if (problem.exampleId === "bubble-sort") return `arr = [5, 2, 8, 1]\nn = len(arr)\nfor i in range(n - 1):\n    for j in range(n - 1 - i):\n        if arr[j] > arr[j + 1]:\n            arr[j], arr[j + 1] = arr[j + 1], arr[j]\nprint(arr)`;
   if (problem.exampleId === "merge-sort") return `arr = [8, 3, 5, 1, 9, 2]\ndef merge_sort(a):\n    if len(a) <= 1:\n        return a\n    mid = len(a) // 2\n    left = merge_sort(a[:mid])\n    right = merge_sort(a[mid:])\n    return merge(left, right)\nprint(merge_sort(arr))`;

@@ -281,6 +281,10 @@ export function PlaybackLab({
   // Follow external navigation (e.g. dashboard "Open" or saved-session resume).
   useEffect(() => {
     if (route.exampleId && route.exampleId !== exampleId) {
+      appliedResume.current = null;
+      setCustomExample(null);
+      setConfig({});
+      setLang("python");
       setExampleId(route.exampleId);
     }
   }, [route.exampleId, exampleId]);
@@ -522,7 +526,7 @@ export function PlaybackLab({
                             .map((s) => Number(s.trim()))
                             .filter(Number.isFinite);
                           if (values.length >= 3) next.tree = values;
-                        } else if (field.key === "n" || field.key === "target") {
+                        } else if (field.key === "n" || field.key === "target" || field.key === "left" || field.key === "right") {
                           const n = Number(raw);
                           if (Number.isFinite(n)) next[field.key] = n;
                         } else if (field.key === "rows" || field.key === "cols") {

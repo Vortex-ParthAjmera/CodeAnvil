@@ -130,7 +130,11 @@ body {
 .majority-equation,
 .majority-line-badge,
 .fixed-window-equation,
-.fixed-window-line-badge {
+.fixed-window-line-badge,
+.variable-window-equation,
+.variable-window-line-badge,
+.prefix-sum-equation,
+.prefix-sum-line-badge {
   display: none;
 }
 
@@ -189,7 +193,9 @@ body {
   .four-sum-equation,
   .dnf-equation,
   .majority-equation,
-  .fixed-window-equation {
+  .fixed-window-equation,
+  .variable-window-equation,
+  .prefix-sum-equation {
     display: flex;
   }
 
@@ -201,7 +207,9 @@ body {
   .four-sum-line-badge,
   .dnf-line-badge,
   .majority-line-badge,
-  .fixed-window-line-badge {
+  .fixed-window-line-badge,
+  .variable-window-line-badge,
+  .prefix-sum-line-badge {
     display: contents;
   }
 }

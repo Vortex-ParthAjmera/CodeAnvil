@@ -37,6 +37,8 @@ import { buildFourSumTrace, FOUR_SUM_CODE, FOUR_SUM_DEFAULT } from "../data/trac
 import { buildDutchNationalFlagTrace, DUTCH_NATIONAL_FLAG_CODE, DUTCH_NATIONAL_FLAG_DEFAULT } from "../data/traces/dutch-national-flag";
 import { buildMajorityVoteTrace, MAJORITY_VOTE_CODE, MAJORITY_VOTE_DEFAULT } from "../data/traces/majority-vote";
 import { buildFixedWindowTrace, FIXED_WINDOW_CODE, FIXED_WINDOW_DEFAULT, FIXED_WINDOW_SIZE } from "../data/traces/sliding-window-fixed";
+import { buildVariableWindowTrace, VARIABLE_WINDOW_CODE, VARIABLE_WINDOW_DEFAULT, VARIABLE_WINDOW_TARGET } from "../data/traces/sliding-window-variable";
+import { buildPrefixSumTrace, PREFIX_SUM_CODE, PREFIX_SUM_DEFAULT, PREFIX_SUM_LEFT, PREFIX_SUM_RIGHT } from "../data/traces/prefix-sum";
 
 
 export type PlayableKind =
@@ -51,6 +53,8 @@ export type PlayableKind =
   | "dutch-national-flag"
   | "majority-vote"
   | "sliding-window-fixed"
+  | "sliding-window-variable"
+  | "prefix-sum"
   | "factorial-loop"
   | "factorial-recursion"
   | "fibonacci-recursion"
@@ -71,6 +75,8 @@ export interface PlayableConfig {
   array?: number[];
   n?: number;
   target?: number;
+  left?: number;
+  right?: number;
   text?: string;
   tree?: (number | null)[];
   maze?: MazeSpec;
@@ -1654,9 +1660,15 @@ export function codeFor(kind: PlayableKind, config: PlayableConfig): string {
         ? (config.array ?? MAJORITY_VOTE_DEFAULT).slice(0, 12)
         : kind === "sliding-window-fixed"
           ? (config.array ?? FIXED_WINDOW_DEFAULT).slice(0, 12)
-          : requestedArray;
+          : kind === "sliding-window-variable"
+            ? (config.array ?? VARIABLE_WINDOW_DEFAULT).slice(0, 12)
+            : kind === "prefix-sum"
+              ? (config.array ?? PREFIX_SUM_DEFAULT).slice(0, 12)
+              : requestedArray;
   const n = config.n ?? (kind === "sliding-window-fixed" ? FIXED_WINDOW_SIZE : 5);
-  const target = config.target ?? (kind === "three-sum" || kind === "four-sum" ? 0 : 7);
+  const target = config.target ?? (kind === "three-sum" || kind === "four-sum" ? 0 : kind === "sliding-window-variable" ? VARIABLE_WINDOW_TARGET : 7);
+  const left = config.left ?? PREFIX_SUM_LEFT;
+  const right = config.right ?? PREFIX_SUM_RIGHT;
   const text = config.text ?? "racecar";
   switch (kind) {
     case "sum-array":
@@ -1713,6 +1725,14 @@ print(triplets)`;
       return FIXED_WINDOW_CODE
         .replace(`arr = [${FIXED_WINDOW_DEFAULT.join(", ")}]`, `arr = [${arr.join(", ")}]`)
         .replace(`k = ${FIXED_WINDOW_SIZE}`, `k = ${n}`);
+    case "sliding-window-variable":
+      return VARIABLE_WINDOW_CODE
+        .replace(`arr = [${VARIABLE_WINDOW_DEFAULT.join(", ")}]`, `arr = [${arr.join(", ")}]`)
+        .replace(`target = ${VARIABLE_WINDOW_TARGET}`, `target = ${target}`);
+    case "prefix-sum":
+      return PREFIX_SUM_CODE
+        .replace(`arr = [${PREFIX_SUM_DEFAULT.join(", ")}]`, `arr = [${arr.join(", ")}]`)
+        .replace(`left, right = ${PREFIX_SUM_LEFT}, ${PREFIX_SUM_RIGHT}`, `left, right = ${left}, ${right}`);
     case "factorial-loop":
       return `result = 1\nfor i in range(1, ${n} + 1):\n    result = result * i\nprint("Factorial:", result)`;
     case "factorial-recursion":
@@ -1806,6 +1826,19 @@ export function generateTrace(
       const windowSize = config.n ?? FIXED_WINDOW_SIZE;
       const windowSource = code ?? codeFor(kind, { ...config, array: windowValues, n: windowSize });
       return buildFixedWindowTrace(windowValues, windowSize, windowSource, detectLanguage(windowSource));
+    }
+    case "sliding-window-variable": {
+      const windowValues = (config.array ?? VARIABLE_WINDOW_DEFAULT).slice(0, 12);
+      const windowTarget = config.target ?? VARIABLE_WINDOW_TARGET;
+      const windowSource = code ?? codeFor(kind, { ...config, array: windowValues, target: windowTarget });
+      return buildVariableWindowTrace(windowValues, windowTarget, windowSource, detectLanguage(windowSource));
+    }
+    case "prefix-sum": {
+      const prefixValues = (config.array ?? PREFIX_SUM_DEFAULT).slice(0, 12);
+      const queryLeft = config.left ?? PREFIX_SUM_LEFT;
+      const queryRight = config.right ?? Math.min(PREFIX_SUM_RIGHT, Math.max(0, prefixValues.length - 1));
+      const prefixSource = code ?? codeFor(kind, { ...config, array: prefixValues, left: queryLeft, right: queryRight });
+      return buildPrefixSumTrace(prefixValues, queryLeft, queryRight, prefixSource, detectLanguage(prefixSource));
     }
     case "factorial-loop":
       return factorialLoopTrace(Math.min(config.n ?? 5, 12), source);
@@ -1908,7 +1941,7 @@ export function generateTrace(
 
 /** Registry of playable kinds with their editable inputs (lab "Inputs" panel). */
 export interface InputField {
-  key: "array" | "n" | "target" | "text" | "tree" | "rows" | "cols" | "seed";
+  key: "array" | "n" | "target" | "left" | "right" | "text" | "tree" | "rows" | "cols" | "seed";
   label: string;
   default: unknown;
   help: string;
@@ -1941,6 +1974,15 @@ export const PLAYABLE_INPUTS: Partial<Record<PlayableKind, InputField[]>> = {
   "sliding-window-fixed": [
     { key: "array", label: "Numbers", default: FIXED_WINDOW_DEFAULT, help: "Up to twelve integers" },
     { key: "n", label: "Window size k", default: FIXED_WINDOW_SIZE, help: "Whole number from 1 to the array length" },
+  ],
+  "sliding-window-variable": [
+    { key: "array", label: "Positive numbers", default: VARIABLE_WINDOW_DEFAULT, help: "Positive values only; up to twelve" },
+    { key: "target", label: "Target sum", default: VARIABLE_WINDOW_TARGET, help: "Minimum sum the window must reach" },
+  ],
+  "prefix-sum": [
+    { key: "array", label: "Numbers", default: PREFIX_SUM_DEFAULT, help: "Up to twelve numbers" },
+    { key: "left", label: "Query left", default: PREFIX_SUM_LEFT, help: "Inclusive start index" },
+    { key: "right", label: "Query right", default: PREFIX_SUM_RIGHT, help: "Inclusive end index" },
   ],
   "factorial-loop": [{ key: "n", label: "n", default: 5, help: "Compute n!" }],
   "factorial-recursion": [{ key: "n", label: "n", default: 4, help: "fact(n) — max 8" }],

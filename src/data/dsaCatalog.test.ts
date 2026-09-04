@@ -31,6 +31,8 @@ describe("DSA catalog", () => {
       ["Fibonacci Recursion", "fibonacci-recursion"],
       ["Majority Element", "majority-vote"],
       ["Maximum Sum Subarray of Size K", "sliding-window-fixed"],
+      ["Minimum Size Subarray Sum", "sliding-window-variable"],
+      ["Range Sum Query Immutable", "prefix-sum"],
     ]);
 
     for (const [title, exampleId] of expected) {

@@ -9,6 +9,8 @@ import { FOUR_SUM_CODE } from "./traces/four-sum";
 import { DUTCH_NATIONAL_FLAG_CODE } from "./traces/dutch-national-flag";
 import { MAJORITY_VOTE_CODE } from "./traces/majority-vote";
 import { FIXED_WINDOW_CODE } from "./traces/sliding-window-fixed";
+import { VARIABLE_WINDOW_CODE } from "./traces/sliding-window-variable";
+import { PREFIX_SUM_CODE } from "./traces/prefix-sum";
 
 export type VariantLanguage = "python" | "javascript";
 
@@ -266,6 +268,37 @@ for (let right = k; right < arr.length; right++) {
     bestSum = windowSum;
     bestLeft = left; }
 } console.log(bestSum, arr.slice(bestLeft, bestLeft + k));`,
+  },
+  "sliding-window-variable": {
+    python: VARIABLE_WINDOW_CODE,
+    javascript: `const arr = [2, 3, 1, 2, 4, 3];
+const target = 7;
+if (!arr.length || target <= 0 || arr.some((value) => value <= 0)) throw new Error("use positive values");
+let left = 0;
+let windowSum = 0;
+let bestLen = arr.length + 1;
+let bestRange = null;
+for (let right = 0; right < arr.length; right++) {
+  windowSum += arr[right];
+  while (windowSum >= target) {
+    if (right - left + 1 < bestLen) {
+      bestLen = right - left + 1;
+      bestRange = [left, right]; }
+    windowSum -= arr[left];
+    left += 1; } }
+const answer = bestRange === null ? 0 : bestLen;
+console.log(answer, bestRange);`,
+  },
+  "prefix-sum": {
+    python: PREFIX_SUM_CODE,
+    javascript: `const arr = [3, 1, 4, 1, 5, 9];
+const left = 1, right = 4;
+if (!arr.length || !(0 <= left && left <= right && right < arr.length)) throw new Error("query must fit inside arr");
+const prefix = Array(arr.length + 1).fill(0);
+for (let i = 0; i < arr.length; i++)
+  prefix[i + 1] = prefix[i] + arr[i];
+const rangeSum = prefix[right + 1] - prefix[left];
+console.log(rangeSum);`,
   },
   "factorial-loop": {
     python: `result = 1

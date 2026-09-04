@@ -14,6 +14,8 @@ import { buildFourSumTrace, FOUR_SUM_CODE } from "./traces/four-sum";
 import { buildDutchNationalFlagTrace, DUTCH_NATIONAL_FLAG_CODE } from "./traces/dutch-national-flag";
 import { buildMajorityVoteTrace, MAJORITY_VOTE_CODE } from "./traces/majority-vote";
 import { buildFixedWindowTrace, FIXED_WINDOW_CODE } from "./traces/sliding-window-fixed";
+import { buildVariableWindowTrace, VARIABLE_WINDOW_CODE } from "./traces/sliding-window-variable";
+import { buildPrefixSumTrace, PREFIX_SUM_CODE } from "./traces/prefix-sum";
 import { buildBubbleSortTrace, BUBBLE_SORT_CODE } from "./traces/bubble-sort";
 import {
   buildBfsGridTrace,
@@ -169,6 +171,24 @@ export const EXAMPLES: Example[] = [
     trace: buildFixedWindowTrace(),
   },
   {
+    id: "sliding-window-variable",
+    slug: "sliding-window-variable",
+    title: "Variable-Size Sliding Window",
+    topic: "arrays",
+    difficulty: "intermediate",
+    blurb: "Expand until the target is met, then contract from the left to uncover the shortest valid positive-number range.",
+    trace: buildVariableWindowTrace(),
+  },
+  {
+    id: "prefix-sum",
+    slug: "prefix-sum",
+    title: "Prefix Sum Range Query",
+    topic: "arrays",
+    difficulty: "beginner",
+    blurb: "Build cumulative boundary checkpoints once, then isolate any inclusive range with one subtraction.",
+    trace: buildPrefixSumTrace(),
+  },
+  {
     id: "bubble-sort",
     slug: "bubble-sort",
     title: "Bubble Sort",
@@ -267,6 +287,8 @@ export const EXAMPLE_CODE_BY_ID: Record<string, string> = {
   "dutch-national-flag": DUTCH_NATIONAL_FLAG_CODE,
   "majority-vote": MAJORITY_VOTE_CODE,
   "sliding-window-fixed": FIXED_WINDOW_CODE,
+  "sliding-window-variable": VARIABLE_WINDOW_CODE,
+  "prefix-sum": PREFIX_SUM_CODE,
   "bubble-sort": BUBBLE_SORT_CODE,
   "bfs-grid": BFS_GRID_CODE,
   "dfs-grid": DFS_GRID_CODE,
@@ -291,6 +313,8 @@ export const PLAYABLE_KIND_BY_EXAMPLE: Record<string, PlayableKind> = {
   "dutch-national-flag": "dutch-national-flag",
   "majority-vote": "majority-vote",
   "sliding-window-fixed": "sliding-window-fixed",
+  "sliding-window-variable": "sliding-window-variable",
+  "prefix-sum": "prefix-sum",
   "factorial-loop": "factorial-loop",
   "factorial-recursion": "factorial-recursion",
   "fibonacci-recursion": "fibonacci-recursion",

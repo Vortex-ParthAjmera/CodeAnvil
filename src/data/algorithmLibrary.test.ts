@@ -130,6 +130,16 @@ describe("algorithm library", () => {
       displayTitle: "Sliding Window (Fixed Size)",
       variantLabel: "Play",
     });
+    expect(findAlgorithmForExample("sliding-window-variable")).toMatchObject({
+      sectionTitle: "Arrays & Basics",
+      displayTitle: "Sliding Window (Variable Size)",
+      variantLabel: "Play",
+    });
+    expect(findAlgorithmForExample("prefix-sum")).toMatchObject({
+      sectionTitle: "Arrays & Basics",
+      displayTitle: "Prefix Sum",
+      variantLabel: "Play",
+    });
     expect(findAlgorithmForExample("factorial-recursion")).toMatchObject({
       sectionTitle: "Recursion & Backtracking",
       displayTitle: "Factorial - Recursion",

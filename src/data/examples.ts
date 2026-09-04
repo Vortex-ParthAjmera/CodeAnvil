@@ -12,6 +12,8 @@ import { buildTwoSumHashTrace, TWO_SUM_HASH_CODE } from "./traces/two-sum-hash";
 import { buildThreeSumTrace, THREE_SUM_CODE } from "./traces/three-sum";
 import { buildFourSumTrace, FOUR_SUM_CODE } from "./traces/four-sum";
 import { buildDutchNationalFlagTrace, DUTCH_NATIONAL_FLAG_CODE } from "./traces/dutch-national-flag";
+import { buildMajorityVoteTrace, MAJORITY_VOTE_CODE } from "./traces/majority-vote";
+import { buildFixedWindowTrace, FIXED_WINDOW_CODE } from "./traces/sliding-window-fixed";
 import { buildBubbleSortTrace, BUBBLE_SORT_CODE } from "./traces/bubble-sort";
 import {
   buildBfsGridTrace,
@@ -149,6 +151,24 @@ export const EXAMPLES: Example[] = [
     trace: buildDutchNationalFlagTrace(),
   },
   {
+    id: "majority-vote",
+    slug: "majority-vote",
+    title: "Moore's Voting Algorithm",
+    topic: "arrays",
+    difficulty: "intermediate",
+    blurb: "Cancel opposing values to reveal a candidate, then prove it with a separate frequency pass.",
+    trace: buildMajorityVoteTrace(),
+  },
+  {
+    id: "sliding-window-fixed",
+    slug: "sliding-window-fixed",
+    title: "Fixed-Size Sliding Window",
+    topic: "arrays",
+    difficulty: "intermediate",
+    blurb: "Reuse one rolling sum as a fixed frame removes its left value and accepts a new right value.",
+    trace: buildFixedWindowTrace(),
+  },
+  {
     id: "bubble-sort",
     slug: "bubble-sort",
     title: "Bubble Sort",
@@ -245,6 +265,8 @@ export const EXAMPLE_CODE_BY_ID: Record<string, string> = {
   "three-sum": THREE_SUM_CODE,
   "four-sum": FOUR_SUM_CODE,
   "dutch-national-flag": DUTCH_NATIONAL_FLAG_CODE,
+  "majority-vote": MAJORITY_VOTE_CODE,
+  "sliding-window-fixed": FIXED_WINDOW_CODE,
   "bubble-sort": BUBBLE_SORT_CODE,
   "bfs-grid": BFS_GRID_CODE,
   "dfs-grid": DFS_GRID_CODE,
@@ -267,6 +289,8 @@ export const PLAYABLE_KIND_BY_EXAMPLE: Record<string, PlayableKind> = {
   "three-sum": "three-sum",
   "four-sum": "four-sum",
   "dutch-national-flag": "dutch-national-flag",
+  "majority-vote": "majority-vote",
+  "sliding-window-fixed": "sliding-window-fixed",
   "factorial-loop": "factorial-loop",
   "factorial-recursion": "factorial-recursion",
   "fibonacci-recursion": "fibonacci-recursion",

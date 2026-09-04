@@ -127,6 +127,8 @@ describe("generateTrace", () => {
     ["three-sum", { array: [-1, 0, 1, 2, -1, -4], target: 0 }],
     ["four-sum", { array: [-2, -1, 0, 0, 1, 2], target: 0 }],
     ["dutch-national-flag", { array: [2, 0, 1, 2, 0, 1] }],
+    ["majority-vote", { array: [2, 2, 1, 2] }],
+    ["sliding-window-fixed", { array: [2, 1, 5, 1], n: 2 }],
     ["merge-sort", { array: [5, 3, 8] }],
     ["quick-sort", { array: [5, 3, 8] }],
     ["heap-sort", { array: [5, 3, 8] }],

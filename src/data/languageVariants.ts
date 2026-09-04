@@ -7,6 +7,8 @@
 
 import { FOUR_SUM_CODE } from "./traces/four-sum";
 import { DUTCH_NATIONAL_FLAG_CODE } from "./traces/dutch-national-flag";
+import { MAJORITY_VOTE_CODE } from "./traces/majority-vote";
+import { FIXED_WINDOW_CODE } from "./traces/sliding-window-fixed";
 
 export type VariantLanguage = "python" | "javascript";
 
@@ -227,6 +229,43 @@ while (mid <= high) {
   }
 }
 console.log(arr);`,
+  },
+  "majority-vote": {
+    python: MAJORITY_VOTE_CODE,
+    javascript: `const arr = [2, 2, 1, 1, 1, 2, 2];
+let candidate = null;
+let balance = 0;
+for (const value of arr) {
+  if (balance === 0)
+    candidate = value;
+  if (value === candidate)
+    balance += 1;
+  else
+    balance -= 1; }
+const occurrences = arr.filter((value) => value === candidate).length;
+if (candidate !== null && occurrences > Math.floor(arr.length / 2))
+  console.log("Majority:", candidate);
+else
+  console.log("No majority element");`,
+  },
+  "sliding-window-fixed": {
+    python: FIXED_WINDOW_CODE,
+    javascript: `const arr = [2, 1, 5, 1, 3, 2];
+const k = 3;
+if (!Number.isInteger(k) || k < 1 || k > arr.length) throw new Error("k must fit inside arr");
+let windowSum = 0;
+for (let i = 0; i < k; i++)
+  windowSum += arr[i];
+let bestSum = windowSum;
+let bestLeft = 0;
+for (let right = k; right < arr.length; right++) {
+  windowSum -= arr[right - k];
+  windowSum += arr[right];
+  const left = right - k + 1;
+  if (windowSum > bestSum) {
+    bestSum = windowSum;
+    bestLeft = left; }
+} console.log(bestSum, arr.slice(bestLeft, bestLeft + k));`,
   },
   "factorial-loop": {
     python: `result = 1

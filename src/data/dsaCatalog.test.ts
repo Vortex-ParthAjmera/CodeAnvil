@@ -29,6 +29,8 @@ describe("DSA catalog", () => {
       ["Two Sum II", "two-sum"],
       ["Factorial Recursion", "factorial-recursion"],
       ["Fibonacci Recursion", "fibonacci-recursion"],
+      ["Majority Element", "majority-vote"],
+      ["Maximum Sum Subarray of Size K", "sliding-window-fixed"],
     ]);
 
     for (const [title, exampleId] of expected) {

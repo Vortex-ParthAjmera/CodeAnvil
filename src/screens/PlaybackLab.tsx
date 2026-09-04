@@ -396,7 +396,7 @@ export function PlaybackLab({
           <div className="min-w-0 flex-1">
             <AnimatedHeading
               text={example.title}
-              className="truncate text-base font-semibold text-ink-100"
+              className="break-words text-base font-semibold leading-tight text-ink-100"
             />
             <div className="mt-1 flex flex-wrap items-center gap-2">
               <Badge tone="amber">{example.topic}</Badge>

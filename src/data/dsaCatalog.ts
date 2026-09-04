@@ -1,4 +1,6 @@
 import type { Difficulty } from "../types/trace";
+import { MAJORITY_VOTE_CODE } from "./traces/majority-vote";
+import { FIXED_WINDOW_CODE } from "./traces/sliding-window-fixed";
 
 export interface DataStructureGuide {
   id: string;
@@ -81,7 +83,7 @@ export const DSA_PROBLEMS: DsaProblem[] = [
     ["Top K Frequent Elements", "intermediate", "O(n)", "Return the values with the highest frequencies."],
     ["Product of Array Except Self", "intermediate", "O(n)", "Build products with prefix and suffix passes."],
     ["Longest Consecutive Sequence", "intermediate", "O(n)", "Find the longest run using constant-time membership."],
-    ["Majority Element", "beginner", "O(n)", "Identify the value occurring more than half the time."],
+    ["Majority Element", "beginner", "O(n)", "Identify the value occurring more than half the time.", "majority-vote"],
     ["Missing Number", "beginner", "O(n)", "Recover one missing value from a bounded range."],
     ["Find All Duplicates", "intermediate", "O(n)", "Use indices as markers to reveal repeated values."],
     ["Subarray Sum Equals K", "intermediate", "O(n)", "Count target-sum subarrays with prefix frequencies."],
@@ -106,6 +108,7 @@ export const DSA_PROBLEMS: DsaProblem[] = [
     ["Squares of a Sorted Array", "beginner", "O(n)", "Fill squared values from the largest magnitude inward."],
   ]),
   ...group("Sliding Window", "Window", [
+    ["Maximum Sum Subarray of Size K", "beginner", "O(n)", "Reuse one rolling sum across every fixed-size window.", "sliding-window-fixed"],
     ["Best Time to Buy and Sell Stock", "beginner", "O(n)", "Track the cheapest price behind the current day."],
     ["Longest Substring Without Repeating", "intermediate", "O(n)", "Move a uniqueness window over a string."],
     ["Longest Repeating Character Replacement", "intermediate", "O(n)", "Maintain a window repairable with at most k edits."],
@@ -400,6 +403,8 @@ export const VISUALIZER_DRAFT_KEY = "codeanvil:visualizer-draft";
 
 export function makeProblemStarter(problem: DsaProblem): string {
   const safeName = problem.title.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/(^_|_$)/g, "");
+  if (problem.exampleId === "majority-vote") return MAJORITY_VOTE_CODE;
+  if (problem.exampleId === "sliding-window-fixed") return FIXED_WINDOW_CODE;
   if (problem.exampleId === "binary-search") return `arr = [1, 3, 5, 7, 9, 11]\ntarget = 7\nlow, high = 0, len(arr) - 1\nwhile low <= high:\n    mid = (low + high) // 2\n    if arr[mid] == target:\n        print("Found at", mid)\n        break\n    elif arr[mid] < target:\n        low = mid + 1\n    else:\n        high = mid - 1`;
   if (problem.exampleId === "bubble-sort") return `arr = [5, 2, 8, 1]\nn = len(arr)\nfor i in range(n - 1):\n    for j in range(n - 1 - i):\n        if arr[j] > arr[j + 1]:\n            arr[j], arr[j + 1] = arr[j + 1], arr[j]\nprint(arr)`;
   if (problem.exampleId === "merge-sort") return `arr = [8, 3, 5, 1, 9, 2]\ndef merge_sort(a):\n    if len(a) <= 1:\n        return a\n    mid = len(a) // 2\n    left = merge_sort(a[:mid])\n    right = merge_sort(a[mid:])\n    return merge(left, right)\nprint(merge_sort(arr))`;

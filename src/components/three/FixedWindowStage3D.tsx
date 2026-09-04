@@ -123,9 +123,9 @@ function ValueToken({ token, count, p, reduced }: { token: FixedWindowTokenModel
         <div data-window-token={token.id} className="stage-value-card" style={{ borderColor: color }}>{token.value}</div>
       </Html>
       {token.role === "incoming" || token.role === "outgoing" ? (
-        <Html position={[0, 0.47, 0.2]} center style={{ pointerEvents: "none" }}>
+        <Html position={[0, 0.35, 0.42]} center style={{ pointerEvents: "none" }}>
           <div className="rounded border bg-ink-950/95 px-1.5 py-0.5 font-mono text-[7px] font-black uppercase shadow-xl" style={{ borderColor: color, color }}>
-            {token.role === "incoming" ? "incoming" : "outgoing"}
+            {token.role === "incoming" ? "IN" : "OUT"}
           </div>
         </Html>
       ) : null}
@@ -133,7 +133,7 @@ function ValueToken({ token, count, p, reduced }: { token: FixedWindowTokenModel
   );
 }
 
-function WindowFrame({ model, p, reduced }: { model: FixedWindowSceneModel; p: Theme3DPalette; reduced: boolean }) {
+function WindowFrame({ model, reduced }: { model: FixedWindowSceneModel; reduced: boolean }) {
   const group = useRef<THREE.Group>(null);
   const cage = useRef<THREE.Mesh>(null);
   const material = useRef<THREE.MeshStandardMaterial>(null);
@@ -171,26 +171,16 @@ function WindowFrame({ model, p, reduced }: { model: FixedWindowSceneModel; p: T
         <meshStandardMaterial ref={material} color={color} emissive={color} emissiveIntensity={0.4} transparent opacity={hasWindow ? 0.16 : 0.055} depthWrite={false} metalness={0.35} roughness={0.32} />
         <Edges color={color} threshold={18} />
       </mesh>
-      <Html position={[0, 0.78, 0.38]} center style={{ pointerEvents: "none" }}>
+      <Html position={[0, 0.72, 0.38]} center style={{ pointerEvents: "none" }}>
         <div data-testid="window-frame-label" className="whitespace-nowrap rounded border bg-ink-950/96 px-2 py-1 font-mono text-[8px] font-black uppercase shadow-xl" style={{ borderColor: color, color }}>
-          {hasWindow ? `window [${safeStart}..${safeEnd}]` : `fixed width k=${model.windowSize}`}
+          {hasWindow ? `window [${safeStart}..${safeEnd}]` : `k=${model.windowSize} frame`}
         </div>
       </Html>
-      {hasWindow ? (
-        <>
-          <Html position={[-targetWidth / 2, 0.46, 0.54]} center style={{ pointerEvents: "none" }}>
-            <div className="rounded border border-cyan-400/50 bg-ink-950/96 px-1.5 py-0.5 font-mono text-[8px] font-black text-cyan-200">L</div>
-          </Html>
-          <Html position={[targetWidth / 2, 0.46, 0.54]} center style={{ pointerEvents: "none" }}>
-            <div className="rounded border border-cyan-400/50 bg-ink-950/96 px-1.5 py-0.5 font-mono text-[8px] font-black text-cyan-200">R</div>
-          </Html>
-        </>
-      ) : null}
     </group>
   );
 }
 
-function SumReactor({ model, p, reduced }: { model: FixedWindowSceneModel; p: Theme3DPalette; reduced: boolean }) {
+function SumReactor({ model, reduced, compact }: { model: FixedWindowSceneModel; reduced: boolean; compact: boolean }) {
   const ring = useRef<THREE.Group>(null);
   const material = useRef<THREE.MeshStandardMaterial>(null);
   const color = model.operation === "invalid"
@@ -214,7 +204,7 @@ function SumReactor({ model, p, reduced }: { model: FixedWindowSceneModel; p: Th
   });
 
   return (
-    <group position={[0, 1.02, 0.04]}>
+    <group position={[compact ? -0.85 : 0, 1.02, 0.04]}>
       <group ref={ring}>
         <mesh>
           <torusGeometry args={[0.54, 0.055, 18, 72]} />
@@ -231,25 +221,24 @@ function SumReactor({ model, p, reduced }: { model: FixedWindowSceneModel; p: Th
           <span data-testid="window-current-sum" className="mt-0.5 block font-mono text-[13px] font-black tabular-nums" style={{ color }}>{model.currentSum}</span>
         </div>
       </Html>
-      <Html position={[0, -0.8, 0.12]} center style={{ pointerEvents: "none" }}>
-        <div className="whitespace-nowrap rounded border border-ink-700/70 bg-ink-950/92 px-2 py-1 font-mono text-[7px] font-black uppercase tracking-widest text-ink-300 shadow-xl">{model.actionLabel}</div>
-      </Html>
     </group>
   );
 }
 
-function TransferArc({ model, reduced }: { model: FixedWindowSceneModel; reduced: boolean }) {
+function TransferArc({ model, reduced, compact }: { model: FixedWindowSceneModel; reduced: boolean; compact: boolean }) {
   const pulse = useRef<THREE.Mesh>(null);
   const index = model.transferKind === "remove" ? model.outgoingIndex : model.incomingIndex;
   const safeIndex = Math.max(0, index ?? 0);
   const count = Math.max(1, model.tokens.length);
   const color = model.transferKind === "remove" ? REMOVE_COLOR : ADD_COLOR;
   const direction = model.transferKind === "remove" ? -1 : 1;
+  const reactorX = compact ? -0.85 : 0;
+  const tokenX = xForIndex(safeIndex, count);
   const curve = useMemo(() => new THREE.CatmullRomCurve3([
-    new THREE.Vector3(xForIndex(safeIndex, count), -0.42, 0.28),
-    new THREE.Vector3(xForIndex(safeIndex, count) * 0.52 + direction * 0.34, 0.25, 0.4),
-    new THREE.Vector3(direction * 0.28, 0.94, 0.26),
-  ]), [count, direction, safeIndex]);
+    new THREE.Vector3(tokenX, -0.42, 0.28),
+    new THREE.Vector3((tokenX + reactorX) / 2 + direction * 0.3, 0.25, 0.4),
+    new THREE.Vector3(reactorX + direction * 0.28, 0.94, 0.26),
+  ]), [direction, reactorX, tokenX]);
 
   useFrame(({ clock }) => {
     if (!pulse.current) return;
@@ -262,11 +251,6 @@ function TransferArc({ model, reduced }: { model: FixedWindowSceneModel; reduced
     <group>
       <Line points={curve.getPoints(44)} color={color} lineWidth={2.4} transparent opacity={0.8} />
       <mesh ref={pulse}><sphereGeometry args={[0.065, 16, 16]} /><meshStandardMaterial color={color} emissive={color} emissiveIntensity={1.6} /></mesh>
-      <Html position={[xForIndex(safeIndex, count) * 0.52 + direction * 0.34, 0.28, 0.48]} center style={{ pointerEvents: "none" }}>
-        <div className="rounded border bg-ink-950/96 px-2 py-1 font-mono text-[9px] font-black shadow-xl" style={{ borderColor: color, color }}>
-          {model.transferKind === "remove" ? "-" : "+"}{model.transferValue}
-        </div>
-      </Html>
     </group>
   );
 }
@@ -274,6 +258,9 @@ function TransferArc({ model, reduced }: { model: FixedWindowSceneModel; reduced
 function BestShelf({ model, p, compact }: { model: FixedWindowSceneModel; p: Theme3DPalette; compact: boolean }) {
   const x = compact ? 2.12 : 2.55;
   const hasBest = model.bestRange !== null && model.bestSum !== null;
+  const visibleBestValues = model.bestValues.slice(0, 5);
+  const hiddenBestValues = Math.max(0, model.bestValues.length - visibleBestValues.length);
+  const valueSpacing = Math.min(0.25, 0.9 / Math.max(1, visibleBestValues.length - 1));
   return (
     <group position={[x, 0.88, -0.06]}>
       <mesh position={[0, -0.12, -0.04]} receiveShadow>
@@ -281,10 +268,8 @@ function BestShelf({ model, p, compact }: { model: FixedWindowSceneModel; p: The
         <meshStandardMaterial color={p.emptyCell} emissive={BEST_COLOR} emissiveIntensity={hasBest ? 0.22 : 0.07} metalness={0.44} roughness={0.36} />
         <Edges color={hasBest ? BEST_COLOR : p.gridSection} threshold={18} />
       </mesh>
-      {hasBest ? model.bestValues.slice(0, 5).map((value, index) => {
-        const spacing = Math.min(0.27, 1.05 / Math.max(1, model.bestValues.length));
-        return (
-          <mesh key={`${model.bestRange?.[0]}-${index}`} position={[(index - (Math.min(model.bestValues.length, 5) - 1) / 2) * spacing, 0.12, 0]}>
+      {hasBest ? visibleBestValues.map((value, index) => (
+          <mesh key={`${model.bestRange?.[0]}-${index}`} position={[(index - (visibleBestValues.length - 1) / 2) * valueSpacing, 0.12, 0]}>
             <boxGeometry args={[0.2, 0.24, 0.5]} />
             <meshStandardMaterial color={BEST_COLOR} emissive={BEST_COLOR} emissiveIntensity={0.52} metalness={0.45} roughness={0.28} />
             <Edges color={p.textStrong} threshold={18} />
@@ -292,8 +277,12 @@ function BestShelf({ model, p, compact }: { model: FixedWindowSceneModel; p: The
               <div className="font-mono text-[7px] font-black text-ink-950">{value}</div>
             </Html>
           </mesh>
-        );
-      }) : null}
+      )) : null}
+      {hiddenBestValues > 0 ? (
+        <Html position={[0.64, 0.12, 0.3]} center style={{ pointerEvents: "none" }}>
+          <div className="rounded border border-emerald-400/45 bg-ink-950/96 px-1 py-0.5 font-mono text-[7px] font-black text-emerald-200">+{hiddenBestValues}</div>
+        </Html>
+      ) : null}
       <Html position={[0, 0.58, 0.22]} center style={{ pointerEvents: "none" }}>
         <div className="min-w-28 rounded-md border border-emerald-400/45 bg-ink-950/96 px-2 py-1.5 text-center shadow-xl">
           <span className="block font-mono text-[7px] font-black uppercase tracking-widest text-ink-400">saved best</span>
@@ -339,9 +328,9 @@ function Scene({ model, p, reduced }: { model: FixedWindowSceneModel; p: Theme3D
       </mesh>
       {Array.from({ length: count }, (_, index) => <RailSlot key={index} index={index} count={count} p={p} checked={checked.has(index)} />)}
       {model.tokens.map((token) => <ValueToken key={token.id} token={token} count={count} p={p} reduced={reduced} />)}
-      <WindowFrame model={model} p={p} reduced={reduced} />
-      <SumReactor model={model} p={p} reduced={reduced} />
-      <TransferArc model={model} reduced={reduced} />
+      <WindowFrame model={model} reduced={reduced} />
+      <SumReactor model={model} reduced={reduced} compact={compact} />
+      <TransferArc model={model} reduced={reduced} compact={compact} />
       <BestShelf model={model} p={p} compact={compact} />
       <InvalidMarker model={model} />
 

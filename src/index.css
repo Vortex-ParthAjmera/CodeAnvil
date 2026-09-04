@@ -126,7 +126,11 @@ body {
 .four-sum-equation,
 .four-sum-line-badge,
 .dnf-equation,
-.dnf-line-badge {
+.dnf-line-badge,
+.majority-equation,
+.majority-line-badge,
+.fixed-window-equation,
+.fixed-window-line-badge {
   display: none;
 }
 
@@ -183,7 +187,9 @@ body {
   .hash-two-sum-equation,
   .three-sum-equation,
   .four-sum-equation,
-  .dnf-equation {
+  .dnf-equation,
+  .majority-equation,
+  .fixed-window-equation {
     display: flex;
   }
 
@@ -193,7 +199,9 @@ body {
   .hash-two-sum-line-badge,
   .three-sum-line-badge,
   .four-sum-line-badge,
-  .dnf-line-badge {
+  .dnf-line-badge,
+  .majority-line-badge,
+  .fixed-window-line-badge {
     display: contents;
   }
 }

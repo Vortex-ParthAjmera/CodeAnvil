@@ -120,6 +120,16 @@ describe("algorithm library", () => {
       displayTitle: "Dutch National Flag (Sort 0s, 1s, 2s)",
       variantLabel: "Play",
     });
+    expect(findAlgorithmForExample("majority-vote")).toMatchObject({
+      sectionTitle: "Arrays & Basics",
+      displayTitle: "Moore's Voting Algorithm (Majority Element)",
+      variantLabel: "Play",
+    });
+    expect(findAlgorithmForExample("sliding-window-fixed")).toMatchObject({
+      sectionTitle: "Arrays & Basics",
+      displayTitle: "Sliding Window (Fixed Size)",
+      variantLabel: "Play",
+    });
     expect(findAlgorithmForExample("factorial-recursion")).toMatchObject({
       sectionTitle: "Recursion & Backtracking",
       displayTitle: "Factorial - Recursion",

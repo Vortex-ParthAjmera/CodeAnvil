@@ -162,7 +162,7 @@ function ScanPointer({ model, p, reduced }: { model: MajorityVoteSceneModel; p: 
   );
 }
 
-function CandidateCore({ model, p, reduced }: { model: MajorityVoteSceneModel; p: Theme3DPalette; reduced: boolean }) {
+function CandidateCore({ model, reduced }: { model: MajorityVoteSceneModel; reduced: boolean }) {
   const ring = useRef<THREE.Group>(null);
   const material = useRef<THREE.MeshStandardMaterial>(null);
   const color = model.operation === "verified"
@@ -363,7 +363,7 @@ function Scene({ model, p, reduced }: { model: MajorityVoteSceneModel; p: Theme3
       {Array.from({ length: count }, (_, index) => <RailSlot key={index} index={index} count={count} p={p} />)}
       {model.tokens.map((token) => <VoteToken key={token.id} token={token} count={count} p={p} reduced={reduced} />)}
       <ScanPointer model={model} p={p} reduced={reduced} />
-      <CandidateCore model={model} p={p} reduced={reduced} />
+      <CandidateCore model={model} reduced={reduced} />
       <CancellationGate model={model} p={p} reduced={reduced} compact={compact} />
       <BalanceTower model={model} p={p} compact={compact} />
       <VerificationMeter model={model} p={p} reduced={reduced} compact={compact} />

@@ -35,6 +35,8 @@ import { buildTwoSumHashTrace } from "../data/traces/two-sum-hash";
 import { buildThreeSumTrace } from "../data/traces/three-sum";
 import { buildFourSumTrace, FOUR_SUM_CODE, FOUR_SUM_DEFAULT } from "../data/traces/four-sum";
 import { buildDutchNationalFlagTrace, DUTCH_NATIONAL_FLAG_CODE, DUTCH_NATIONAL_FLAG_DEFAULT } from "../data/traces/dutch-national-flag";
+import { buildMajorityVoteTrace, MAJORITY_VOTE_CODE, MAJORITY_VOTE_DEFAULT } from "../data/traces/majority-vote";
+import { buildFixedWindowTrace, FIXED_WINDOW_CODE, FIXED_WINDOW_DEFAULT, FIXED_WINDOW_SIZE } from "../data/traces/sliding-window-fixed";
 
 
 export type PlayableKind =
@@ -47,6 +49,8 @@ export type PlayableKind =
   | "three-sum"
   | "four-sum"
   | "dutch-national-flag"
+  | "majority-vote"
+  | "sliding-window-fixed"
   | "factorial-loop"
   | "factorial-recursion"
   | "fibonacci-recursion"
@@ -1646,8 +1650,12 @@ export function codeFor(kind: PlayableKind, config: PlayableConfig): string {
     ? (config.array ?? FOUR_SUM_DEFAULT).slice(0, 10)
     : kind === "dutch-national-flag"
       ? (config.array ?? DUTCH_NATIONAL_FLAG_DEFAULT).slice(0, 12)
-      : requestedArray;
-  const n = config.n ?? 5;
+      : kind === "majority-vote"
+        ? (config.array ?? MAJORITY_VOTE_DEFAULT).slice(0, 12)
+        : kind === "sliding-window-fixed"
+          ? (config.array ?? FIXED_WINDOW_DEFAULT).slice(0, 12)
+          : requestedArray;
+  const n = config.n ?? (kind === "sliding-window-fixed" ? FIXED_WINDOW_SIZE : 5);
   const target = config.target ?? (kind === "three-sum" || kind === "four-sum" ? 0 : 7);
   const text = config.text ?? "racecar";
   switch (kind) {
@@ -1696,6 +1704,15 @@ print(triplets)`;
         `arr = [${DUTCH_NATIONAL_FLAG_DEFAULT.join(", ")}]`,
         `arr = [${arr.join(", ")}]`,
       );
+    case "majority-vote":
+      return MAJORITY_VOTE_CODE.replace(
+        `arr = [${MAJORITY_VOTE_DEFAULT.join(", ")}]`,
+        `arr = [${arr.join(", ")}]`,
+      );
+    case "sliding-window-fixed":
+      return FIXED_WINDOW_CODE
+        .replace(`arr = [${FIXED_WINDOW_DEFAULT.join(", ")}]`, `arr = [${arr.join(", ")}]`)
+        .replace(`k = ${FIXED_WINDOW_SIZE}`, `k = ${n}`);
     case "factorial-loop":
       return `result = 1\nfor i in range(1, ${n} + 1):\n    result = result * i\nprint("Factorial:", result)`;
     case "factorial-recursion":
@@ -1778,6 +1795,17 @@ export function generateTrace(
       const flagValues = (config.array ?? DUTCH_NATIONAL_FLAG_DEFAULT).slice(0, 12);
       const flagSource = code ?? codeFor(kind, { ...config, array: flagValues });
       return buildDutchNationalFlagTrace(flagValues, flagSource, detectLanguage(flagSource));
+    }
+    case "majority-vote": {
+      const majorityValues = (config.array ?? MAJORITY_VOTE_DEFAULT).slice(0, 12);
+      const majoritySource = code ?? codeFor(kind, { ...config, array: majorityValues });
+      return buildMajorityVoteTrace(majorityValues, majoritySource, detectLanguage(majoritySource));
+    }
+    case "sliding-window-fixed": {
+      const windowValues = (config.array ?? FIXED_WINDOW_DEFAULT).slice(0, 12);
+      const windowSize = config.n ?? FIXED_WINDOW_SIZE;
+      const windowSource = code ?? codeFor(kind, { ...config, array: windowValues, n: windowSize });
+      return buildFixedWindowTrace(windowValues, windowSize, windowSource, detectLanguage(windowSource));
     }
     case "factorial-loop":
       return factorialLoopTrace(Math.min(config.n ?? 5, 12), source);
@@ -1906,6 +1934,13 @@ export const PLAYABLE_INPUTS: Partial<Record<PlayableKind, InputField[]>> = {
   ],
   "dutch-national-flag": [
     { key: "array", label: "0 / 1 / 2 values", default: DUTCH_NATIONAL_FLAG_DEFAULT, help: "Only 0, 1, and 2; up to twelve values" },
+  ],
+  "majority-vote": [
+    { key: "array", label: "Numbers", default: MAJORITY_VOTE_DEFAULT, help: "Candidate is verified with a second pass" },
+  ],
+  "sliding-window-fixed": [
+    { key: "array", label: "Numbers", default: FIXED_WINDOW_DEFAULT, help: "Up to twelve integers" },
+    { key: "n", label: "Window size k", default: FIXED_WINDOW_SIZE, help: "Whole number from 1 to the array length" },
   ],
   "factorial-loop": [{ key: "n", label: "n", default: 5, help: "Compute n!" }],
   "factorial-recursion": [{ key: "n", label: "n", default: 4, help: "fact(n) — max 8" }],

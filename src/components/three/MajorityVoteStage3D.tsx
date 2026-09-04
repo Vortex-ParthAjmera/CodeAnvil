@@ -1,4 +1,4 @@
-import { useLayoutEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Edges, Grid as InfiniteGrid, Html, Line, OrbitControls } from "@react-three/drei";
 import { useReducedMotion } from "motion/react";
@@ -36,17 +36,29 @@ function xForIndex(index: number, count: number): number {
 
 function CameraRig({ stageWidth, reduced }: { stageWidth: number; reduced: boolean }) {
   const camera = useThree((state) => state.camera) as THREE.PerspectiveCamera;
-  const target = useMemo(() => new THREE.Vector3(0, 3.7, Math.max(9.4, stageWidth * 0.92 + 3.5)), [stageWidth]);
+  const target = useRef(new THREE.Vector3(0, 3.7, Math.max(9.4, stageWidth * 0.92 + 3.5)));
+  const reframing = useRef(true);
 
   useLayoutEffect(() => {
-    camera.position.copy(target);
+    camera.position.copy(target.current);
     camera.lookAt(0, 0.18, 0);
-  }, [camera, target]);
+  }, [camera]);
+
+  useEffect(() => {
+    target.current.set(0, 3.7, Math.max(9.4, stageWidth * 0.92 + 3.5));
+    reframing.current = true;
+  }, [stageWidth]);
 
   useFrame((_, delta) => {
+    if (!reframing.current) return;
     const amount = reduced ? 1 : 1 - Math.pow(0.0008, delta);
-    camera.position.lerp(target, amount);
+    camera.position.lerp(target.current, amount);
     camera.lookAt(0, 0.18, 0);
+    if (camera.position.distanceTo(target.current) < 0.012) {
+      camera.position.copy(target.current);
+      camera.lookAt(0, 0.18, 0);
+      reframing.current = false;
+    }
   });
   return null;
 }
@@ -370,7 +382,20 @@ function Scene({ model, p, reduced }: { model: MajorityVoteSceneModel; p: Theme3
       <VoteFlow model={model} reduced={reduced} />
 
       <InfiniteGrid position={[0, -1.68, -0.24]} cellSize={0.48} cellThickness={0.5} cellColor={p.gridCell} sectionSize={2.4} sectionThickness={0.88} sectionColor={p.gridSection} fadeDistance={22} fadeStrength={1} infiniteGrid />
-      <OrbitControls enablePan={false} enableDamping dampingFactor={0.08} minDistance={6.8} maxDistance={18} minPolarAngle={0.38} maxPolarAngle={Math.PI / 2.04} />
+      <OrbitControls
+        enablePan={false}
+        enableRotate
+        enableZoom
+        enableDamping
+        dampingFactor={0.08}
+        rotateSpeed={0.72}
+        zoomSpeed={0.85}
+        target={[0, 0.18, 0]}
+        minDistance={6.8}
+        maxDistance={18}
+        minPolarAngle={0.38}
+        maxPolarAngle={Math.PI / 2.04}
+      />
     </>
   );
 }

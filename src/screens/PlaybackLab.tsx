@@ -507,14 +507,21 @@ export function PlaybackLab({
                     <input
                       key={`${example.id}:${field.key}`}
                       defaultValue={
-                        Array.isArray(config[field.key])
-                          ? (config[field.key] as unknown[]).join(", ")
-                          : String(config[field.key] ?? field.default)
+                        field.key === "intervals" && Array.isArray(config[field.key] ?? field.default)
+                          ? ((config[field.key] ?? field.default) as Array<[number, number]>).map(([start, end]) => `[${start},${end}]`).join("; ")
+                          : Array.isArray(config[field.key])
+                            ? (config[field.key] as unknown[]).join(", ")
+                            : String(config[field.key] ?? field.default)
                       }
                       onChange={(e) => {
                         const raw = e.target.value;
                         const next = { ...config };
-                        if (field.key === "array") {
+                        if (field.key === "intervals") {
+                          const endpoints = raw.match(/-?(?:\d+\.?\d*|\.\d+)/g)?.map(Number) ?? [];
+                          if (endpoints.length >= 2 && endpoints.length % 2 === 0 && endpoints.every(Number.isFinite)) {
+                            next.intervals = Array.from({ length: endpoints.length / 2 }, (_, index) => [endpoints[index * 2], endpoints[index * 2 + 1]]);
+                          }
+                        } else if (field.key === "array") {
                           const values = raw
                             .split(",")
                             .map((s) => Number(s.trim()))
@@ -526,7 +533,7 @@ export function PlaybackLab({
                             .map((s) => Number(s.trim()))
                             .filter(Number.isFinite);
                           if (values.length >= 3) next.tree = values;
-                        } else if (field.key === "n" || field.key === "target" || field.key === "left" || field.key === "right") {
+                        } else if (field.key === "n" || field.key === "target" || field.key === "left" || field.key === "right" || field.key === "delta") {
                           const n = Number(raw);
                           if (Number.isFinite(n)) next[field.key] = n;
                         } else if (field.key === "rows" || field.key === "cols") {
@@ -541,7 +548,7 @@ export function PlaybackLab({
                         }
                         setConfig(next);
                       }}
-                      className="w-28 rounded border border-ink-700 bg-ink-950 px-2 py-1 font-mono text-[10px] text-ink-200 outline-none focus:border-ember-500/60"
+                      className={cn(field.key === "intervals" ? "w-48" : "w-28", "rounded border border-ink-700 bg-ink-950 px-2 py-1 font-mono text-[10px] text-ink-200 outline-none focus:border-ember-500/60")}
                     />
                   </label>
                 ))}

@@ -16,6 +16,11 @@ import { buildMajorityVoteTrace, MAJORITY_VOTE_CODE } from "./traces/majority-vo
 import { buildFixedWindowTrace, FIXED_WINDOW_CODE } from "./traces/sliding-window-fixed";
 import { buildVariableWindowTrace, VARIABLE_WINDOW_CODE } from "./traces/sliding-window-variable";
 import { buildPrefixSumTrace, PREFIX_SUM_CODE } from "./traces/prefix-sum";
+import { buildDifferenceArrayTrace, DIFFERENCE_ARRAY_CODE } from "./traces/difference-array";
+import { buildTrappingRainWaterTrace, TRAPPING_RAIN_WATER_CODE } from "./traces/trapping-rain-water";
+import { buildRotateArrayTrace, ROTATE_ARRAY_CODE } from "./traces/rotate-array";
+import { buildMergeIntervalsTrace, MERGE_INTERVALS_CODE } from "./traces/merge-intervals";
+import { buildNextPermutationTrace, NEXT_PERMUTATION_CODE } from "./traces/next-permutation";
 import { buildBubbleSortTrace, BUBBLE_SORT_CODE } from "./traces/bubble-sort";
 import {
   buildBfsGridTrace,
@@ -189,6 +194,51 @@ export const EXAMPLES: Example[] = [
     trace: buildPrefixSumTrace(),
   },
   {
+    id: "difference-array",
+    slug: "difference-array",
+    title: "Difference Array Range Update",
+    topic: "arrays",
+    difficulty: "intermediate",
+    blurb: "Encode an inclusive range update with two boundary signals, then reconstruct every final value with one prefix sweep.",
+    trace: buildDifferenceArrayTrace(),
+  },
+  {
+    id: "trapping-rain-water",
+    slug: "trapping-rain-water",
+    title: "Trapping Rain Water",
+    topic: "arrays",
+    difficulty: "advanced",
+    blurb: "Resolve the lower outside wall, preserve both boundary maxima, and watch each trapped water volume accumulate permanently.",
+    trace: buildTrappingRainWaterTrace(),
+  },
+  {
+    id: "rotate-array",
+    slug: "rotate-array",
+    title: "Rotate Array",
+    topic: "arrays",
+    difficulty: "intermediate",
+    blurb: "Follow persistent value tokens through the three-reversal proof and see exactly why a cyclic right shift preserves group order.",
+    trace: buildRotateArrayTrace(),
+  },
+  {
+    id: "merge-intervals",
+    slug: "merge-intervals",
+    title: "Merge Intervals",
+    topic: "arrays",
+    difficulty: "intermediate",
+    blurb: "Sort intervals onto a shared timeline, compare each left edge with the active right edge, and watch the disjoint cover emerge.",
+    trace: buildMergeIntervalsTrace(),
+  },
+  {
+    id: "next-permutation",
+    slug: "next-permutation",
+    title: "Next Permutation",
+    topic: "arrays",
+    difficulty: "advanced",
+    blurb: "Reveal the rightmost pivot, smallest valid successor, and suffix reversal that create the immediate lexicographic successor.",
+    trace: buildNextPermutationTrace(),
+  },
+  {
     id: "bubble-sort",
     slug: "bubble-sort",
     title: "Bubble Sort",
@@ -289,6 +339,11 @@ export const EXAMPLE_CODE_BY_ID: Record<string, string> = {
   "sliding-window-fixed": FIXED_WINDOW_CODE,
   "sliding-window-variable": VARIABLE_WINDOW_CODE,
   "prefix-sum": PREFIX_SUM_CODE,
+  "difference-array": DIFFERENCE_ARRAY_CODE,
+  "trapping-rain-water": TRAPPING_RAIN_WATER_CODE,
+  "rotate-array": ROTATE_ARRAY_CODE,
+  "merge-intervals": MERGE_INTERVALS_CODE,
+  "next-permutation": NEXT_PERMUTATION_CODE,
   "bubble-sort": BUBBLE_SORT_CODE,
   "bfs-grid": BFS_GRID_CODE,
   "dfs-grid": DFS_GRID_CODE,
@@ -315,6 +370,11 @@ export const PLAYABLE_KIND_BY_EXAMPLE: Record<string, PlayableKind> = {
   "sliding-window-fixed": "sliding-window-fixed",
   "sliding-window-variable": "sliding-window-variable",
   "prefix-sum": "prefix-sum",
+  "difference-array": "difference-array",
+  "trapping-rain-water": "trapping-rain-water",
+  "rotate-array": "rotate-array",
+  "merge-intervals": "merge-intervals",
+  "next-permutation": "next-permutation",
   "factorial-loop": "factorial-loop",
   "factorial-recursion": "factorial-recursion",
   "fibonacci-recursion": "fibonacci-recursion",

@@ -134,7 +134,17 @@ body {
 .variable-window-equation,
 .variable-window-line-badge,
 .prefix-sum-equation,
-.prefix-sum-line-badge {
+.prefix-sum-line-badge,
+.difference-array-equation,
+.difference-array-line-badge,
+.rain-water-equation,
+.rain-water-line-badge,
+.rotate-array-equation,
+.rotate-array-line-badge,
+.merge-intervals-equation,
+.merge-intervals-line-badge,
+.next-permutation-equation,
+.next-permutation-line-badge {
   display: none;
 }
 
@@ -209,8 +219,23 @@ body {
   .majority-line-badge,
   .fixed-window-line-badge,
   .variable-window-line-badge,
-  .prefix-sum-line-badge {
+  .prefix-sum-line-badge,
+  .difference-array-line-badge,
+  .rain-water-line-badge,
+  .rotate-array-line-badge,
+  .merge-intervals-line-badge,
+  .next-permutation-line-badge {
     display: contents;
+  }
+}
+
+@container (min-width: 46rem) {
+  .difference-array-equation,
+  .rain-water-equation,
+  .rotate-array-equation,
+  .merge-intervals-equation,
+  .next-permutation-equation {
+    display: flex;
   }
 }
 

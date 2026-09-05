@@ -131,6 +131,11 @@ describe("generateTrace", () => {
     ["sliding-window-fixed", { array: [2, 1, 5, 1], n: 2 }],
     ["sliding-window-variable", { array: [2, 3, 1, 2, 4, 3], target: 7 }],
     ["prefix-sum", { array: [3, 1, 4, 1, 5], left: 1, right: 3 }],
+    ["difference-array", { array: [2, 1, 3, 2, 4], left: 1, right: 3, delta: 2 }],
+    ["trapping-rain-water", { array: [3, 0, 2, 0, 4] }],
+    ["rotate-array", { array: [1, 2, 3, 4], n: 2 }],
+    ["merge-intervals", { intervals: [[1, 3], [2, 5], [8, 10]] }],
+    ["next-permutation", { array: [1, 3, 2] }],
     ["merge-sort", { array: [5, 3, 8] }],
     ["quick-sort", { array: [5, 3, 8] }],
     ["heap-sort", { array: [5, 3, 8] }],
@@ -139,7 +144,7 @@ describe("generateTrace", () => {
     ["binary-search", { array: [1, 3, 5, 7], target: 5 }],
     ["factorial-recursion", { n: 4 }],
     ["inorder", { array: [8, 3, 10] }],
-  ] as [string, { array?: number[]; n?: number; target?: number; left?: number; right?: number; text?: string }][];
+  ] as [string, { array?: number[]; intervals?: Array<[number, number]>; n?: number; target?: number; left?: number; right?: number; delta?: number; text?: string }][];
 
   it.each(cases)("%s produces a valid trace document", (kind, config) => {
     const trace = generateTrace(kind as never, config);

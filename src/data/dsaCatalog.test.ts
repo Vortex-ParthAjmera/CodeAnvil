@@ -33,6 +33,11 @@ describe("DSA catalog", () => {
       ["Maximum Sum Subarray of Size K", "sliding-window-fixed"],
       ["Minimum Size Subarray Sum", "sliding-window-variable"],
       ["Range Sum Query Immutable", "prefix-sum"],
+      ["Range Addition (Difference Array)", "difference-array"],
+      ["Trapping Rain Water", "trapping-rain-water"],
+      ["Rotate Array", "rotate-array"],
+      ["Merge Intervals", "merge-intervals"],
+      ["Next Permutation", "next-permutation"],
     ]);
 
     for (const [title, exampleId] of expected) {

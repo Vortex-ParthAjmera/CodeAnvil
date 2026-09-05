@@ -39,6 +39,11 @@ import { buildMajorityVoteTrace, MAJORITY_VOTE_CODE, MAJORITY_VOTE_DEFAULT } fro
 import { buildFixedWindowTrace, FIXED_WINDOW_CODE, FIXED_WINDOW_DEFAULT, FIXED_WINDOW_SIZE } from "../data/traces/sliding-window-fixed";
 import { buildVariableWindowTrace, VARIABLE_WINDOW_CODE, VARIABLE_WINDOW_DEFAULT, VARIABLE_WINDOW_TARGET } from "../data/traces/sliding-window-variable";
 import { buildPrefixSumTrace, PREFIX_SUM_CODE, PREFIX_SUM_DEFAULT, PREFIX_SUM_LEFT, PREFIX_SUM_RIGHT } from "../data/traces/prefix-sum";
+import { buildDifferenceArrayTrace, DIFFERENCE_ARRAY_CODE, DIFFERENCE_ARRAY_DEFAULT, DIFFERENCE_ARRAY_LEFT, DIFFERENCE_ARRAY_RIGHT, DIFFERENCE_ARRAY_DELTA } from "../data/traces/difference-array";
+import { buildTrappingRainWaterTrace, TRAPPING_RAIN_WATER_CODE, TRAPPING_RAIN_WATER_DEFAULT } from "../data/traces/trapping-rain-water";
+import { buildRotateArrayTrace, ROTATE_ARRAY_CODE, ROTATE_ARRAY_DEFAULT, ROTATE_ARRAY_SHIFT } from "../data/traces/rotate-array";
+import { buildMergeIntervalsTrace, MERGE_INTERVALS_CODE, MERGE_INTERVALS_DEFAULT, type Interval } from "../data/traces/merge-intervals";
+import { buildNextPermutationTrace, NEXT_PERMUTATION_CODE, NEXT_PERMUTATION_DEFAULT } from "../data/traces/next-permutation";
 
 
 export type PlayableKind =
@@ -55,6 +60,11 @@ export type PlayableKind =
   | "sliding-window-fixed"
   | "sliding-window-variable"
   | "prefix-sum"
+  | "difference-array"
+  | "trapping-rain-water"
+  | "rotate-array"
+  | "merge-intervals"
+  | "next-permutation"
   | "factorial-loop"
   | "factorial-recursion"
   | "fibonacci-recursion"
@@ -73,10 +83,12 @@ export type PlayableKind =
 
 export interface PlayableConfig {
   array?: number[];
+  intervals?: Interval[];
   n?: number;
   target?: number;
   left?: number;
   right?: number;
+  delta?: number;
   text?: string;
   tree?: (number | null)[];
   maze?: MazeSpec;
@@ -1664,11 +1676,21 @@ export function codeFor(kind: PlayableKind, config: PlayableConfig): string {
             ? (config.array ?? VARIABLE_WINDOW_DEFAULT).slice(0, 12)
             : kind === "prefix-sum"
               ? (config.array ?? PREFIX_SUM_DEFAULT).slice(0, 12)
-              : requestedArray;
-  const n = config.n ?? (kind === "sliding-window-fixed" ? FIXED_WINDOW_SIZE : 5);
+              : kind === "difference-array"
+                ? (config.array ?? DIFFERENCE_ARRAY_DEFAULT).slice(0, 12)
+                : kind === "trapping-rain-water"
+                  ? (config.array ?? TRAPPING_RAIN_WATER_DEFAULT).slice(0, 12)
+                  : kind === "rotate-array"
+                    ? (config.array ?? ROTATE_ARRAY_DEFAULT).slice(0, 10)
+                    : kind === "next-permutation"
+                      ? (config.array ?? NEXT_PERMUTATION_DEFAULT).slice(0, 10)
+                      : requestedArray;
+  const n = config.n ?? (kind === "sliding-window-fixed" ? FIXED_WINDOW_SIZE : kind === "rotate-array" ? ROTATE_ARRAY_SHIFT : 5);
+  const intervals = (config.intervals ?? MERGE_INTERVALS_DEFAULT).slice(0, 8);
   const target = config.target ?? (kind === "three-sum" || kind === "four-sum" ? 0 : kind === "sliding-window-variable" ? VARIABLE_WINDOW_TARGET : 7);
-  const left = config.left ?? PREFIX_SUM_LEFT;
-  const right = config.right ?? PREFIX_SUM_RIGHT;
+  const left = config.left ?? (kind === "difference-array" ? DIFFERENCE_ARRAY_LEFT : PREFIX_SUM_LEFT);
+  const right = config.right ?? (kind === "difference-array" ? DIFFERENCE_ARRAY_RIGHT : PREFIX_SUM_RIGHT);
+  const delta = config.delta ?? DIFFERENCE_ARRAY_DELTA;
   const text = config.text ?? "racecar";
   switch (kind) {
     case "sum-array":
@@ -1733,6 +1755,29 @@ print(triplets)`;
       return PREFIX_SUM_CODE
         .replace(`arr = [${PREFIX_SUM_DEFAULT.join(", ")}]`, `arr = [${arr.join(", ")}]`)
         .replace(`left, right = ${PREFIX_SUM_LEFT}, ${PREFIX_SUM_RIGHT}`, `left, right = ${left}, ${right}`);
+    case "difference-array":
+      return DIFFERENCE_ARRAY_CODE
+        .replace(`arr = [${DIFFERENCE_ARRAY_DEFAULT.join(", ")}]`, `arr = [${arr.join(", ")}]`)
+        .replace(`left, right, delta = ${DIFFERENCE_ARRAY_LEFT}, ${DIFFERENCE_ARRAY_RIGHT}, ${DIFFERENCE_ARRAY_DELTA}`, `left, right, delta = ${left}, ${right}, ${delta}`);
+    case "trapping-rain-water":
+      return TRAPPING_RAIN_WATER_CODE.replace(
+        `height = [${TRAPPING_RAIN_WATER_DEFAULT.join(", ")}]`,
+        `height = [${arr.join(", ")}]`,
+      );
+    case "rotate-array":
+      return ROTATE_ARRAY_CODE
+        .replace(`arr = [${ROTATE_ARRAY_DEFAULT.join(", ")}]`, `arr = [${arr.join(", ")}]`)
+        .replace(`k = ${ROTATE_ARRAY_SHIFT}`, `k = ${n}`);
+    case "merge-intervals":
+      return MERGE_INTERVALS_CODE.replace(
+        `intervals = [[8, 10], [1, 3], [2, 6], [15, 18], [9, 12]]`,
+        `intervals = [${intervals.map(([start, end]) => `[${start}, ${end}]`).join(", ")}]`,
+      );
+    case "next-permutation":
+      return NEXT_PERMUTATION_CODE.replace(
+        `arr = [${NEXT_PERMUTATION_DEFAULT.join(", ")}]`,
+        `arr = [${arr.join(", ")}]`,
+      );
     case "factorial-loop":
       return `result = 1\nfor i in range(1, ${n} + 1):\n    result = result * i\nprint("Factorial:", result)`;
     case "factorial-recursion":
@@ -1840,6 +1885,35 @@ export function generateTrace(
       const prefixSource = code ?? codeFor(kind, { ...config, array: prefixValues, left: queryLeft, right: queryRight });
       return buildPrefixSumTrace(prefixValues, queryLeft, queryRight, prefixSource, detectLanguage(prefixSource));
     }
+    case "difference-array": {
+      const differenceValues = (config.array ?? DIFFERENCE_ARRAY_DEFAULT).slice(0, 12);
+      const rangeLeft = config.left ?? DIFFERENCE_ARRAY_LEFT;
+      const rangeRight = config.right ?? Math.min(DIFFERENCE_ARRAY_RIGHT, Math.max(0, differenceValues.length - 1));
+      const rangeDelta = config.delta ?? DIFFERENCE_ARRAY_DELTA;
+      const differenceSource = code ?? codeFor(kind, { ...config, array: differenceValues, left: rangeLeft, right: rangeRight, delta: rangeDelta });
+      return buildDifferenceArrayTrace(differenceValues, rangeLeft, rangeRight, rangeDelta, differenceSource, detectLanguage(differenceSource));
+    }
+    case "trapping-rain-water": {
+      const rainValues = (config.array ?? TRAPPING_RAIN_WATER_DEFAULT).slice(0, 12);
+      const rainSource = code ?? codeFor(kind, { ...config, array: rainValues });
+      return buildTrappingRainWaterTrace(rainValues, rainSource, detectLanguage(rainSource));
+    }
+    case "rotate-array": {
+      const rotateValues = (config.array ?? ROTATE_ARRAY_DEFAULT).slice(0, 10);
+      const rotateShift = config.n ?? ROTATE_ARRAY_SHIFT;
+      const rotateSource = code ?? codeFor(kind, { ...config, array: rotateValues, n: rotateShift });
+      return buildRotateArrayTrace(rotateValues, rotateShift, rotateSource, detectLanguage(rotateSource));
+    }
+    case "merge-intervals": {
+      const intervalValues = (config.intervals ?? MERGE_INTERVALS_DEFAULT).slice(0, 8);
+      const intervalSource = code ?? codeFor(kind, { ...config, intervals: intervalValues });
+      return buildMergeIntervalsTrace(intervalValues, intervalSource, detectLanguage(intervalSource));
+    }
+    case "next-permutation": {
+      const permutationValues = (config.array ?? NEXT_PERMUTATION_DEFAULT).slice(0, 10);
+      const permutationSource = code ?? codeFor(kind, { ...config, array: permutationValues });
+      return buildNextPermutationTrace(permutationValues, permutationSource, detectLanguage(permutationSource));
+    }
     case "factorial-loop":
       return factorialLoopTrace(Math.min(config.n ?? 5, 12), source);
     case "factorial-recursion": {
@@ -1941,7 +2015,7 @@ export function generateTrace(
 
 /** Registry of playable kinds with their editable inputs (lab "Inputs" panel). */
 export interface InputField {
-  key: "array" | "n" | "target" | "left" | "right" | "text" | "tree" | "rows" | "cols" | "seed";
+  key: "array" | "intervals" | "n" | "target" | "left" | "right" | "delta" | "text" | "tree" | "rows" | "cols" | "seed";
   label: string;
   default: unknown;
   help: string;
@@ -1983,6 +2057,25 @@ export const PLAYABLE_INPUTS: Partial<Record<PlayableKind, InputField[]>> = {
     { key: "array", label: "Numbers", default: PREFIX_SUM_DEFAULT, help: "Up to twelve numbers" },
     { key: "left", label: "Query left", default: PREFIX_SUM_LEFT, help: "Inclusive start index" },
     { key: "right", label: "Query right", default: PREFIX_SUM_RIGHT, help: "Inclusive end index" },
+  ],
+  "difference-array": [
+    { key: "array", label: "Numbers", default: DIFFERENCE_ARRAY_DEFAULT, help: "Up to twelve finite numbers" },
+    { key: "left", label: "Update left", default: DIFFERENCE_ARRAY_LEFT, help: "Inclusive start index" },
+    { key: "right", label: "Update right", default: DIFFERENCE_ARRAY_RIGHT, help: "Inclusive end index" },
+    { key: "delta", label: "Add value", default: DIFFERENCE_ARRAY_DELTA, help: "Positive or negative range change" },
+  ],
+  "trapping-rain-water": [
+    { key: "array", label: "Wall heights", default: TRAPPING_RAIN_WATER_DEFAULT, help: "Non-negative heights; up to twelve" },
+  ],
+  "rotate-array": [
+    { key: "array", label: "Numbers", default: ROTATE_ARRAY_DEFAULT, help: "Up to ten finite numbers" },
+    { key: "n", label: "Right shift k", default: ROTATE_ARRAY_SHIFT, help: "Negative and oversized shifts normalize" },
+  ],
+  "merge-intervals": [
+    { key: "intervals", label: "Intervals", default: MERGE_INTERVALS_DEFAULT, help: "Use [start,end]; [start,end]" },
+  ],
+  "next-permutation": [
+    { key: "array", label: "Permutation", default: NEXT_PERMUTATION_DEFAULT, help: "Up to ten finite numbers; duplicates allowed" },
   ],
   "factorial-loop": [{ key: "n", label: "n", default: 5, help: "Compute n!" }],
   "factorial-recursion": [{ key: "n", label: "n", default: 4, help: "fact(n) — max 8" }],

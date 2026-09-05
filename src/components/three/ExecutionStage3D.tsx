@@ -17,6 +17,11 @@ import { MajorityVoteStage3D } from "./MajorityVoteStage3D";
 import { FixedWindowStage3D } from "./FixedWindowStage3D";
 import { VariableWindowStage3D } from "./VariableWindowStage3D";
 import { PrefixSumStage3D } from "./PrefixSumStage3D";
+import { DifferenceArrayStage3D } from "./DifferenceArrayStage3D";
+import { TrappingRainWaterStage3D } from "./TrappingRainWaterStage3D";
+import { RotateArrayStage3D } from "./RotateArrayStage3D";
+import { MergeIntervalsStage3D } from "./MergeIntervalsStage3D";
+import { NextPermutationStage3D } from "./NextPermutationStage3D";
 import { MinArrayStage3D } from "./MinArrayStage3D";
 import { ReverseArrayStage3D } from "./ReverseArrayStage3D";
 import { KadaneStage3D } from "./KadaneStage3D";
@@ -37,6 +42,11 @@ import { isMajorityVoteTraceStep } from "../../engine/majorityVoteStage";
 import { isFixedWindowTraceStep } from "../../engine/fixedWindowStage";
 import { isVariableWindowTraceStep } from "../../engine/variableWindowStage";
 import { isPrefixSumTraceStep } from "../../engine/prefixSumStage";
+import { isDifferenceArrayTraceStep } from "../../engine/differenceArrayStage";
+import { isTrappingRainTraceStep } from "../../engine/trappingRainStage";
+import { isRotateArrayTraceStep } from "../../engine/rotateArrayStage";
+import { isMergeIntervalsTraceStep } from "../../engine/mergeIntervalsStage";
+import { isNextPermutationTraceStep } from "../../engine/nextPermutationStage";
 import { isBubbleSortTraceStep, isHeapSortTraceStep, isMergeSortTraceStep, isQuickSortTraceStep } from "../../engine/sortStage";
 
 function isArrayHighlight(
@@ -73,6 +83,26 @@ export function ExecutionStage3D({ step, steps }: { step: TraceStep; steps?: Tra
 
   if (dispatch.kind === "array" && isPrefixSumTraceStep(step)) {
     return <PrefixSumStage3D step={step} steps={steps} />;
+  }
+
+  if (dispatch.kind === "array" && isDifferenceArrayTraceStep(step)) {
+    return <DifferenceArrayStage3D step={step} steps={steps} />;
+  }
+
+  if (dispatch.kind === "array" && isTrappingRainTraceStep(step)) {
+    return <TrappingRainWaterStage3D step={step} steps={steps} />;
+  }
+
+  if (dispatch.kind === "array" && isRotateArrayTraceStep(step)) {
+    return <RotateArrayStage3D step={step} steps={steps} />;
+  }
+
+  if (dispatch.kind === "array" && isMergeIntervalsTraceStep(step)) {
+    return <MergeIntervalsStage3D step={step} steps={steps} />;
+  }
+
+  if (dispatch.kind === "array" && isNextPermutationTraceStep(step)) {
+    return <NextPermutationStage3D step={step} steps={steps} />;
   }
 
   if (dispatch.kind === "array" && isFourSumTraceStep(step)) {

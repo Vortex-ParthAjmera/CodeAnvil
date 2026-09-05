@@ -11,6 +11,11 @@ import { MAJORITY_VOTE_CODE } from "./traces/majority-vote";
 import { FIXED_WINDOW_CODE } from "./traces/sliding-window-fixed";
 import { VARIABLE_WINDOW_CODE } from "./traces/sliding-window-variable";
 import { PREFIX_SUM_CODE } from "./traces/prefix-sum";
+import { DIFFERENCE_ARRAY_CODE } from "./traces/difference-array";
+import { TRAPPING_RAIN_WATER_CODE } from "./traces/trapping-rain-water";
+import { ROTATE_ARRAY_CODE } from "./traces/rotate-array";
+import { MERGE_INTERVALS_CODE } from "./traces/merge-intervals";
+import { NEXT_PERMUTATION_CODE } from "./traces/next-permutation";
 
 export type VariantLanguage = "python" | "javascript";
 
@@ -299,6 +304,99 @@ for (let i = 0; i < arr.length; i++)
   prefix[i + 1] = prefix[i] + arr[i];
 const rangeSum = prefix[right + 1] - prefix[left];
 console.log(rangeSum);`,
+  },
+  "difference-array": {
+    python: DIFFERENCE_ARRAY_CODE,
+    javascript: `const arr = [2, 1, 3, 2, 4, 1];
+const left = 1, right = 4, delta = 3;
+if (!arr.length || !(0 <= left && left <= right && right < arr.length)) throw new Error("range must fit inside arr");
+const diff = Array(arr.length).fill(0);
+diff[0] = arr[0];
+for (let i = 1; i < arr.length; i++)
+  diff[i] = arr[i] - arr[i - 1];
+diff[left] += delta;
+if (right + 1 < arr.length) diff[right + 1] -= delta;
+const result = Array(arr.length).fill(0);
+let running = 0;
+for (let i = 0; i < arr.length; i++) {
+  running += diff[i];
+  result[i] = running;
+}
+console.log(result);`,
+  },
+  "trapping-rain-water": {
+    python: TRAPPING_RAIN_WATER_CODE,
+    javascript: `const height = [3, 0, 2, 0, 4, 1, 2, 1];
+if (height.length < 2 || height.some((value) => value < 0)) throw new Error("use non-negative heights");
+let left = 0, right = height.length - 1;
+let leftMax = 0, rightMax = 0;
+let water = 0;
+while (left < right) {
+  if (height[left] <= height[right]) {
+    leftMax = Math.max(leftMax, height[left]);
+    water += leftMax - height[left];
+    left += 1;
+  } else {
+    rightMax = Math.max(rightMax, height[right]);
+    water += rightMax - height[right];
+    right -= 1;
+  }
+}
+console.log(water);`,
+  },
+  "rotate-array": {
+    python: ROTATE_ARRAY_CODE,
+    javascript: `const arr = [1, 2, 3, 4, 5, 6];
+let k = 2;
+if (!arr.length) throw new Error("arr must not be empty");
+if (!Number.isInteger(k)) throw new Error("k must be an integer");
+k = ((k % arr.length) + arr.length) % arr.length;
+function reverseRange(a, left, right) {
+  while (left < right) {
+    [a[left], a[right]] = [a[right], a[left]];
+    left += 1; right -= 1;
+  }
+}
+reverseRange(arr, 0, arr.length - 1);
+reverseRange(arr, 0, k - 1);
+reverseRange(arr, k, arr.length - 1);
+console.log(arr);`,
+  },
+  "merge-intervals": {
+    python: MERGE_INTERVALS_CODE,
+    javascript: `const intervals = [[8, 10], [1, 3], [2, 6], [15, 18], [9, 12]];
+if (!intervals.length) throw new Error("intervals must not be empty");
+for (const [start, end] of intervals)
+  if (start > end) throw new Error("start must not exceed end");
+intervals.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+const merged = [[...intervals[0]]];
+for (const [start, end] of intervals.slice(1)) {
+  const last = merged[merged.length - 1];
+  if (start <= last[1])
+    last[1] = Math.max(last[1], end);
+  else
+    merged.push([start, end]);
+}
+console.log(merged);`,
+  },
+  "next-permutation": {
+    python: NEXT_PERMUTATION_CODE,
+    javascript: `const arr = [1, 3, 5, 4, 2];
+if (!arr.length) throw new Error("arr must not be empty");
+let pivot = arr.length - 2;
+while (pivot >= 0 && arr[pivot] >= arr[pivot + 1])
+  pivot -= 1;
+if (pivot >= 0) {
+  let successor = arr.length - 1;
+  while (arr[successor] <= arr[pivot]) successor -= 1;
+  [arr[pivot], arr[successor]] = [arr[successor], arr[pivot]];
+}
+let left = pivot + 1, right = arr.length - 1;
+while (left < right) {
+  [arr[left], arr[right]] = [arr[right], arr[left]];
+  left += 1; right -= 1;
+}
+console.log(arr);`,
   },
   "factorial-loop": {
     python: `result = 1

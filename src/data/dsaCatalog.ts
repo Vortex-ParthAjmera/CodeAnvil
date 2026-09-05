@@ -3,6 +3,11 @@ import { MAJORITY_VOTE_CODE } from "./traces/majority-vote";
 import { FIXED_WINDOW_CODE } from "./traces/sliding-window-fixed";
 import { VARIABLE_WINDOW_CODE } from "./traces/sliding-window-variable";
 import { PREFIX_SUM_CODE } from "./traces/prefix-sum";
+import { DIFFERENCE_ARRAY_CODE } from "./traces/difference-array";
+import { TRAPPING_RAIN_WATER_CODE } from "./traces/trapping-rain-water";
+import { ROTATE_ARRAY_CODE } from "./traces/rotate-array";
+import { MERGE_INTERVALS_CODE } from "./traces/merge-intervals";
+import { NEXT_PERMUTATION_CODE } from "./traces/next-permutation";
 
 export interface DataStructureGuide {
   id: string;
@@ -95,6 +100,8 @@ export const DSA_PROBLEMS: DsaProblem[] = [
     ["Maximum in Array", "beginner", "O(n)", "Track the largest value seen during a scan.", "max-array"],
     ["Minimum in Array", "beginner", "O(n)", "Keep the smallest candidate seen during one complete scan.", "min-array"],
     ["Reverse an Array", "beginner", "O(n)", "Swap mirrored positions with two pointers moving inward.", "reverse-array"],
+    ["Rotate Array", "intermediate", "O(n)", "Shift every value cyclically with three in-place reversals.", "rotate-array"],
+    ["Next Permutation", "advanced", "O(n)", "Find the immediate lexicographic successor with a pivot and suffix reversal.", "next-permutation"],
   ]),
   ...group("Two Pointers", "Pointer convergence", [
     ["Valid Palindrome", "beginner", "O(n)", "Compare normalized characters from both ends.", "palindrome"],
@@ -102,7 +109,7 @@ export const DSA_PROBLEMS: DsaProblem[] = [
     ["3Sum", "intermediate", "O(n²)", "Fix one value and solve a two-pointer pair search.", "three-sum"],
     ["4Sum", "intermediate", "O(n³)", "Fix two values and solve the remaining pair with inward pointers.", "four-sum"],
     ["Container With Most Water", "intermediate", "O(n)", "Shrink the limiting wall while maximizing area."],
-    ["Trapping Rain Water", "advanced", "O(n)", "Accumulate water using opposing boundary maxima."],
+    ["Trapping Rain Water", "advanced", "O(n)", "Accumulate water using opposing boundary maxima.", "trapping-rain-water"],
     ["Remove Duplicates From Sorted Array", "beginner", "O(n)", "Compact unique values in place."],
     ["Move Zeroes", "beginner", "O(n)", "Compact nonzero values while preserving order."],
     ["Sort Colors", "intermediate", "O(n)", "Partition three values with Dutch-national-flag pointers.", "dutch-national-flag"],
@@ -256,7 +263,7 @@ export const DSA_PROBLEMS: DsaProblem[] = [
     ["Jump Game II", "intermediate", "O(n)", "Expand the current jump layer to its farthest reach."],
     ["Gas Station", "intermediate", "O(n)", "Restart after any prefix with a negative balance."],
     ["Hand of Straights", "intermediate", "O(n log n)", "Start consecutive groups from the smallest cards."],
-    ["Merge Intervals", "intermediate", "O(n log n)", "Sort and fold overlapping ranges."],
+    ["Merge Intervals", "intermediate", "O(n log n)", "Sort and fold overlapping ranges.", "merge-intervals"],
     ["Insert Interval", "intermediate", "O(n)", "Place and merge one new range into sorted ranges."],
     ["Non-overlapping Intervals", "intermediate", "O(n log n)", "Keep intervals with the earliest finishing time."],
     ["Meeting Rooms", "beginner", "O(n log n)", "Detect overlap after sorting start times."],
@@ -304,6 +311,7 @@ export const DSA_PROBLEMS: DsaProblem[] = [
   ]),
   ...group("Range Queries", "Indexed aggregation", [
     ["Range Sum Query Immutable", "beginner", "O(1) query", "Subtract two prefix sums for any interval.", "prefix-sum"],
+    ["Range Addition (Difference Array)", "intermediate", "O(1) update", "Encode an inclusive range update with start and stop boundary markers.", "difference-array"],
     ["Range Sum Query Mutable", "intermediate", "O(log n)", "Use a Fenwick or segment tree for updates and sums."],
     ["Range Minimum Query", "intermediate", "O(log n)", "Aggregate minimum values over segment tree nodes."],
     ["Lazy Range Addition", "advanced", "O(log n)", "Defer uniform segment updates until descendants are needed."],
@@ -409,6 +417,11 @@ export function makeProblemStarter(problem: DsaProblem): string {
   if (problem.exampleId === "sliding-window-fixed") return FIXED_WINDOW_CODE;
   if (problem.exampleId === "sliding-window-variable") return VARIABLE_WINDOW_CODE;
   if (problem.exampleId === "prefix-sum") return PREFIX_SUM_CODE;
+  if (problem.exampleId === "difference-array") return DIFFERENCE_ARRAY_CODE;
+  if (problem.exampleId === "trapping-rain-water") return TRAPPING_RAIN_WATER_CODE;
+  if (problem.exampleId === "rotate-array") return ROTATE_ARRAY_CODE;
+  if (problem.exampleId === "merge-intervals") return MERGE_INTERVALS_CODE;
+  if (problem.exampleId === "next-permutation") return NEXT_PERMUTATION_CODE;
   if (problem.exampleId === "binary-search") return `arr = [1, 3, 5, 7, 9, 11]\ntarget = 7\nlow, high = 0, len(arr) - 1\nwhile low <= high:\n    mid = (low + high) // 2\n    if arr[mid] == target:\n        print("Found at", mid)\n        break\n    elif arr[mid] < target:\n        low = mid + 1\n    else:\n        high = mid - 1`;
   if (problem.exampleId === "bubble-sort") return `arr = [5, 2, 8, 1]\nn = len(arr)\nfor i in range(n - 1):\n    for j in range(n - 1 - i):\n        if arr[j] > arr[j + 1]:\n            arr[j], arr[j + 1] = arr[j + 1], arr[j]\nprint(arr)`;
   if (problem.exampleId === "merge-sort") return `arr = [8, 3, 5, 1, 9, 2]\ndef merge_sort(a):\n    if len(a) <= 1:\n        return a\n    mid = len(a) // 2\n    left = merge_sort(a[:mid])\n    right = merge_sort(a[mid:])\n    return merge(left, right)\nprint(merge_sort(arr))`;

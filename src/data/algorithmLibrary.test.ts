@@ -140,6 +140,31 @@ describe("algorithm library", () => {
       displayTitle: "Prefix Sum",
       variantLabel: "Play",
     });
+    expect(findAlgorithmForExample("difference-array")).toMatchObject({
+      sectionTitle: "Arrays & Basics",
+      displayTitle: "Difference Array",
+      variantLabel: "Play",
+    });
+    expect(findAlgorithmForExample("trapping-rain-water")).toMatchObject({
+      sectionTitle: "Arrays & Basics",
+      displayTitle: "Trapping Rain Water",
+      variantLabel: "Play",
+    });
+    expect(findAlgorithmForExample("rotate-array")).toMatchObject({
+      sectionTitle: "Arrays & Basics",
+      displayTitle: "Rotate Array (Cyclic Rotation)",
+      variantLabel: "Play",
+    });
+    expect(findAlgorithmForExample("merge-intervals")).toMatchObject({
+      sectionTitle: "Arrays & Basics",
+      displayTitle: "Merge Intervals",
+      variantLabel: "Play",
+    });
+    expect(findAlgorithmForExample("next-permutation")).toMatchObject({
+      sectionTitle: "Arrays & Basics",
+      displayTitle: "Next Permutation",
+      variantLabel: "Play",
+    });
     expect(findAlgorithmForExample("factorial-recursion")).toMatchObject({
       sectionTitle: "Recursion & Backtracking",
       displayTitle: "Factorial - Recursion",
